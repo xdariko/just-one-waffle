@@ -8,15 +8,18 @@ public class RuntimeDialogueGraph : ScriptableObject
     public List<RuntimeDialogueNode> AllNodes = new List<RuntimeDialogueNode>();
 }
 
-
 [Serializable]
 public class RuntimeDialogueNode
 {
     public string NodeID;
+
     public string SpeakerName;
     public string DialogueText;
     public List<ChoiceData> Choices = new List<ChoiceData>();
     public string NextNodeID;
+
+    public string Command;
+    public bool AutoContinue;
 }
 
 [Serializable]

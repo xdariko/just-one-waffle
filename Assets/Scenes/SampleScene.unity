@@ -169,6 +169,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DialogueManager
   RuntimeGraph: {fileID: 3965311268370046156, guid: ea33bb366b8aa7e44ac67ff1cea8d6bb, type: 3}
+  commandLibrary: {fileID: 11400000, guid: f85da2b3ca1d66e4fae58763ac11dec3, type: 2}
   DialoguePanel: {fileID: 930822644}
   SpeakerNameText: {fileID: 1559202457}
   DialogueText: {fileID: 1966499022}

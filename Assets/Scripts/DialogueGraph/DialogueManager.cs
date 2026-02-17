@@ -8,6 +8,9 @@ public class DialogueManager : MonoBehaviour
 {
     public RuntimeDialogueGraph RuntimeGraph;
 
+    [SerializeField]
+    private DialogueCommandLibrary commandLibrary;
+
     [Header("UI Components")]
     public GameObject DialoguePanel;
     public TextMeshProUGUI SpeakerNameText;
@@ -35,6 +38,8 @@ public class DialogueManager : MonoBehaviour
         {
             EndDialogue();
         }
+
+        commandLibrary.Initialize();
     }
 
     private void Update()
@@ -61,6 +66,18 @@ public class DialogueManager : MonoBehaviour
         }
 
         currentNode = nodeLookup[nodeID];
+
+        if (!string.IsNullOrEmpty(currentNode.Command))
+        {
+            ExecuteCommand(currentNode.Command);
+
+            if (!string.IsNullOrEmpty(currentNode.NextNodeID))
+                ShowNode(currentNode.NextNodeID);
+            else
+                EndDialogue();
+
+            return;
+        }
 
         DialoguePanel.SetActive(true);
         SpeakerNameText.SetText(currentNode.SpeakerName);
@@ -108,6 +125,14 @@ public class DialogueManager : MonoBehaviour
         foreach (Transform child in ChoiceButtonContainer)
         {
             Destroy(child.gameObject);
+        }
+    }
+
+    private void ExecuteCommand(string command)
+    {
+        if (!commandLibrary.Execute(command))
+        {
+            Debug.LogWarning($"Failed to execute command: {command}");
         }
     }
 }

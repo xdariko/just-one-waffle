@@ -1,7 +1,5 @@
-using UnityEngine;
 using Unity.GraphToolkit.Editor;
 using System;
-using TMPro.EditorUtilities;
 
 [Serializable]
 public class StartNode : Node
@@ -59,5 +57,18 @@ public class ChoiceNode : Node
     protected override void OnDefineOptions(IOptionDefinitionContext context)
     {
         context.AddOption<int>(optionID).WithDefaultValue(2).Delayed();
+    }
+}
+
+[Serializable]
+public class CommandNode : Node
+{
+    protected override void OnDefinePorts(IPortDefinitionContext context)
+    {
+        context.AddInputPort("in").Build();
+        context.AddOutputPort("out").Build();
+
+        context.AddInputPort<string>("Command").Build();
+        context.AddInputPort<bool>("AutoContinue").Build();
     }
 }

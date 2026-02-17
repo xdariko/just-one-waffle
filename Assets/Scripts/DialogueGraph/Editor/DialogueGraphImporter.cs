@@ -34,13 +34,17 @@ public class DialogueGraphImporter : ScriptedImporter
             if (iNode is StartNode || iNode is EndNode) continue;
 
             var runtimeNode = new RuntimeDialogueNode { NodeID = nodeIDMap[iNode] };
-            if(iNode is DialogueNode dialogueNode)
+            if (iNode is DialogueNode dialogueNode)
             {
                 ProcessDialogueNode(dialogueNode, runtimeNode, nodeIDMap);
             }
             else if (iNode is ChoiceNode choiceNode)
             {
-               ProcessChoiceNode(choiceNode, runtimeNode, nodeIDMap);  
+                ProcessChoiceNode(choiceNode, runtimeNode, nodeIDMap);
+            }
+            else if (iNode is CommandNode commandNode)
+            {
+                ProcessCommandNode(commandNode, runtimeNode, nodeIDMap);
             }
 
             runtimeGraph.AllNodes.Add(runtimeNode);
@@ -50,13 +54,13 @@ public class DialogueGraphImporter : ScriptedImporter
         ctx.SetMainObject(runtimeGraph);
     }
 
-    private void ProcessDialogueNode(DialogueNode node, RuntimeDialogueNode runtimeNode, Dictionary<INode,string> nodeIDMap)
+    private void ProcessDialogueNode(DialogueNode node, RuntimeDialogueNode runtimeNode, Dictionary<INode, string> nodeIDMap)
     {
         runtimeNode.SpeakerName = GetPortValue<string>(node.GetInputPortByName("Speaker"));
         runtimeNode.DialogueText = GetPortValue<string>(node.GetInputPortByName("Dialogue"));
 
         var nextNodePort = node.GetOutputPortByName("out")?.firstConnectedPort;
-        if(nextNodePort != null) 
+        if (nextNodePort != null)
             runtimeNode.NextNodeID = nodeIDMap[nextNodePort.GetNode()];
     }
 
@@ -82,13 +86,23 @@ public class DialogueGraphImporter : ScriptedImporter
         }
     }
 
+    private void ProcessCommandNode(CommandNode node, RuntimeDialogueNode runtimeNode, Dictionary<INode, string> nodeIDMap)
+    {
+        runtimeNode.Command = GetPortValue<string>(node.GetInputPortByName("Command"));
+        runtimeNode.AutoContinue = GetPortValue<bool>(node.GetInputPortByName("AutoContinue"));
+
+        var nextNodePort = node.GetOutputPortByName("out")?.firstConnectedPort;
+        if (nextNodePort != null)
+            runtimeNode.NextNodeID = nodeIDMap[nextNodePort.GetNode()];
+    }
+
     private T GetPortValue<T>(IPort port)
     {
         if (port == null) return default;
 
         if (port.isConnected)
         {
-            if(port.firstConnectedPort.GetNode() is IVariableNode variableNode)
+            if (port.firstConnectedPort.GetNode() is IVariableNode variableNode)
             {
                 variableNode.variable.TryGetDefaultValue(out T value);
                 return value;
