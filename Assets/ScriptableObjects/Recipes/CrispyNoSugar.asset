@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d3f1a2b9c4e4f60a8b1c2d3e4f5a6b7, type: 3}
+  m_Name: CrispyNoSugar
+  m_EditorClassIdentifier: Assembly-CSharp::WaffleRecipe
+  id: crispy_no_sugar
+  displayName: "Хрустящая без сахара"
+  customerLine: "Мне хрустящую вафлю! И без сахара, пожалуйста."
+  eggs: 2
+  flour:
+    amount: 200
+    greenTolerance: 15
+    yellowTolerance: 40
+  milk:
+    amount: 230
+    greenTolerance: 20
+    yellowTolerance: 50
+  sugarPortions: 0
+  saltPortions: 1
+  batter:
+    amount: 150
+    greenTolerance: 15
+    yellowTolerance: 35
+  preferredDoneness: 3
+  sauces:
+  - sauce: {fileID: 11400000, guid: 091f61ffc9b4eb14ca41a7b796c184df, type: 2}
+    minCoverage: 0.25
+  toppings:
+  - topping: {fileID: 11400000, guid: c0c935afc89bb3f459c835757314a36b, type: 2}
+    count: 6
+    tolerance: 2
+  penalizeExtraDecor: 1
