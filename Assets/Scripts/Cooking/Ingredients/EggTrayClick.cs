@@ -23,15 +23,14 @@ public class EggTrayClick : MonoBehaviour
     public void SpawnEgg()
     {
         if (currentEgg != null) return;
+        if (!CookingManager.Instance.Current.CanUseBowl || WhiskItem.Active != null) return;
 
         currentEgg = Instantiate(eggPrefab, eggSpawnPoint.position, Quaternion.identity);
         currentEgg.Initialize(bowlHitArea);
 
-        currentEgg.OnResolved += success =>
+        currentEgg.OnResolved += result =>
         {
-            if (success)
-                CookingManager.Instance.Current.AddEgg();
-
+            CookingManager.Instance.Current.AddEgg(result);
             currentEgg = null;
         };
     }
