@@ -14,13 +14,14 @@ public enum PourIngredient
 {
     Flour,
     Milk,
-    Batter // тесто половником из миски в вафельницу
+    Batter, // тесто половником из миски в вафельницу
+    Sugar   // сахар: держим палец над миской, как муку (значение в конце — не сдвигает сохранённые в префабах)
 }
 
 // Что добавляем порциями (одно нажатие — одна порция)
 public enum PortionIngredient
 {
-    Sugar,
+    Sugar, // устарело: сахар теперь сыпется удержанием (PourIngredient.Sugar); порция = SugarPortionGrams
     Salt
 }
 

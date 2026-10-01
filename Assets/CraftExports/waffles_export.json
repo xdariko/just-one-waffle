@@ -1,0 +1,99 @@
+{
+  "tags": [
+    { "name": "crispy", "description": "Хрустящая: подтверждается зажаристой выпечкой.", "image": "crispy.png" },
+    { "name": "soft", "description": "Мягкая: бледная или золотистая выпечка.", "image": "soft.png" },
+    { "name": "sweet", "description": "Сладкое.", "image": "sweet.png" },
+    { "name": "sugar", "description": "Содержит сахар.", "image": "sugar.png" },
+    { "name": "dairy", "description": "Молочное.", "image": "dairy.png" },
+    { "name": "fruit", "description": "Фрукты и ягоды.", "image": "fruit.png" },
+    { "name": "chocolate", "description": "Шоколад.", "image": "chocolate.png" },
+    { "name": "classic", "description": "Классика меню.", "image": "classic.png" }
+  ],
+  "ingredients": [
+    { "id": 1, "name": "Яйцо", "image": "egg.png", "description": "Куриное яйцо, штуки.", "tags": [] },
+    { "id": 2, "name": "Мука", "image": "flour.png", "description": "Пшеничная мука, граммы.", "tags": [] },
+    { "id": 3, "name": "Молоко", "image": "milk.png", "description": "Молоко, миллилитры.", "tags": ["dairy"] },
+    { "id": 4, "name": "Сахар", "image": "sugar.png", "description": "Сахар, граммы.", "tags": ["sugar", "sweet"] },
+    { "id": 5, "name": "Соль", "image": "salt.png", "description": "Соль, щепотки.", "tags": [] },
+    { "id": 6, "name": "Шоколад", "image": "chocolate_sauce.png", "description": "Шоколадный соус, % покрытия.", "tags": ["chocolate", "sweet"] },
+    { "id": 7, "name": "Карамель", "image": "caramel.png", "description": "Карамельный соус, % покрытия.", "tags": ["sweet"] },
+    { "id": 8, "name": "Сгущёнка", "image": "condensed_milk.png", "description": "Сгущённое молоко, % покрытия.", "tags": ["dairy", "sweet"] },
+    { "id": 9, "name": "Джем", "image": "berry_jam.png", "description": "Ягодный джем, % покрытия.", "tags": ["fruit", "sweet"] },
+    { "id": 10, "name": "Клубника", "image": "strawberry.png", "description": "Кусочки клубники, штуки.", "tags": ["fruit"] },
+    { "id": 11, "name": "Банан", "image": "banana.png", "description": "Кружочки банана, штуки.", "tags": ["fruit"] },
+    { "id": 12, "name": "Черника", "image": "blueberry.png", "description": "Ягоды черники, штуки.", "tags": ["fruit"] },
+    { "id": 13, "name": "Шок. крошка", "image": "chocolate_chips.png", "description": "Шоколадная крошка, щепотки.", "tags": ["chocolate", "sweet"] }
+  ],
+  "recipes": [
+    {
+      "name": "Простая вафля",
+      "description": "Мягкая золотистая вафля, немного сладкая.",
+      "image": "plain_waffle.png",
+      "ingredients": [
+        { "type": "ingredient", "id": 1, "quantity": 2 },
+        { "type": "ingredient", "id": 2, "quantity": 200 },
+        { "type": "ingredient", "id": 3, "quantity": 250 },
+        { "type": "ingredient", "id": 4, "quantity": 25 },
+        { "type": "ingredient", "id": 5, "quantity": 1 }
+      ],
+      "tags": ["classic", "soft"]
+    },
+    {
+      "name": "Хрустящая вафля",
+      "description": "Зажаристая, хрустит.",
+      "image": "crispy_waffle.png",
+      "ingredients": [
+        { "type": "ingredient", "id": 1, "quantity": 2 },
+        { "type": "ingredient", "id": 2, "quantity": 200 },
+        { "type": "ingredient", "id": 3, "quantity": 230 },
+        { "type": "ingredient", "id": 4, "quantity": 25 },
+        { "type": "ingredient", "id": 5, "quantity": 1 }
+      ],
+      "tags": ["crispy"]
+    },
+    {
+      "name": "Хрустящая без сахара",
+      "description": "Зажаристая и совсем без сахара.",
+      "image": "crispy_no_sugar.png",
+      "ingredients": [
+        { "type": "ingredient", "id": 1, "quantity": 2 },
+        { "type": "ingredient", "id": 2, "quantity": 200 },
+        { "type": "ingredient", "id": 3, "quantity": 230 },
+        { "type": "ingredient", "id": 5, "quantity": 1 }
+      ],
+      "tags": ["crispy"]
+    },
+    {
+      "name": "Клубника с шоколадом",
+      "description": "Простая вафля, шоколадный соус и клубника.",
+      "image": "strawberry_chocolate.png",
+      "ingredients": [
+        { "type": "recipe", "name": "Простая вафля" },
+        { "type": "ingredient", "id": 6, "quantity": 30 },
+        { "type": "ingredient", "id": 10, "quantity": 6 }
+      ],
+      "tags": ["sweet", "fruit"]
+    },
+    {
+      "name": "Фруктовая вафля",
+      "description": "Простая вафля, сгущёнка и любые фрукты.",
+      "image": "fruit_waffle.png",
+      "ingredients": [
+        { "type": "recipe", "name": "Простая вафля" },
+        { "type": "ingredient", "id": 8, "quantity": 25 },
+        { "type": "tag", "name": "fruit", "quantity": 5 }
+      ],
+      "tags": ["fruit", "sweet"]
+    },
+    {
+      "name": "Карамельная хрустящая",
+      "description": "Зажаристая вафля с карамелью.",
+      "image": "caramel_crispy.png",
+      "ingredients": [
+        { "type": "recipe", "name": "Хрустящая вафля" },
+        { "type": "ingredient", "id": 7, "quantity": 30 }
+      ],
+      "tags": ["crispy", "sweet"]
+    }
+  ]
+}

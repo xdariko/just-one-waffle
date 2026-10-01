@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8bcdf496426a4f44b551078b9224bab, type: 3}
+  m_Name: "3_\u041C\u043E\u043B\u043E\u043A\u043E"
+  m_EditorClassIdentifier: Assembly-CSharp::CraftIngredient
+  source:
+    id: 3
+    name: "\u041C\u043E\u043B\u043E\u043A\u043E"
+    description: "\u041C\u043E\u043B\u043E\u043A\u043E, \u043C\u0438\u043B\u043B\u0438\u043B\u0438\u0442\u0440\u044B."
+    image: milk.png
+    tags:
+    - {fileID: 11400000, guid: de5ab413349c1fa4e81c02d1e2d0eb16, type: 2}
+    missingInLastImport: 0
+  displayName: 
+  kind: 3
+  decor: {fileID: 0}
+  greenTolerance: 20
+  yellowTolerance: 50
+  icon: {fileID: 0}

@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d3f1a2b9c4e4f60a8b1c2d3e4f5a6b7, type: 3}
+  m_Name: "\u0425\u0440\u0443\u0441\u0442\u044F\u0449\u0430\u044F \u0432\u0430\u0444\u043B\u044F"
+  m_EditorClassIdentifier: Assembly-CSharp::WaffleRecipe
+  source:
+    name: "\u0425\u0440\u0443\u0441\u0442\u044F\u0449\u0430\u044F \u0432\u0430\u0444\u043B\u044F"
+    description: "\u0417\u0430\u0436\u0430\u0440\u0438\u0441\u0442\u0430\u044F, \u0445\u0440\u0443\u0441\u0442\u0438\u0442."
+    image: crispy_waffle.png
+    components:
+    - type: 0
+      key: 1
+      quantity: 2
+      ingredient: {fileID: 11400000, guid: c81936063ab2cb240a64dc8ad487df6e, type: 2}
+      tag: {fileID: 0}
+      recipe: {fileID: 0}
+    - type: 0
+      key: 2
+      quantity: 200
+      ingredient: {fileID: 11400000, guid: 6a62ca99e97aed045884f570ef51a049, type: 2}
+      tag: {fileID: 0}
+      recipe: {fileID: 0}
+    - type: 0
+      key: 3
+      quantity: 230
+      ingredient: {fileID: 11400000, guid: 44190ec3c57daac4bab2cdd01e16a691, type: 2}
+      tag: {fileID: 0}
+      recipe: {fileID: 0}
+    - type: 0
+      key: 4
+      quantity: 25
+      ingredient: {fileID: 11400000, guid: 655d08e2a5523c7489983e47ef7343c5, type: 2}
+      tag: {fileID: 0}
+      recipe: {fileID: 0}
+    - type: 0
+      key: 5
+      quantity: 1
+      ingredient: {fileID: 11400000, guid: 2eae1d457728049439c675e6be781163, type: 2}
+      tag: {fileID: 0}
+      recipe: {fileID: 0}
+    tags:
+    - {fileID: 11400000, guid: a071a897736197a49b2eaade744cbd8c, type: 2}
+    missingInLastImport: 0
+  id: "\u0445\u0440\u0443\u0441\u0442\u044F\u0449\u0430\u044F_\u0432\u0430\u0444\u043B\u044F"
+  displayName: "\u0425\u0440\u0443\u0441\u0442\u044F\u0449\u0430\u044F \u0432\u0430\u0444\u043B\u044F"
+  eggs: 2
+  flour:
+    amount: 200
+    greenTolerance: 15
+    yellowTolerance: 40
+  milk:
+    amount: 230
+    greenTolerance: 20
+    yellowTolerance: 50
+  sugar:
+    amount: 25
+    greenTolerance: 5
+    yellowTolerance: 12
+  saltPortions: 1
+  sauces: []
+  toppings: []
+  tagComponents: []
+  batter:
+    amount: 150
+    greenTolerance: 15
+    yellowTolerance: 35
+  preferredDoneness: 3
+  penalizeExtraDecor: 1

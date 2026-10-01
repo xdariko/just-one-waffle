@@ -49,7 +49,7 @@ public class WaffleScore
     public override string ToString()
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Рецепт \"{Recipe.displayName}\": {Points}/{MaxPoints} ({Percent * 100f:F0}%) → {Tier}");
+        sb.AppendLine($"Рецепт \"{Recipe.DisplayName}\": {Points}/{MaxPoints} ({Percent * 100f:F0}%) → {Tier}");
         foreach (var l in Lines)
             sb.AppendLine($"  {l.Name}: {l.Points}/{l.Max} — {l.Details}");
         if (Defects.Count > 0)
@@ -78,7 +78,11 @@ public static class RecipeScoring
     public static ScoreTier TierFor(float percent) =>
         percent >= GreatFrom ? ScoreTier.Great : percent >= OkFrom ? ScoreTier.Ok : ScoreTier.Bad;
 
-    public static WaffleScore Evaluate(CookingSession s, WaffleRecipe r)
+    // Сахар: столько граммов ещё "крупинки", а не сахар в тесте
+    private const float SugarNoise = 0.5f;
+
+    // db нужен для компонентов "любой ингредиент с тегом" (тег → какие добавки подходят); без него они не оцениваются
+    public static WaffleScore Evaluate(CookingSession s, WaffleRecipe r, CraftDatabase db = null)
     {
         var score = new WaffleScore(r);
 
@@ -92,8 +96,8 @@ public static class RecipeScoring
         }
         Pour(score, "Мука", s.FlourAmount, r.flour, "г", "мало муки", "много муки");
         Pour(score, "Молоко", s.MilkAmount, r.milk, "мл", "густое тесто", "жидкое тесто");
-        Count(score, "Сахар", s.SugarPortions, r.sugarPortions, "порц.");
-        if (r.sugarPortions == 0 && s.SugarPortions > 0) score.Defects.Add("просили без сахара");
+        Pour(score, "Сахар", s.SugarAmount, r.sugar, "г", "мало сахара", "много сахара");
+        if (r.sugar.amount <= 0f && s.SugarAmount > SugarNoise) score.Defects.Add("в рецепте нет сахара");
         Count(score, "Соль", s.SaltPortions, r.saltPortions, "порц.");
 
         {
@@ -151,10 +155,32 @@ public static class RecipeScoring
             if (have == 0) score.Defects.Add($"нет добавки \"{req.topping.displayName}\"");
         }
 
+        // Компоненты "любая добавка с тегом" ({ type tag, name fruit, quantity 3 }): считаем кусочки всех подходящих добавок
+        var taggedToppings = new HashSet<string>();
+        if (db != null)
+        {
+            foreach (var req in r.tagComponents.Where(x => x.tag != null))
+            {
+                var ids = db.ingredients
+                    .Where(i => i != null && i.kind == WaffleIngredientKind.Topping && i.decor != null && i.HasTag(req.tag))
+                    .Select(i => i.decor.id).ToHashSet();
+                if (ids.Count == 0) continue; // тег не про добавки — наличие проверяет OrderEvaluator
+                taggedToppings.UnionWith(ids);
+
+                int have = ids.Sum(decor.GetToppingCount);
+                int need = Mathf.RoundToInt(req.quantity);
+                int diff = Mathf.Abs(have - need);
+                int pts = diff <= 1 ? Green : diff <= 3 ? Yellow : Red;
+                score.Lines.Add(new WaffleScore.Line($"Добавки \"{req.tag.DisplayName}\"", pts, Green, $"{have} шт, нужно {need}"));
+                if (have == 0) score.Defects.Add($"нет добавок \"{req.tag.DisplayName}\"");
+            }
+        }
+
         if (r.penalizeExtraDecor)
         {
             var wantedSauces = r.sauces.Where(x => x.sauce != null).Select(x => x.sauce.id).ToHashSet();
             var wantedToppings = r.toppings.Where(x => x.topping != null).Select(x => x.topping.id).ToHashSet();
+            wantedToppings.UnionWith(taggedToppings);
 
             var extras = decor.SauceCoverage.Where(p => p.Value > SauceNoise && !wantedSauces.Contains(p.Key)).Select(p => p.Key)
                 .Concat(decor.ToppingCounts.Keys.Where(id => !wantedToppings.Contains(id)))

@@ -1,0 +1,73 @@
+
+{
+  tags [
+    {
+      name herb,
+      description A plant with medicinal properties.,
+      image herb.png
+    },
+    {
+      name metal,
+      description A strong, durable material.,
+      image metal.png
+    }
+  ],
+  ingredients [
+    {
+      id 1,
+      name Juniper Berry,
+      image juniper_berry.png,
+      description A small, aromatic berry from the juniper plant.,
+      tags [herb]
+    },
+    {
+      id 2,
+      name Gold,
+      image gold.png,
+      description A precious metal, often used in crafting and trading.,
+      tags [metal]
+    }
+  ],
+  recipes [
+    {
+      name Juniper Potion,
+      description A healing potion made from juniper berries.,
+      image juniper_potion.png,
+      ingredients [
+        { type ingredient, id 1, quantity 2 },
+        { type ingredient, id 2, quantity 1 }
+      ],
+      tags [herb, potion]
+    },
+    {
+      name Gold Ring,
+      description A shiny ring made from gold.,
+      image gold_ring.png,
+      ingredients [
+        { type ingredient, id 2, quantity 3 }
+      ],
+      tags [metal, jewelry]
+    },
+    {
+      name Advanced Potion,
+      description A powerful potion combining herbs and metals.,
+      image advanced_potion.png,
+      ingredients [
+        { type tag, name herb, quantity 2 },
+        { type ingredient, id 2, quantity 1 }
+      ],
+      tags [potion, advanced]
+    },
+    {
+      name Complex Recipe,
+      description A complex recipe that requires multiple elements.,
+      image complex_recipe.png,
+      ingredients [
+        { type recipe, name Juniper Potion },
+        { type recipe, name Gold Ring },
+        { type tag, name metal, quantity 5 }
+      ],
+      tags [complex]
+    }
+  ]
+}
