@@ -1,8 +1,9 @@
 using System;
 using UnityEngine;
 
-// Венчик над миской: тянем его влево-вправо — точка на шкале перемешивания ползёт вправо,
-// сама по себе она всё время сползает влево.
+// Венчик над миской: водим им по кругу (или влево-вправо) — точка на шкале перемешивания ползёт вправо,
+// сама по себе она всё время сползает влево. Важна скорость движения по траектории, а не направление,
+// поэтому круговые движения работают так же, как ходы из стороны в сторону.
 //  - точка в зелёной зоне — прогресс перемешивания растёт на полной скорости;
 //  - в жёлтой — вдвое медленнее;
 //  - слева в красной (слишком вяло) — прогресса нет;
@@ -42,6 +43,8 @@ public class WhiskItem : MonoBehaviour
     [SerializeField] private float maxTilt = 25f;
     [Tooltip("Отступ от краёв миски, куда венчик не заходит")]
     [SerializeField] private float bowlEdgePadding = 0.1f;
+    [Tooltip("На сколько венчик ходит вверх-вниз от точки появления (для круговых движений)")]
+    [SerializeField] private float verticalRange = 0.5f;
     [SerializeField] private float popDuration = 0.15f;
     [SerializeField] private float resolveDelay = 0.3f;
 
@@ -50,9 +53,11 @@ public class WhiskItem : MonoBehaviour
     private Camera cam;
 
     private bool dragging;
-    private float dragOffsetX;
-    private float lastX;
+    private Vector2 dragOffset;
+    private Vector2 lastPos;
+    private float baseY;
     private float smoothedVelocity;
+    private float smoothedSpeed;
 
     private float value;
     private float progress;
@@ -78,7 +83,8 @@ public class WhiskItem : MonoBehaviour
     {
         bowlArea = bowl;
         gauge = mixGauge;
-        lastX = transform.position.x;
+        lastPos = transform.position;
+        baseY = transform.position.y;
 
         if (gauge != null) gauge.Show(zones, "Перемешивание 0%", showProgress: true);
     }
@@ -87,20 +93,21 @@ public class WhiskItem : MonoBehaviour
     {
         if (finished) return;
         dragging = true;
-        dragOffsetX = transform.position.x - GetMouseWorld().x;
+        dragOffset = (Vector2)(transform.position - GetMouseWorld());
     }
 
     private void OnMouseDrag()
     {
         if (!dragging || finished) return;
 
-        float x = GetMouseWorld().x + dragOffsetX;
+        var p = (Vector2)GetMouseWorld() + dragOffset;
         if (bowlArea != null)
         {
             var b = bowlArea.bounds;
-            x = Mathf.Clamp(x, b.min.x + bowlEdgePadding, b.max.x - bowlEdgePadding);
+            p.x = Mathf.Clamp(p.x, b.min.x + bowlEdgePadding, b.max.x - bowlEdgePadding);
         }
-        transform.position = new Vector3(x, transform.position.y, transform.position.z);
+        p.y = Mathf.Clamp(p.y, baseY - verticalRange, baseY + verticalRange);
+        transform.position = new Vector3(p.x, p.y, transform.position.z);
     }
 
     private void OnMouseUp()
@@ -119,14 +126,15 @@ public class WhiskItem : MonoBehaviour
             transform.localScale = baseScale * EaseOutBack(Mathf.Clamp01(popTimer / popDuration));
         }
 
-        // Скорость венчика (со знаком — для наклона), сглаженная
-        float x = transform.position.x;
-        float velocity = (x - lastX) / dt;
-        lastX = x;
+        // Скорость венчика: по горизонтали со знаком — для наклона, по траектории — для перемешивания
+        Vector2 pos = transform.position;
+        Vector2 velocity = (pos - lastPos) / dt;
+        lastPos = pos;
         float k = 1f - Mathf.Exp(-dt / Mathf.Max(0.0001f, speedSmoothing));
-        smoothedVelocity = Mathf.Lerp(smoothedVelocity, velocity, k);
+        smoothedVelocity = Mathf.Lerp(smoothedVelocity, velocity.x, k);
+        smoothedSpeed = Mathf.Lerp(smoothedSpeed, velocity.magnitude, k);
         // Скорость в "ширинах миски в секунду" — баланс не зависит от размера миски
-        float speed = Mathf.Abs(smoothedVelocity) / GetStrokeWidth();
+        float speed = smoothedSpeed / GetStrokeWidth();
 
         float tilt = Mathf.Clamp(-smoothedVelocity * tiltPerSpeed, -maxTilt, maxTilt);
         transform.rotation = Quaternion.Euler(0f, 0f, tilt);

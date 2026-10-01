@@ -893,6 +893,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: SugarJar
       objectReference: {fileID: 0}
+    - target: {fileID: 3475486591470417796, guid: d87ed55510b0381469b05b4feba82fb9, type: 3}
+      propertyPath: gauge
+      value: 
+      objectReference: {fileID: 1397704763}
+    - target: {fileID: 3475486591470417796, guid: d87ed55510b0381469b05b4feba82fb9, type: 3}
+      propertyPath: spawnPoint
+      value: 
+      objectReference: {fileID: 1965019535}
+    - target: {fileID: 3475486591470417796, guid: d87ed55510b0381469b05b4feba82fb9, type: 3}
+      propertyPath: bowlHitArea
+      value: 
+      objectReference: {fileID: 1965019537}
     - target: {fileID: 4849280302031997257, guid: d87ed55510b0381469b05b4feba82fb9, type: 3}
       propertyPath: m_LocalPosition.x
       value: 6.2
@@ -1084,6 +1096,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d3de0b57932fbc40bbaacbbae606184, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CookingManager
+  defaultRecipe: {fileID: 0}
 --- !u!4 &972430650
 Transform:
   m_ObjectHideFlags: 0
