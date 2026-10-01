@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WaffleRecipe
   id: crispy_no_sugar
   displayName: "Хрустящая без сахара"
-  customerLine: "Мне хрустящую вафлю! И без сахара, пожалуйста."
   eggs: 2
   flour:
     amount: 200
@@ -24,7 +23,10 @@ MonoBehaviour:
     amount: 230
     greenTolerance: 20
     yellowTolerance: 50
-  sugarPortions: 0
+  sugar:
+    amount: 0
+    greenTolerance: 5
+    yellowTolerance: 12
   saltPortions: 1
   batter:
     amount: 150

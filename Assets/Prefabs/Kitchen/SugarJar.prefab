@@ -101,7 +101,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4849280302031997257}
   - component: {fileID: 952234642341958668}
-  - component: {fileID: 911814756441590444}
+  - component: {fileID: 3475486591470417796}
   m_Layer: 0
   m_Name: SugarJar
   m_TagString: Untagged
@@ -173,7 +173,7 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1.2, y: 1.1}
   m_EdgeRadius: 0
---- !u!114 &911814756441590444
+--- !u!114 &3475486591470417796
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -182,19 +182,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 2228499996628967919}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfbc5e0f7ab6dc548ab2436e47cd9019, type: 3}
+  m_Script: {fileID: 11500000, guid: 13b6f2f5cf272aa49bf4bc31d5e06eb5, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PortionSourceClick
-  ingredient: 0
+  m_EditorClassIdentifier: Assembly-CSharp::PourSourceClick
+  ingredient: 3
+  pourPrefab: {fileID: 592900016022208747, guid: 15a9abec6504e2942a3323487dbe86b0, type: 3}
+  spawnPoint: {fileID: 0}
   bowlHitArea: {fileID: 0}
-  punchScale: 0.15
-  punchDuration: 0.18
-  grainColor: {r: 1, g: 1, b: 1, a: 1}
-  grainCount: 7
-  grainSize: 0.08
-  dropHeight: 1.6
-  fallTime: 0.35
-  sortingOrder: 9
+  gauge: {fileID: 0}
+  target:
+    amount: 25
+    greenTolerance: 5
+    yellowTolerance: 12
+  gaugeMax: 80
 --- !u!1 &5387244116973864403
 GameObject:
   m_ObjectHideFlags: 0

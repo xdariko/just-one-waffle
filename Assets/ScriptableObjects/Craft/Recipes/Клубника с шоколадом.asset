@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d3f1a2b9c4e4f60a8b1c2d3e4f5a6b7, type: 3}
+  m_Name: "\u041A\u043B\u0443\u0431\u043D\u0438\u043A\u0430 \u0441 \u0448\u043E\u043A\u043E\u043B\u0430\u0434\u043E\u043C"
+  m_EditorClassIdentifier: Assembly-CSharp::WaffleRecipe
+  source:
+    name: "\u041A\u043B\u0443\u0431\u043D\u0438\u043A\u0430 \u0441 \u0448\u043E\u043A\u043E\u043B\u0430\u0434\u043E\u043C"
+    description: "\u041F\u0440\u043E\u0441\u0442\u0430\u044F \u0432\u0430\u0444\u043B\u044F,
+      \u0448\u043E\u043A\u043E\u043B\u0430\u0434\u043D\u044B\u0439 \u0441\u043E\u0443\u0441
+      \u0438 \u043A\u043B\u0443\u0431\u043D\u0438\u043A\u0430."
+    image: strawberry_chocolate.png
+    components:
+    - type: 2
+      key: "\u041F\u0440\u043E\u0441\u0442\u0430\u044F \u0432\u0430\u0444\u043B\u044F"
+      quantity: 1
+      ingredient: {fileID: 0}
+      tag: {fileID: 0}
+      recipe: {fileID: 11400000, guid: ab61752b1fb24214f8319e9f1b40f747, type: 2}
+    - type: 0
+      key: 6
+      quantity: 30
+      ingredient: {fileID: 11400000, guid: 57e55e66b91668b418f0c9638265b3d9, type: 2}
+      tag: {fileID: 0}
+      recipe: {fileID: 0}
+    - type: 0
+      key: 10
+      quantity: 6
+      ingredient: {fileID: 11400000, guid: 524b02b5637591c44ba66be6cd76da9f, type: 2}
+      tag: {fileID: 0}
+      recipe: {fileID: 0}
+    tags:
+    - {fileID: 11400000, guid: be638e93b2e93d64c973b62402c01506, type: 2}
+    - {fileID: 11400000, guid: 773cf78af112ebe41b9ba0000a2f1190, type: 2}
+    missingInLastImport: 0
+  id: "\u043A\u043B\u0443\u0431\u043D\u0438\u043A\u0430_\u0441_\u0448\u043E\u043A\u043E\u043B\u0430\u0434\u043E\u043C"
+  displayName: "\u041A\u043B\u0443\u0431\u043D\u0438\u043A\u0430 \u0441 \u0448\u043E\u043A\u043E\u043B\u0430\u0434\u043E\u043C"
+  eggs: 2
+  flour:
+    amount: 200
+    greenTolerance: 15
+    yellowTolerance: 40
+  milk:
+    amount: 250
+    greenTolerance: 20
+    yellowTolerance: 50
+  sugar:
+    amount: 25
+    greenTolerance: 5
+    yellowTolerance: 12
+  saltPortions: 1
+  sauces:
+  - sauce: {fileID: 11400000, guid: a2b454e54584dd94a81e300e68fe1521, type: 2}
+    minCoverage: 0.3
+  toppings:
+  - topping: {fileID: 11400000, guid: 9e53c16ae65cc764599f2b9019c0b736, type: 2}
+    count: 6
+    tolerance: 1
+  tagComponents: []
+  batter:
+    amount: 150
+    greenTolerance: 15
+    yellowTolerance: 35
+  preferredDoneness: 2
+  penalizeExtraDecor: 1

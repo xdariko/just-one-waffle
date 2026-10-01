@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bec7c2744bca8bc4e89eac0bab7b59e2, type: 3}
+  m_Name: DaySettings
+  m_EditorClassIdentifier: Assembly-CSharp::DaySettings
+  rules: {fileID: 11400000, guid: a903a7b1860f9fc4f96fd6cc1210a008, type: 2}
+  dayDurationSeconds: 240
+  counterScene: SampleScene
+  kitchenScene: MainScene
+  regularCustomers:
+  - {fileID: 11400000, guid: f5a7f9f8f621b984baf3fb30bf9734bc, type: 2}
+  - {fileID: 11400000, guid: d12c54c6d8005ff419ad768bd9339827, type: 2}
+  - {fileID: 11400000, guid: af9ecd99b76c77d43ba36c7f9b216848, type: 2}
+  - {fileID: 11400000, guid: 89580860765d94848a7d2adc47688758, type: 2}
+  orders:
+  - {fileID: 11400000, guid: abb41a54e6d8056449d96e76273c0bef, type: 2}
+  - {fileID: 11400000, guid: 076469106757bdd4281ceae1b32de6c2, type: 2}
+  - {fileID: 11400000, guid: 7e68a23aa3a65324ba363190cc71d3da, type: 2}
+  - {fileID: 11400000, guid: 79a20caf4c3a6a44791681695b655ebe, type: 2}
+  - {fileID: 11400000, guid: 3a794c0c45141754c84350e1316d388f, type: 2}
+  - {fileID: 11400000, guid: 799d305bab09aee45a60125db71b74a8, type: 2}
+  - {fileID: 11400000, guid: 1a0b3f77692f30545a26a1c841630ad7, type: 2}
+  phrasings:
+  - {fileID: 11400000, guid: ea2303965ed081f4ba6a5b1dcede1414, type: 2}
+  - {fileID: 11400000, guid: a9cf4c585b64593488e1539b5418324a, type: 2}
+  - {fileID: 11400000, guid: 2c53cd63004c41f468a39b9c4ac57974, type: 2}
+  - {fileID: 11400000, guid: ff950d4dc581c7c45b6c2a620656e0c6, type: 2}
+  - {fileID: 11400000, guid: d3d520eb9329ac44693b9d513f0ede2d, type: 2}
+  - {fileID: 11400000, guid: 462bf6df089bbab4abff8fab60a64fca, type: 2}
+  exactRecipeFallback: "\u041C\u043D\u0435, \u043F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430,
+    \u0432\u0430\u0444\u043B\u044E \xAB{recipe}\xBB."
+  storyVisits:
+  - {fileID: 11400000, guid: 318f95f394cc78e44b348408f97f1769, type: 2}
+  - {fileID: 11400000, guid: 74c6c89eedee6d342b6809f13ab9fdb7, type: 2}
+  - {fileID: 11400000, guid: f1ab8041cd205b1488cfc4271e86e87a, type: 2}
+  happyLines:
+  - "\u041C\u043C\u043C, \u0442\u043E \u0447\u0442\u043E \u043D\u0430\u0434\u043E!
+    \u0421\u043F\u0430\u0441\u0438\u0431\u043E!"
+  neutralLines:
+  - "\u041D\u0443... \u0435\u0441\u0442\u044C \u043C\u043E\u0436\u043D\u043E."
+  unhappyLines:
+  - "\u042D\u0442\u043E \u043D\u0435 \u0442\u043E, \u0447\u0442\u043E \u044F \u043F\u0440\u043E\u0441\u0438\u043B."

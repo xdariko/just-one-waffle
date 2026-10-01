@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WaffleRecipe
   id: classic
   displayName: "Классическая вафля"
-  customerLine: "Мне обычную вафлю с шоколадом и клубникой!"
   eggs: 2
   flour:
     amount: 200
@@ -24,7 +23,10 @@ MonoBehaviour:
     amount: 250
     greenTolerance: 20
     yellowTolerance: 50
-  sugarPortions: 1
+  sugar:
+    amount: 25
+    greenTolerance: 5
+    yellowTolerance: 12
   saltPortions: 1
   batter:
     amount: 150

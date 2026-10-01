@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4dabf54f8b3e03d46af21aeb46d684c3, type: 3}
+  m_Name: CraftDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::CraftDatabase
+  tags:
+  - {fileID: 11400000, guid: 5b76ff12fd1607b4487c923d9f5ab9eb, type: 2}
+  - {fileID: 11400000, guid: cac3d49de12b84c4b894dc03dd40b78c, type: 2}
+  - {fileID: 11400000, guid: a071a897736197a49b2eaade744cbd8c, type: 2}
+  - {fileID: 11400000, guid: de5ab413349c1fa4e81c02d1e2d0eb16, type: 2}
+  - {fileID: 11400000, guid: 773cf78af112ebe41b9ba0000a2f1190, type: 2}
+  - {fileID: 11400000, guid: 57e691bbfa185cb48a53638a3dedac15, type: 2}
+  - {fileID: 11400000, guid: 38db595fdf06f844aa46502aff774756, type: 2}
+  - {fileID: 11400000, guid: be638e93b2e93d64c973b62402c01506, type: 2}
+  ingredients:
+  - {fileID: 11400000, guid: c81936063ab2cb240a64dc8ad487df6e, type: 2}
+  - {fileID: 11400000, guid: 524b02b5637591c44ba66be6cd76da9f, type: 2}
+  - {fileID: 11400000, guid: 31c48c24a98ac3e46bb9969dcbfd4b65, type: 2}
+  - {fileID: 11400000, guid: 0fd249509769b654c944ae8b1d769f81, type: 2}
+  - {fileID: 11400000, guid: bbf11af11101a684ca40a712e5b0bfbe, type: 2}
+  - {fileID: 11400000, guid: 6a62ca99e97aed045884f570ef51a049, type: 2}
+  - {fileID: 11400000, guid: 44190ec3c57daac4bab2cdd01e16a691, type: 2}
+  - {fileID: 11400000, guid: 655d08e2a5523c7489983e47ef7343c5, type: 2}
+  - {fileID: 11400000, guid: 2eae1d457728049439c675e6be781163, type: 2}
+  - {fileID: 11400000, guid: 57e55e66b91668b418f0c9638265b3d9, type: 2}
+  - {fileID: 11400000, guid: 022fc7b793e99ec4e933203b792b4d55, type: 2}
+  - {fileID: 11400000, guid: 38f485536a34318449502c9476f8e2b5, type: 2}
+  - {fileID: 11400000, guid: 084a59fe58bcc2f4099ffbcf21efcb8d, type: 2}
+  recipes:
+  - {fileID: 11400000, guid: ebde7a35061ed304fa6280852aac2bf7, type: 2}
+  - {fileID: 11400000, guid: a0f204cb10dbfa74cb3489231f08ccbf, type: 2}
+  - {fileID: 11400000, guid: ab61752b1fb24214f8319e9f1b40f747, type: 2}
+  - {fileID: 11400000, guid: 25dc6afaa9a7b0644819568c1f920e54, type: 2}
+  - {fileID: 11400000, guid: 94727ece3db91c14599b05c0636f60c0, type: 2}
+  - {fileID: 11400000, guid: 7048ba78363fb6e4f89218361aa408a7, type: 2}
+  lastImportFile: waffles_export.json
+  lastImportTime: 2026-10-01 10:24

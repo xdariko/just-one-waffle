@@ -1,9 +1,14 @@
+using UnityEngine;
+
 // Что игрок сделал за текущий заказ — "факт", а не рецепт.
 // Хранятся сырые значения (штуки, граммы, секунды, покрытие, позиции добавок): по ним
 // RecipeScoring сравнивает вафлю с рецептом клиента. Оценки *Result — то, что игрок видел
 // на шкалах во время готовки (для подсказок/визуала), итоговая оценка их не использует.
 public class CookingSession
 {
+    // Старый значок-порция сахара (PortionSourceClick) добавляет столько граммов за нажатие
+    public const float SugarPortionGrams = 12.5f;
+
     public int EggsAdded { get; private set; }
     public int PerfectEggs { get; private set; }
     public int ShellPiecesInBowl { get; private set; }
@@ -16,7 +21,9 @@ public class CookingSession
     public float MilkAmount { get; private set; }
     public PourResult? MilkResult { get; private set; }
 
-    public int SugarPortions { get; private set; }
+    // Сахар в граммах (сыпется удержанием, как мука)
+    public float SugarAmount { get; private set; }
+    public PourResult? SugarResult { get; private set; }
     public int SaltPortions { get; private set; }
 
     public MixResult? MixResult { get; private set; }
@@ -46,7 +53,7 @@ public class CookingSession
     public bool CanStartBake => BatterAmount > 0f && !BakeStarted;
 
     public bool HasAnyIngredient =>
-        EggsAdded > 0 || FlourAmount > 0f || MilkAmount > 0f || SugarPortions > 0 || SaltPortions > 0;
+        EggsAdded > 0 || FlourAmount > 0f || MilkAmount > 0f || SugarAmount > 0f || SaltPortions > 0;
 
     // Можно ли сейчас работать с миской на столе (яйца, мука, молоко, сахар, соль, венчик).
     // Тесто перемешано — оно готово, больше ничего не добавляем, миску несём к плите.
@@ -71,6 +78,7 @@ public class CookingSession
         PourIngredient.Flour => FlourAmount,
         PourIngredient.Milk => MilkAmount,
         PourIngredient.Batter => BatterAmount,
+        PourIngredient.Sugar => SugarAmount,
         _ => 0f
     };
 
@@ -91,6 +99,10 @@ public class CookingSession
                 BatterAmount = total;
                 BatterResult = result;
                 break;
+            case PourIngredient.Sugar:
+                SugarAmount = total;
+                SugarResult = result;
+                break;
         }
     }
 
@@ -98,14 +110,14 @@ public class CookingSession
     {
         switch (ingredient)
         {
-            case PortionIngredient.Sugar: SugarPortions++; break;
+            case PortionIngredient.Sugar: SugarAmount += SugarPortionGrams; break;
             case PortionIngredient.Salt: SaltPortions++; break;
         }
     }
 
     public int GetPortions(PortionIngredient ingredient) => ingredient switch
     {
-        PortionIngredient.Sugar => SugarPortions,
+        PortionIngredient.Sugar => Mathf.RoundToInt(SugarAmount / SugarPortionGrams),
         PortionIngredient.Salt => SaltPortions,
         _ => 0
     };
@@ -147,7 +159,7 @@ public class CookingSession
         return $"Яйца: {EggsAdded} (идеально {PerfectEggs}, скорлупа {ShellPiecesInBowl}) | " +
                $"Мука: {FlourAmount:F0} г ({FlourResult?.ToString() ?? "—"}) | " +
                $"Молоко: {MilkAmount:F0} мл ({MilkResult?.ToString() ?? "—"}) | " +
-               $"Сахар: {SugarPortions} | Соль: {SaltPortions} | " +
+               $"Сахар: {SugarAmount:F0} г | Соль: {SaltPortions} | " +
                $"Перемешано: {MixResult?.ToString() ?? "нет"} | " +
                $"Миска у плиты: {(BowlAtStove ? "да" : "нет")} | " +
                $"Тесто в вафельнице: {BatterAmount:F0} мл ({BatterResult?.ToString() ?? "—"}) | " +
@@ -165,7 +177,8 @@ public class CookingSession
         FlourResult = null;
         MilkAmount = 0f;
         MilkResult = null;
-        SugarPortions = 0;
+        SugarAmount = 0f;
+        SugarResult = null;
         SaltPortions = 0;
         MixResult = null;
         OvermixSeconds = 0f;

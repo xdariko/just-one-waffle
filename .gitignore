@@ -70,6 +70,3 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
-# Локальные editor-инструменты кухни (Tools → Cooking → Build Kitchen и т.п.) — не в репозитории
-/[Aa]ssets/[Ss]cripts/[Cc]ooking/[Ee]ditor/
-/[Aa]ssets/[Ss]cripts/[Cc]ooking/[Ee]ditor.meta

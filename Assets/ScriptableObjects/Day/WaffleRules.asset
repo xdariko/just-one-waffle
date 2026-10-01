@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88791248d86e2eb41a18b6c566c5a1b2, type: 3}
+  m_Name: WaffleRules
+  m_EditorClassIdentifier: Assembly-CSharp::WaffleRules
+  database: {fileID: 11400000, guid: 385bb030e420b9544bdc8b732abbd7a4, type: 2}
+  bakeProperties:
+  - bake: 1
+    tag: {fileID: 11400000, guid: 57e691bbfa185cb48a53638a3dedac15, type: 2}
+  - bake: 2
+    tag: {fileID: 11400000, guid: 57e691bbfa185cb48a53638a3dedac15, type: 2}
+  - bake: 3
+    tag: {fileID: 11400000, guid: a071a897736197a49b2eaade744cbd8c, type: 2}
+  pourPresence: 1
+  saucePresence: 0.02
+  inedibleIsViolation: 1
+  happyFrom: 0.8
+  neutralFrom: 0.5
