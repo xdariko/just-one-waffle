@@ -1,0 +1,234 @@
+using System.Linq;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.UI;
+
+// Tools → Waffle → Настроить сцены дня. Можно запускать повторно (например, если сцену правили руками и ссылки потерялись):
+// недостающее создаёт, существующее только перепривязывает.
+//  - кухня (MainScene): сахар сыпется удержанием — SugarJar с PourSourceClick, пакет SugarBag, шкала и миска;
+//  - стойка (SampleScene): DayRunner с DaySettings, CounterController, клиент (CustomerView),
+//    DialogueManager не играет тестовый граф сам, Canvas масштабируется как на кухне;
+//  - Build Settings: стойка первой (с неё начинается день), кухня второй.
+public static class WaffleDaySetup
+{
+    private const string CounterScenePath = "Assets/Scenes/SampleScene.unity";
+    private const string KitchenScenePath = "Assets/Scenes/MainScene.unity";
+    private const string FlourBagPath = "Assets/Prefabs/Items/FlourBag.prefab";
+    private const string SugarBagPath = "Assets/Prefabs/Items/SugarBag.prefab";
+    private const string SugarJarPath = "Assets/Prefabs/Kitchen/SugarJar.prefab";
+
+    [MenuItem("Tools/Waffle/Настроить сцены дня", priority = 10)]
+    public static void SetupMenu()
+    {
+        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+        var log = Setup();
+        Debug.Log($"[WaffleSetup]\n{log}");
+        EditorUtility.DisplayDialog("Настройка сцен дня", log, "OK");
+    }
+
+    public static string Setup()
+    {
+        var log = new System.Text.StringBuilder();
+        SetupSugarPrefabs(log);
+        SetupKitchen(log);
+        SetupCounter(log);
+        SetupBuildSettings(log);
+        AssetDatabase.SaveAssets();
+        return log.ToString();
+    }
+
+    // ---------- Сахар: удержанием, как мука ----------
+
+    private static void SetupSugarPrefabs(System.Text.StringBuilder log)
+    {
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(SugarBagPath) == null)
+        {
+            if (!AssetDatabase.CopyAsset(FlourBagPath, SugarBagPath))
+            {
+                log.AppendLine($"✗ Не удалось скопировать {FlourBagPath} → {SugarBagPath}");
+                return;
+            }
+            var root = PrefabUtility.LoadPrefabContents(SugarBagPath);
+            root.name = "SugarBag";
+            var so = new SerializedObject(root.GetComponent<PourItem>());
+            so.FindProperty("displayName").stringValue = "Сахар";
+            so.FindProperty("unit").stringValue = "г";
+            so.FindProperty("maxFlowRate").floatValue = 30f;
+            so.FindProperty("streamColor").colorValue = new Color(1f, 1f, 1f, 0.95f);
+            so.FindProperty("streamMaxWidth").floatValue = 0.1f;
+            so.FindProperty("streamJitter").floatValue = 0.25f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var visual = root.GetComponentInChildren<SpriteRenderer>();
+            if (visual != null) visual.color = new Color(0.95f, 0.95f, 0.97f);
+            PrefabUtility.SaveAsPrefabAsset(root, SugarBagPath);
+            PrefabUtility.UnloadPrefabContents(root);
+            log.AppendLine("✓ Создан пакет сахара Prefabs/Items/SugarBag");
+        }
+
+        var jar = PrefabUtility.LoadPrefabContents(SugarJarPath);
+        bool changed = false;
+        foreach (var portion in jar.GetComponents<PortionSourceClick>())
+        {
+            Object.DestroyImmediate(portion, true);
+            changed = true;
+        }
+        var pour = jar.GetComponent<PourSourceClick>();
+        if (pour == null)
+        {
+            pour = jar.AddComponent<PourSourceClick>();
+            changed = true;
+        }
+        var ps = new SerializedObject(pour);
+        ps.FindProperty("ingredient").intValue = (int)PourIngredient.Sugar;
+        ps.FindProperty("pourPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(SugarBagPath).GetComponent<PourItem>();
+        ps.FindProperty("gaugeMax").floatValue = 80f;
+        var target = ps.FindProperty("target");
+        target.FindPropertyRelative("amount").floatValue = 25f;
+        target.FindPropertyRelative("greenTolerance").floatValue = 5f;
+        target.FindPropertyRelative("yellowTolerance").floatValue = 12f;
+        changed |= ps.ApplyModifiedPropertiesWithoutUndo();
+
+        if (changed)
+        {
+            PrefabUtility.SaveAsPrefabAsset(jar, SugarJarPath);
+            log.AppendLine("✓ SugarJar: сахар сыпется удержанием (PourSourceClick, Sugar)");
+        }
+        PrefabUtility.UnloadPrefabContents(jar);
+    }
+
+    private static void SetupKitchen(System.Text.StringBuilder log)
+    {
+        var scene = EditorSceneManager.OpenScene(KitchenScenePath, OpenSceneMode.Single);
+
+        var sources = Object.FindObjectsByType<PourSourceClick>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var flour = sources.FirstOrDefault(s => Ingredient(s) == PourIngredient.Flour);
+        var sugar = sources.FirstOrDefault(s => Ingredient(s) == PourIngredient.Sugar);
+        if (flour == null || sugar == null)
+        {
+            log.AppendLine("✗ Кухня: не найдены мука и/или сахар (PourSourceClick) — пересобери кухню и запусти снова");
+            return;
+        }
+
+        // Сахар сыплется туда же и с той же шкалой, что и мука (одновременно льётся только один пакет)
+        var from = new SerializedObject(flour);
+        var to = new SerializedObject(sugar);
+        foreach (var field in new[] { "spawnPoint", "bowlHitArea", "gauge" })
+            to.FindProperty(field).objectReferenceValue = from.FindProperty(field).objectReferenceValue;
+        if (to.ApplyModifiedPropertiesWithoutUndo())
+        {
+            EditorSceneManager.MarkSceneDirty(scene);
+            log.AppendLine("✓ Кухня: сахар привязан к миске и шкале");
+        }
+        EditorSceneManager.SaveScene(scene);
+    }
+
+    private static PourIngredient Ingredient(PourSourceClick s) =>
+        (PourIngredient)new SerializedObject(s).FindProperty("ingredient").intValue;
+
+    // ---------- Стойка ----------
+
+    private static void SetupCounter(System.Text.StringBuilder log)
+    {
+        var scene = EditorSceneManager.OpenScene(CounterScenePath, OpenSceneMode.Single);
+
+        // Загружаем после OpenScene: открытие сцены выгружает неиспользуемые ассеты, и ссылка, взятая раньше, стала бы пустой
+        var settings = FindAsset<DaySettings>();
+        if (settings == null) log.AppendLine("⚠ Нет DaySettings — DayRunner останется без настроек (Create → Waffle Day → Day Settings)");
+
+        var dialogue = Object.FindAnyObjectByType<DialogueManager>(FindObjectsInactive.Include);
+        if (dialogue == null)
+        {
+            log.AppendLine("✗ Стойка: в SampleScene нет DialogueManager");
+            return;
+        }
+        if (dialogue.PlayGraphOnStart)
+        {
+            dialogue.PlayGraphOnStart = false;
+            EditorUtility.SetDirty(dialogue);
+        }
+
+        // Canvas диалога масштабируется как на кухне (вёрстка панели — под 1920×1080)
+        var dialogueCanvas = dialogue.GetComponentInParent<Canvas>(true);
+        if (dialogueCanvas != null && dialogueCanvas.GetComponent<CanvasScaler>() is { } scaler &&
+            scaler.uiScaleMode != CanvasScaler.ScaleMode.ScaleWithScreenSize)
+        {
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+            EditorUtility.SetDirty(scaler);
+        }
+
+        var runner = Object.FindAnyObjectByType<DayRunner>(FindObjectsInactive.Include);
+        if (runner == null)
+        {
+            runner = new GameObject("DayRunner").AddComponent<DayRunner>();
+            log.AppendLine("✓ Стойка: добавлен DayRunner");
+        }
+        var rs = new SerializedObject(runner);
+        rs.FindProperty("settings").objectReferenceValue = settings;
+        rs.ApplyModifiedPropertiesWithoutUndo();
+        if (settings != null && new SerializedObject(runner).FindProperty("settings").objectReferenceValue != settings)
+            log.AppendLine("✗ Стойка: не удалось записать DaySettings в DayRunner");
+
+        var view = Object.FindAnyObjectByType<CustomerView>(FindObjectsInactive.Include);
+        if (view == null)
+        {
+            var canvas = new GameObject("CustomerCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler)).GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = -1; // под панелью диалога: клиент стоит "за стойкой"
+            var cs = canvas.GetComponent<CanvasScaler>();
+            cs.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            cs.referenceResolution = new Vector2(1920f, 1080f);
+            cs.matchWidthOrHeight = 0.5f;
+
+            var go = new GameObject("Customer", typeof(RectTransform));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(canvas.transform, false);
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.anchoredPosition = new Vector2(0f, 300f);
+            rt.sizeDelta = new Vector2(420f, 620f);
+            view = go.AddComponent<CustomerView>();
+            log.AppendLine("✓ Стойка: добавлен клиент (CustomerCanvas/Customer)");
+        }
+
+        var counter = Object.FindAnyObjectByType<CounterController>(FindObjectsInactive.Include);
+        if (counter == null)
+        {
+            counter = new GameObject("Counter").AddComponent<CounterController>();
+            log.AppendLine("✓ Стойка: добавлен CounterController");
+        }
+        var cc = new SerializedObject(counter);
+        cc.FindProperty("dialogue").objectReferenceValue = dialogue;
+        cc.FindProperty("customerView").objectReferenceValue = view;
+        cc.ApplyModifiedPropertiesWithoutUndo();
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        log.AppendLine("✓ Стойка: ссылки DayRunner / CounterController / DialogueManager обновлены");
+    }
+
+    private static void SetupBuildSettings(System.Text.StringBuilder log)
+    {
+        var scenes = EditorBuildSettings.scenes.Where(s => s.path != CounterScenePath && s.path != KitchenScenePath).ToList();
+        scenes.Insert(0, new EditorBuildSettingsScene(CounterScenePath, true));
+        scenes.Insert(1, new EditorBuildSettingsScene(KitchenScenePath, true));
+        var changed = !EditorBuildSettings.scenes.Select(s => s.path + s.enabled).SequenceEqual(scenes.Select(s => s.path + s.enabled));
+        if (!changed) return;
+        EditorBuildSettings.scenes = scenes.ToArray();
+        log.AppendLine("✓ Build Settings: SampleScene (стойка) первой, MainScene (кухня) второй");
+    }
+
+    private static T FindAsset<T>() where T : Object
+    {
+        var guid = AssetDatabase.FindAssets($"t:{typeof(T).Name}").FirstOrDefault();
+        return guid != null ? AssetDatabase.LoadAssetAtPath<T>(AssetDatabase.GUIDToAssetPath(guid)) : null;
+    }
+
+    // Batch: -executeMethod WaffleDaySetup.SetupFromCommandLine
+    public static void SetupFromCommandLine()
+    {
+        Debug.Log($"[WaffleSetup]\n{Setup()}");
+    }
+}

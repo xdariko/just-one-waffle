@@ -100,12 +100,15 @@ public class PackingStation : MonoBehaviour
 
         yield return new WaitForSeconds(delayBeforeDialogue);
 
-        if (string.IsNullOrEmpty(dialogueSceneName))
+        // Во время рабочего дня — на стойку из настроек дня, иначе — сцена из инспектора
+        var day = DayRunner.Instance;
+        var scene = day != null && day.Settings != null ? day.Settings.counterScene : dialogueSceneName;
+        if (string.IsNullOrEmpty(scene))
         {
             Debug.LogWarning("[Packing] не задана сцена диалога");
             yield break;
         }
-        SceneManager.LoadScene(dialogueSceneName);
+        SceneManager.LoadScene(scene);
     }
 
     private void SetLid(float open01)
