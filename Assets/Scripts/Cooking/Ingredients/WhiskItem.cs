@@ -86,6 +86,15 @@ public class WhiskItem : MonoBehaviour
         lastPos = transform.position;
         baseY = transform.position.y;
 
+        // Улучшение "Удобный венчик": шире зелёная зона и прощается немного "перемешивания"
+        float widen = GameStats.Get(StatId.WhiskGreenWiden);
+        float grace = GameStats.Get(StatId.WhiskOvermixGrace);
+        zones = GameStats.WidenGreen(zones, widen);
+        perfectMaxOvermix += grace;
+        goodMaxOvermix += grace;
+        if (widen > 0f || grace > 0f)
+            Debug.Log($"[Whisk] улучшение: зелёная зона {zones.greenMin:F2}–{zones.greenMax:F2}, допуск перемешивания +{grace:F1} с");
+
         if (gauge != null) gauge.Show(zones, "Перемешивание 0%", showProgress: true);
     }
 
@@ -93,6 +102,7 @@ public class WhiskItem : MonoBehaviour
     {
         if (finished) return;
         dragging = true;
+        GestureLock.Begin(this);
         dragOffset = (Vector2)(transform.position - GetMouseWorld());
     }
 
@@ -112,7 +122,13 @@ public class WhiskItem : MonoBehaviour
 
     private void OnMouseUp()
     {
+        StopDragging();
+    }
+
+    private void StopDragging()
+    {
         dragging = false;
+        GestureLock.End(this);
     }
 
     private void Update()
@@ -169,7 +185,7 @@ public class WhiskItem : MonoBehaviour
         if (progress >= 1f)
         {
             finished = true;
-            dragging = false;
+            StopDragging();
         }
     }
 
@@ -188,6 +204,7 @@ public class WhiskItem : MonoBehaviour
 
     private void OnDestroy()
     {
+        GestureLock.End(this);
         if (Active == this) Active = null;
     }
 
@@ -202,6 +219,12 @@ public class WhiskItem : MonoBehaviour
         var p = Input.mousePosition;
         p.z = -cam.transform.position.z;
         return cam.ScreenToWorldPoint(p);
+    }
+
+    // Окно потеряло фокус посреди жеста: OnMouseUp не придёт — венчик отпускаем
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (!hasFocus) StopDragging();
     }
 
     private static float EaseOutBack(float t)

@@ -15,6 +15,7 @@ MonoBehaviour:
   id: blueberry
   displayName: "\u0427\u0435\u0440\u043D\u0438\u043A\u0430"
   kind: 1
+  category: 2
   color: {r: 0.25, g: 0.3, b: 0.7, a: 1}
   icon: {fileID: 0}
   brushRadius: 0.28

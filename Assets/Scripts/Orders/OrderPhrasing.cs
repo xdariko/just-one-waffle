@@ -15,4 +15,11 @@ public class OrderPhrasing : ScriptableObject
 
     [Tooltip("Необязательно: ответ на \"Уточнить\". Пусто — кнопки уточнения не будет")]
     [TextArea(1, 3)] public List<string> clarifications = new();
+
+    [Header("Доступность")]
+    [Tooltip("Ингредиенты, которые называет реплика (\"с черникой\"). Пока хоть один не открыт — реплика не выбирается")]
+    public List<CraftIngredient> requiresIngredients = new();
+    [Tooltip("Необязательно: вариант заказа, о котором эта реплика (для заказа по требованиям). " +
+             "Реплика выбирается, только если этот рецепт выполним; нормы на шкалах — по нему")]
+    public WaffleRecipe variant;
 }

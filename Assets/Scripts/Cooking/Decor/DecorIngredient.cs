@@ -1,5 +1,18 @@
 using UnityEngine;
 
+// Вид украшения — для магазина, подписей и будущих механик. Механика определяется Kind:
+// соус мажется кистью, всё остальное ставится тапом. Savory — задел под солёные компоненты (механики пока нет).
+public enum DecorCategory
+{
+    Sauce,
+    IceCream,
+    Fruit,
+    Sprinkles,
+    Chocolate,
+    Savory,
+    Other
+}
+
 // Ингредиент для украшения вафли (ассет: ПКМ в Project → Create → Cooking → Decor Ingredient).
 //  - Sauce   — соус: выбрал ячейку и водишь пальцем по вафле, он мажется кистью;
 //  - Topping — добавка (фрукты, шоколад...): выбрал ячейку и тапаешь по вафле, кусочек остаётся там.
@@ -13,6 +26,8 @@ public class DecorIngredient : ScriptableObject
     public string id = "ingredient";
     public string displayName = "Ингредиент";
     public Kind kind = Kind.Topping;
+    [Tooltip("Вид для магазина и подписей: соус, мороженое, фрукты, посыпка...")]
+    public DecorCategory category = DecorCategory.Other;
 
     [Tooltip("Цвет соуса / цвет заглушки добавки")]
     public Color color = Color.white;
@@ -33,4 +48,15 @@ public class DecorIngredient : ScriptableObject
     public bool randomRotation = true;
 
     public bool IsSauce => kind == Kind.Sauce;
+
+    public static string CategoryName(DecorCategory c) => c switch
+    {
+        DecorCategory.Sauce => "соус",
+        DecorCategory.IceCream => "мороженое",
+        DecorCategory.Fruit => "фрукты",
+        DecorCategory.Sprinkles => "посыпка",
+        DecorCategory.Chocolate => "шоколад",
+        DecorCategory.Savory => "солёное",
+        _ => "добавка"
+    };
 }

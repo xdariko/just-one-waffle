@@ -44,7 +44,8 @@ public class PourSourceClick : MonoBehaviour
 
         current = Instantiate(pourPrefab, spawnPoint.position, Quaternion.identity);
         var recipe = CookingManager.Instance.CurrentRecipe;
-        var pourTarget = recipe != null ? recipe.GetPourTarget(ingredient) : target;
+        // Улучшение "Мерная посуда" расширяет зоны (то же расширение использует оценка — RecipeScoring)
+        var pourTarget = GameStats.WidenPour(recipe != null ? recipe.GetPourTarget(ingredient) : target);
         // Шкала должна вмещать жёлтую зону рецепта с запасом
         float max = Mathf.Max(gaugeMax, pourTarget.YellowMax * 1.3f);
         current.Initialize(bowlHitArea, gauge, pourTarget, max, session.GetPoured(ingredient));

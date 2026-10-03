@@ -15,6 +15,7 @@ MonoBehaviour:
   id: chocolate_sauce
   displayName: "\u0428\u043E\u043A\u043E\u043B\u0430\u0434"
   kind: 0
+  category: 0
   color: {r: 0.36, g: 0.2, b: 0.1, a: 1}
   icon: {fileID: 0}
   brushRadius: 0.28

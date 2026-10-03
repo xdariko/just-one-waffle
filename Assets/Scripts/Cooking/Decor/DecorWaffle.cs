@@ -76,10 +76,11 @@ public class DecorWaffle : MonoBehaviour
 
     // ---------- Соус ----------
 
-    public void Paint(Vector3 fromWorld, Vector3 toWorld, DecorIngredient sauce)
+    // brushScale — множитель кисти (улучшение "Широкая кисть")
+    public void Paint(Vector3 fromWorld, Vector3 toWorld, DecorIngredient sauce, float brushScale = 1f)
     {
         int index = GetSauceIndex(sauce);
-        float radiusPx = sauce.brushRadius / size * SauceTextureSize;
+        float radiusPx = sauce.brushRadius * Mathf.Max(0.1f, brushScale) / size * SauceTextureSize;
 
         var from = ToLocal01(fromWorld) * SauceTextureSize;
         var to = ToLocal01(toWorld) * SauceTextureSize;

@@ -65,6 +65,7 @@ public class EggSwipeDownItem : MonoBehaviour
         if (broken) return;
 
         dragging = true;
+        GestureLock.Begin(this);
         returning = false;
         samples.Clear();
 
@@ -104,6 +105,7 @@ public class EggSwipeDownItem : MonoBehaviour
     {
         if (!dragging) return;
         dragging = false;
+        GestureLock.End(this);
 
         if (!broken)
             returning = true;
@@ -127,15 +129,29 @@ public class EggSwipeDownItem : MonoBehaviour
         }
 
         if (speed <= cleanMaxSpeed)
+        {
             Break(crackStage == 0 ? EggCrackResult.Perfect : EggCrackResult.Good);
-        else
-            Break(EggCrackResult.ShellInBowl);
+            return;
+        }
+
+        // Слишком сильно. Улучшение "Ловкие пальцы": одна проверка удачи на этот удар —
+        // успех: скорлупу поймали, яйцо разбито с трещиной (Good, как в жёлтой зоне), а не Perfect
+        float luck = GameStats.Get(StatId.EggShellSaveChance);
+        if (luck > 0f && UnityEngine.Random.value < luck)
+        {
+            Debug.Log($"[Egg] удача ({luck * 100f:F0}%): скорлупу поймали");
+            LuckPopup.Show("Повезло! Скорлупу поймали", transform.position + Vector3.up * 0.8f);
+            Break(EggCrackResult.Good);
+            return;
+        }
+        Break(EggCrackResult.ShellInBowl);
     }
 
     private void Break(EggCrackResult result)
     {
         broken = true;
         dragging = false;
+        GestureLock.End(this);
 
         var effect = result == EggCrackResult.ShellInBowl ? smashPrefab : cleanBreakPrefab;
         if (effect != null)
@@ -191,6 +207,11 @@ public class EggSwipeDownItem : MonoBehaviour
         transform.position = new Vector3(transform.position.x, y, transform.position.z);
     }
 
+    private void OnDestroy()
+    {
+        GestureLock.End(this);
+    }
+
     private void Update()
     {
         if (returning && !dragging)
@@ -209,5 +230,11 @@ public class EggSwipeDownItem : MonoBehaviour
         var p = Input.mousePosition;
         p.z = -cam.transform.position.z;
         return cam.ScreenToWorldPoint(p);
+    }
+
+    // Окно потеряло фокус посреди жеста: OnMouseUp не придёт — яйцо возвращается само
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (!hasFocus) OnMouseUp();
     }
 }

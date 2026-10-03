@@ -110,11 +110,25 @@ public class PourItem : MonoBehaviour
     {
         if (resolved) return;
         holding = true;
+        GestureLock.Begin(this);
     }
 
     private void OnMouseUp()
     {
+        StopHolding();
+    }
+
+    // Окно потеряло фокус посреди жеста: OnMouseUp не придёт — иначе пакет сыпал бы бесконечно
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (!hasFocus) StopHolding();
+    }
+
+    // Отпустили палец или окно потеряло фокус — пакет выпрямляется
+    private void StopHolding()
+    {
         holding = false;
+        GestureLock.End(this);
     }
 
     private void Update()
@@ -181,6 +195,7 @@ public class PourItem : MonoBehaviour
 
     private void OnDestroy()
     {
+        GestureLock.End(this);
         if (Active == this) Active = null;
         if (stream != null) Destroy(stream.gameObject);
     }

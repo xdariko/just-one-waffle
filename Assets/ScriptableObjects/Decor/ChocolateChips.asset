@@ -15,6 +15,7 @@ MonoBehaviour:
   id: chocolate_chips
   displayName: "\u0428\u043E\u043A. \u043A\u0440\u043E\u0448\u043A\u0430"
   kind: 1
+  category: 4
   color: {r: 0.3, g: 0.17, b: 0.08, a: 1}
   icon: {fileID: 0}
   brushRadius: 0.28
