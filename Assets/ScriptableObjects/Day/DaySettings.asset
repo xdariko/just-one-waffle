@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: DaySettings
   m_EditorClassIdentifier: Assembly-CSharp::DaySettings
   rules: {fileID: 11400000, guid: a903a7b1860f9fc4f96fd6cc1210a008, type: 2}
+  economy: {fileID: 11400000, guid: 19c57a4c8d015d940bc583d2690151f5, type: 2}
+  shop: {fileID: 11400000, guid: da345ce37f78dee4e8179301db40d576, type: 2}
   dayDurationSeconds: 240
   counterScene: SampleScene
   kitchenScene: MainScene
@@ -29,6 +31,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 3a794c0c45141754c84350e1316d388f, type: 2}
   - {fileID: 11400000, guid: 799d305bab09aee45a60125db71b74a8, type: 2}
   - {fileID: 11400000, guid: 1a0b3f77692f30545a26a1c841630ad7, type: 2}
+  - {fileID: 11400000, guid: b4aebb68ebdeda74bb4053a28956a606, type: 2}
+  - {fileID: 11400000, guid: c495f5e33cc13394dabb6cd5b3e273ed, type: 2}
+  - {fileID: 11400000, guid: bf10f836ac74cac4bbd032a0293cf636, type: 2}
   phrasings:
   - {fileID: 11400000, guid: ea2303965ed081f4ba6a5b1dcede1414, type: 2}
   - {fileID: 11400000, guid: a9cf4c585b64593488e1539b5418324a, type: 2}
@@ -36,12 +41,19 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ff950d4dc581c7c45b6c2a620656e0c6, type: 2}
   - {fileID: 11400000, guid: d3d520eb9329ac44693b9d513f0ede2d, type: 2}
   - {fileID: 11400000, guid: 462bf6df089bbab4abff8fab60a64fca, type: 2}
+  - {fileID: 11400000, guid: d494c5d86a7f4ac44b3dc59125644a1c, type: 2}
+  - {fileID: 11400000, guid: 888b7562bbae10544a2d3afd423f837d, type: 2}
+  - {fileID: 11400000, guid: d8f7200893217bd4aa621e6ffce1819a, type: 2}
+  - {fileID: 11400000, guid: b3b76456f402fb94f8da41c9f8fecd20, type: 2}
+  fallbackOrder: {fileID: 11400000, guid: 799d305bab09aee45a60125db71b74a8, type: 2}
   exactRecipeFallback: "\u041C\u043D\u0435, \u043F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430,
     \u0432\u0430\u0444\u043B\u044E \xAB{recipe}\xBB."
   storyVisits:
   - {fileID: 11400000, guid: 318f95f394cc78e44b348408f97f1769, type: 2}
   - {fileID: 11400000, guid: 74c6c89eedee6d342b6809f13ab9fdb7, type: 2}
   - {fileID: 11400000, guid: f1ab8041cd205b1488cfc4271e86e87a, type: 2}
+  - {fileID: 11400000, guid: ce0e7f27ba926314daea209b12137ea5, type: 2}
+  - {fileID: 11400000, guid: edadfed6317ef664ebbe0b52d0d7ea67, type: 2}
   happyLines:
   - "\u041C\u043C\u043C, \u0442\u043E \u0447\u0442\u043E \u043D\u0430\u0434\u043E!
     \u0421\u043F\u0430\u0441\u0438\u0431\u043E!"

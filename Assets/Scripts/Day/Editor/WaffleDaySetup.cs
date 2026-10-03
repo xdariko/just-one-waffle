@@ -7,6 +7,7 @@ using UnityEngine.UI;
 // Tools → Waffle → Настроить сцены дня. Можно запускать повторно (например, если сцену правили руками и ссылки потерялись):
 // недостающее создаёт, существующее только перепривязывает.
 //  - кухня (MainScene): сахар сыпется удержанием — SugarJar с PourSourceClick, пакет SugarBag, шкала и миска;
+//  - экономика, магазин, станция украшения по данным, сюжетная цепочка, ориентация — WaffleShopSetup;
 //  - стойка (SampleScene): DayRunner с DaySettings, CounterController, клиент (CustomerView),
 //    DialogueManager не играет тестовый граф сам, Canvas масштабируется как на кухне;
 //  - Build Settings: стойка первой (с неё начинается день), кухня второй.
@@ -32,6 +33,7 @@ public static class WaffleDaySetup
         var log = new System.Text.StringBuilder();
         SetupSugarPrefabs(log);
         SetupKitchen(log);
+        WaffleShopSetup.Setup(log);
         SetupCounter(log);
         SetupBuildSettings(log);
         AssetDatabase.SaveAssets();

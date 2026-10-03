@@ -6,6 +6,10 @@ using UnityEngine;
 public class DaySettings : ScriptableObject
 {
     public WaffleRules rules;
+    [Tooltip("Деньги и очки за заказы")]
+    public EconomySettings economy;
+    [Tooltip("Магазин: товары, улучшения, стартовый набор ингредиентов")]
+    public ShopCatalog shop;
 
     [Header("День")]
     [Tooltip("Длительность дня в секундах. Время идёт в диалоге, на кухне и во время реакции")]
@@ -22,6 +26,8 @@ public class DaySettings : ScriptableObject
     public List<OrderTemplate> orders = new();
     [Tooltip("Реплики заказов. Каждая привязана к своему заказу")]
     public List<OrderPhrasing> phrasings = new();
+    [Tooltip("Если ни один заказ из списка сейчас не приготовить — этот (должен быть выполним со стартовым набором)")]
+    public OrderTemplate fallbackOrder;
     [Tooltip("Если у ExactRecipe-заказа нет реплик. {recipe} — название рецепта")]
     public string exactRecipeFallback = "Мне, пожалуйста, вафлю «{recipe}».";
 

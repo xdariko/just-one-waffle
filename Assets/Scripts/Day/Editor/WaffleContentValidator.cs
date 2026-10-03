@@ -10,7 +10,11 @@ using UnityEngine;
 //    (свойство кто-то даёт: ингредиент кухни или выпечка), запрет не противоречит рецепту;
 //  - реплики: привязаны к заказу, не пустые, {recipe} только у ExactRecipe;
 //  - сюжетные визиты: id уникальны, персонаж и заказ заданы, окно момента корректно;
-//  - ингредиенты базы: соус/добавка с ассетом украшения, вид не None у используемых в рецептах.
+//  - ингредиенты базы: соус/добавка с ассетом украшения, вид не None у используемых в рецептах;
+//  - экономика и магазин: id товаров, уровни, цены, ингредиенты, пределы эффектов, стартовый набор;
+//  - доступность: какие заказы есть со стартовым набором, какие не станут доступны никогда,
+//    сюжетный заказ, недоступный в свой день (отложится или возьмёт запасной), запасной заказ дня;
+//  - сюжетные цепочки: флаг "после" кто-то ставит, визит без готовки что-то делает.
 public static class WaffleContentValidator
 {
     public class Result
@@ -153,7 +157,7 @@ public static class WaffleContentValidator
             if (string.IsNullOrWhiteSpace(v.id)) result.Errors.Add($"{where}: пустой id");
             else if (!ids.Add(v.id)) result.Errors.Add($"{where}: id \"{v.id}\" повторяется — второй визит посчитается уже состоявшимся");
             if (v.character == null) result.Errors.Add($"{where}: не задан персонаж");
-            if (v.order == null && v.orderPool.All(o => o == null)) result.Errors.Add($"{where}: не задан ни заказ, ни пул заказов");
+            if (v.kind == VisitKind.Order && v.order == null && v.orderPool.All(o => o == null)) result.Errors.Add($"{where}: не задан ни заказ, ни пул заказов");
             if (v.timing == VisitTiming.RandomMoment && v.randomFrom > v.randomTo)
                 result.Warnings.Add($"{where}: randomFrom больше randomTo — окно будет перевёрнуто");
             if (v.requestLines.All(string.IsNullOrWhiteSpace) && v.clarificationLines.Any(l => !string.IsNullOrWhiteSpace(l)))
@@ -166,12 +170,181 @@ public static class WaffleContentValidator
                 result.Warnings.Add($"{where}: у заказа {order.id} нет реплик — клиент назовёт требования напрямую");
         }
 
+        ValidateEconomy(settings, result);
+        ValidateAvailability(settings, result);
+        ValidateStoryChains(settings, result);
+
         // --- Правила ---
         if (rules != null)
         {
             if (rules.neutralFrom > rules.happyFrom) result.Errors.Add($"{S(rules)}: порог \"нейтрален\" выше порога \"доволен\"");
             foreach (var p in rules.bakeProperties.Where(p => p.tag == null))
                 result.Warnings.Add($"{S(rules)}: у выпечки {p.bake} не задан тег");
+        }
+    }
+
+    // ---------- Экономика и магазин ----------
+
+    private static void ValidateEconomy(DaySettings settings, Result result)
+    {
+        string S(UnityEngine.Object o) => o == null ? "(пусто)" : o.name;
+        var eco = settings.economy;
+        var shop = settings.shop;
+        if (eco == null) result.Errors.Add($"{S(settings)}: не задан EconomySettings — заказы не оплачиваются (Tools → Waffle → Настроить сцены дня)");
+        else
+        {
+            if (eco.tipMaxRate < eco.tipMinRate) result.Errors.Add($"{S(eco)}: tipMaxRate меньше tipMinRate");
+            if (eco.violationPay > eco.lowQualityPay || eco.lowQualityPay > eco.neutralPay || eco.neutralPay > eco.happyPay)
+                result.Warnings.Add($"{S(eco)}: оплата за худший результат выше, чем за лучший (happy ≥ neutral ≥ lowQuality ≥ violation)");
+        }
+        if (shop == null)
+        {
+            result.Errors.Add($"{S(settings)}: не задан ShopCatalog — магазина и улучшений не будет");
+            return;
+        }
+
+        var where = $"Магазин {S(shop)}";
+        if (shop.startingIngredients.Count == 0 || shop.startingIngredients.All(i => i == null))
+            result.Errors.Add($"{where}: пустой стартовый набор ингредиентов");
+        foreach (var i in shop.startingIngredients.Where(i => i != null && i.source.missingInLastImport))
+            result.Warnings.Add($"{where}: стартовый ингредиент \"{i.DisplayName}\" пропал из экспорта");
+
+        var ids = new HashSet<string>();
+        var ingredients = new HashSet<CraftIngredient>();
+        foreach (var item in shop.items)
+        {
+            if (item == null) { result.Warnings.Add($"{where}: пустой товар"); continue; }
+            var w = $"{where}, товар {item.id}";
+            if (string.IsNullOrWhiteSpace(item.id)) result.Errors.Add($"{where}: товар без id");
+            else if (!ids.Add(item.id)) result.Errors.Add($"{w}: id повторяется — уровни в сохранении смешаются");
+            if (item.levels.Count == 0) result.Errors.Add($"{w}: нет уровней (цены)");
+            if (item.levels.Any(l => l.price <= 0)) result.Warnings.Add($"{w}: бесплатный уровень");
+            for (int i = 1; i < item.levels.Count; i++)
+                if (item.levels[i].price < item.levels[i - 1].price) result.Warnings.Add($"{w}: уровень {i + 1} дешевле предыдущего");
+            if (!string.IsNullOrEmpty(item.requiresItem) && shop.Find(item.requiresItem) == null)
+                result.Errors.Add($"{w}: условие requiresItem \"{item.requiresItem}\" — такого товара нет");
+
+            if (item.type == ShopItemType.IngredientUnlock)
+            {
+                var ing = item.ingredient;
+                if (ing == null) { result.Errors.Add($"{w}: не задан ингредиент"); continue; }
+                if (!ingredients.Add(ing)) result.Errors.Add($"{w}: ингредиент \"{ing.DisplayName}\" продаётся дважды");
+                if (shop.startingIngredients.Contains(ing)) result.Warnings.Add($"{w}: \"{ing.DisplayName}\" уже в стартовом наборе — покупать нечего");
+                if (ing.source.missingInLastImport) result.Warnings.Add($"{w}: ингредиент пропал из экспорта — товар не продаётся");
+                if (ing.kind is WaffleIngredientKind.Sauce or WaffleIngredientKind.Topping)
+                {
+                    if (ing.decor == null) result.Errors.Add($"{w}: у \"{ing.DisplayName}\" нет ассета украшения — ячейка не появится");
+                }
+                else
+                {
+                    result.Warnings.Add($"{w}: \"{ing.DisplayName}\" — вид {ing.kind}: станции для него пока нет, ячейка не появится (задел на будущее)");
+                }
+            }
+            else
+            {
+                for (int i = 0; i < item.levels.Count; i++)
+                {
+                    var level = item.levels[i];
+                    if (string.IsNullOrWhiteSpace(level.effect)) result.Warnings.Add($"{w}: у уровня {i + 1} нет описания эффекта");
+                    if (level.modifiers.Count == 0) result.Warnings.Add($"{w}: уровень {i + 1} ничего не меняет (нет модификаторов)");
+                    foreach (var m in level.modifiers.Where(m => m != null))
+                    {
+                        var limit = shop.Limit(m.stat);
+                        if (limit == null) result.Warnings.Add($"{w}: стат {m.stat} без предела в stats — значение не ограничено");
+                        else if (limit.baseValue + m.value > limit.max + 0.0001f)
+                            result.Warnings.Add($"{w}: уровень {i + 1} даёт {m.stat} = {limit.baseValue + m.value}, а предел {limit.max} — часть эффекта не сработает");
+                    }
+                }
+            }
+        }
+        foreach (var l in shop.stats.Where(l => l != null && l.min > l.max))
+            result.Errors.Add($"{where}: предел {l.stat}: min больше max");
+    }
+
+    // ---------- Доступность заказов ----------
+
+    private static OrderAvailability StartAvailability(DaySettings s) =>
+        new(s.shop != null ? s.shop.StartingKeys() : Enumerable.Empty<string>(), Enumerable.Empty<string>(), s.Database, s.rules);
+
+    // Всё, что можно купить: стартовый набор + все ингредиенты и товары магазина
+    private static OrderAvailability FullAvailability(DaySettings s) =>
+        new(s.shop == null ? Enumerable.Empty<string>()
+                : s.shop.StartingKeys().Concat(s.shop.items.Where(i => i?.ingredient != null).Select(i => i.ingredient.Key)),
+            s.shop == null ? Enumerable.Empty<string>() : s.shop.items.Where(i => i != null).Select(i => i.id), s.Database, s.rules);
+
+    private static void ValidateAvailability(DaySettings settings, Result result)
+    {
+        if (settings.Database == null || settings.shop == null) return;
+        var start = StartAvailability(settings);
+        var full = FullAvailability(settings);
+        string S(UnityEngine.Object o) => o == null ? "(пусто)" : o.name;
+
+        var dayOne = new List<string>();
+        foreach (var o in settings.orders.Where(o => o != null).Distinct())
+        {
+            if (WaffleOrder.Create(o, settings.Database, out _) == null) continue; // ошибка уже в списке
+            if (WaffleOrder.Create(o, settings.Database, out var why, start) != null)
+            {
+                if (o.fromDay <= 1) dayOne.Add(o.id);
+            }
+            else if (WaffleOrder.Create(o, settings.Database, out var never, full) == null)
+                result.Errors.Add($"Заказ {S(o)} ({o.id}) не станет доступен никогда: {never} — этого нет ни в стартовом наборе, ни в магазине");
+        }
+        if (dayOne.Count == 0)
+            result.Warnings.Add($"{S(settings)}: в первый день со стартовым набором нет ни одного заказа из списка — будет только запасной");
+
+        if (settings.fallbackOrder == null)
+            result.Warnings.Add($"{S(settings)}: не задан запасной заказ (fallbackOrder) — если ничего не выполнимо, обычные клиенты не придут");
+        else if (WaffleOrder.Create(settings.fallbackOrder, settings.Database, out var fe, start) == null)
+            result.Errors.Add($"{S(settings)}: запасной заказ {settings.fallbackOrder.id} не выполним со стартовым набором: {fe}");
+
+        foreach (var v in settings.storyVisits.Where(v => v != null && v.kind == VisitKind.Order))
+        {
+            var orders = v.order != null ? new List<OrderTemplate> { v.order } : v.orderPool.Where(o => o != null).ToList();
+            if (orders.Count == 0) continue;
+            if (orders.Any(o => WaffleOrder.Create(o, settings.Database, out _, start) != null)) continue;
+
+            string why = "";
+            foreach (var o in orders) WaffleOrder.Create(o, settings.Database, out why, start);
+            bool fallbackOk = v.fallbackOrder != null && WaffleOrder.Create(v.fallbackOrder, settings.Database, out _, start) != null;
+            result.Warnings.Add(fallbackOk
+                ? $"Сюжетный визит {S(v)}: заказ требует покупки ({why}) — если не куплено, возьмётся запасной {v.fallbackOrder.id}"
+                : $"Сюжетный визит {S(v)}: заказ требует покупки ({why}) — пока не куплено, визит откладывается на следующий день. " +
+                  "Задай fallbackOrder, если визит не должен ждать");
+        }
+    }
+
+    // ---------- Сюжетные цепочки ----------
+
+    private static void ValidateStoryChains(DaySettings settings, Result result)
+    {
+        string S(UnityEngine.Object o) => o == null ? "(пусто)" : o.name;
+        var visits = settings.storyVisits.Where(v => v != null).ToList();
+        var flagsSet = visits.SelectMany(v => v.onSuccess.Concat(v.onFailure).Concat(v.actions))
+            .Where(a => a != null && a.type == StoryActionType.SetFlag && !string.IsNullOrWhiteSpace(a.flag))
+            .Select(a => a.flag).ToHashSet();
+
+        foreach (var v in visits)
+        {
+            string where = $"Сюжетный визит {S(v)}";
+            if (v.schedule == VisitSchedule.AfterFlag)
+            {
+                if (string.IsNullOrWhiteSpace(v.afterFlag)) result.Errors.Add($"{where}: расписание AfterFlag без флага");
+                else if (!flagsSet.Contains(v.afterFlag)) result.Errors.Add($"{where}: флаг \"{v.afterFlag}\" не ставит ни один визит — визит не придёт никогда");
+            }
+            if (v.kind == VisitKind.NoCooking)
+            {
+                if (v.actions.Count == 0) result.Warnings.Add($"{where}: визит без готовки без действий — клиент просто поговорит и уйдёт");
+                if (v.order != null || v.orderPool.Any(o => o != null)) result.Warnings.Add($"{where}: визит без готовки — заказ не используется");
+                if (!v.once) result.Warnings.Add($"{where}: визит без готовки не однократный — будет приходить каждый день (подарок выдаётся один раз)");
+            }
+            foreach (var a in v.onSuccess.Concat(v.onFailure).Concat(v.actions).Where(a => a != null))
+            {
+                if (a.type == StoryActionType.GiveMoney && a.amount <= 0) result.Warnings.Add($"{where}: подарок на 0 монет");
+                if (a.type == StoryActionType.SetFlag && string.IsNullOrWhiteSpace(a.flag)) result.Errors.Add($"{where}: SetFlag без имени флага");
+            }
+            if (v.kind == VisitKind.Order && !v.paysForOrder && v.onSuccess.Count == 0)
+                result.Warnings.Add($"{where}: бесплатный заказ без действий при успехе — помощь ни на что не повлияет");
         }
     }
 
