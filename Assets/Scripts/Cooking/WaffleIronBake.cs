@@ -1,12 +1,13 @@
 using System.Collections;
 using UnityEngine;
 
-// Вафельница. Вешается на объект с коллайдером (тот же, в который льёт половник).
-//  1. Тесто налито — крышка открыта и "подсвечивается": нажми, чтобы закрыть.
-//  2. Нажали — крышка закрывается, идёт таймер, из-под крышки идёт пар,
-//     на UI-шкале точка ползёт слева направо: сыро → бледная → ЗОЛОТИСТАЯ → зажаристая → сгорела.
-//  3. Нажали ещё раз — крышка открывается, вафля перелетает на тарелку, результат в CookingSession.
-//  4. Нажали на вафлю на тарелке — она уезжает в зону украшения (DecorStation), потом в упаковку и диалог.
+// Вафельница. Вешается на объект с коллайдером.
+//  1. Миску с перемешанным тестом перетащили на вафельницу (BowlCarry) — тесто налито, крышка закрылась,
+//     идёт таймер, из-под крышки идёт пар, на шкале точка ползёт: сыро → бледная → ЗОЛОТИСТАЯ → зажаристая → сгорела.
+//  2. Готово — два способа снять:
+//     - тап по вафельнице: выпечка останавливается, вафля лежит на открытой вафельнице, дальше её тащат на украшение;
+//     - сразу потянуть с вафельницы: выпечка останавливается в момент захвата, вафля уже в пальце.
+//  3. Вафлю отпустили над зоной украшения — она ложится на свободное место (DecorStation), мимо — возвращается сюда.
 // Таймер не останавливается сам: не снял вовремя — вафля сгорит.
 public class WaffleIronBake : MonoBehaviour
 {
@@ -16,14 +17,20 @@ public class WaffleIronBake : MonoBehaviour
     [SerializeField] private ZoneGauge gauge;
     [Tooltip("Крышка (визуал), поднимается/опускается")]
     [SerializeField] private Transform lid;
-    [Tooltip("Куда кладём готовую вафлю")]
+    [Tooltip("Не используется: вафля остаётся на вафельнице, оттуда её тащат на украшение")]
     [SerializeField] private Transform platePoint;
     [Tooltip("Необязательно: префаб вафли со SpriteRenderer. Пусто — прямоугольник-заглушка")]
     [SerializeField] private SpriteRenderer wafflePrefab;
-    [Tooltip("Зона украшения: туда уезжает вафля с тарелки")]
+    [Tooltip("Зона украшения: туда перетаскивают готовую вафлю")]
     [SerializeField] private DecorStation decorStation;
     [Tooltip("Зона упаковки: запасной путь, если зоны украшения нет")]
     [SerializeField] private PackingStation packingStation;
+
+    [Header("Приём миски и захват вафли")]
+    [Tooltip("Миску можно отпустить в стольких единицах вокруг вафельницы")]
+    [SerializeField] private float dropPadding = 1.2f;
+    [Tooltip("Сдвиг пальца (пикселей) после нажатия, с которого это уже перетаскивание, а не тап")]
+    [SerializeField] private float dragThresholdPixels = 18f;
 
     [Header("Время")]
     [Tooltip("Правый край шкалы, сек")]
@@ -45,7 +52,6 @@ public class WaffleIronBake : MonoBehaviour
 
     [Header("Вафля")]
     [SerializeField] private Vector2 waffleSize = new(1.4f, 0.3f);
-    [SerializeField] private float flyTime = 0.5f;
     [SerializeField] private Color rawColor = new(0.98f, 0.93f, 0.72f);
     [SerializeField] private Color undercookedColor = new(0.96f, 0.83f, 0.52f);
     [SerializeField] private Color perfectColor = new(0.86f, 0.6f, 0.26f);
@@ -53,6 +59,10 @@ public class WaffleIronBake : MonoBehaviour
     [SerializeField] private Color burntColor = new(0.18f, 0.11f, 0.07f);
 
     private State state = State.Idle;
+    private bool pressPending;
+    private Vector2 pressScreenPos;
+    // Зоны текущей выпечки (с учётом улучшения "Таймер вафельницы"), фиксируются при закрытии крышки
+    private GaugeZones activeZones;
     private float bakeTime;
     private float steamTimer;
 
@@ -81,14 +91,60 @@ public class WaffleIronBake : MonoBehaviour
 
     private void OnMouseDown()
     {
-        // Пока половник над вафельницей — клики по ней не считаются
         if (PourItem.Active != null || CookingManager.Instance == null) return;
 
         var session = CookingManager.Instance.Current;
         if (state == State.Baking)
-            TakeOut(session);
-        else if (state == State.Idle && session.CanStartBake)
+        {
+            // Тап или перетаскивание — решится в Update по движению пальца
+            pressPending = true;
+            pressScreenPos = Input.mousePosition;
+        }
+        else if (session.CanStartBake) // тесто налито другим способом (старый половник) — закрыть крышку
             StartBaking(session);
+    }
+
+    // Можно ли сейчас налить тесто из миски (и почему нет)
+    public bool CanAcceptBatter(out string reason)
+    {
+        reason = null;
+        var session = CookingManager.Instance != null ? CookingManager.Instance.Current : null;
+        if (session == null) reason = "нет заказа";
+        else if (state == State.Baking) reason = "Вафельница занята — вафля ещё печётся";
+        else if (session.PlateProduct != null) reason = "Сначала унеси готовую вафлю на украшение";
+        else if (!session.IsMixed) reason = "Тесто ещё не перемешано";
+        else if (!session.CanPour(PourIngredient.Batter)) reason = "Все места для украшения заняты — отдай вафлю клиенту";
+        return reason == null;
+    }
+
+    // Миску отпустили над вафельницей
+    public bool IsInDropArea(Vector3 world)
+    {
+        var b = GetComponent<Collider2D>() is { } col ? col.bounds : new Bounds(transform.position, Vector3.one);
+        b.Expand(dropPadding * 2f);
+        return b.Contains(new Vector3(world.x, world.y, b.center.z));
+    }
+
+    // Тесто из миски: налить норму рецепта и сразу начать выпечку
+    public bool StartFromBowl(out string reason)
+    {
+        if (!CanAcceptBatter(out reason)) return false;
+        var manager = CookingManager.Instance;
+        var session = manager.Current;
+        float amount = manager.CurrentRecipe != null ? manager.CurrentRecipe.batter.amount : 150f;
+        session.SetPoured(PourIngredient.Batter, amount, PourResult.Perfect);
+        session.MoveBowlToStove(); // тесто пошло в дело: в миску больше ничего не добавляем
+        StartBaking(session);
+        Debug.Log($"[Bake] тесто из миски: {amount:F0} мл, печём ({session.IronProduct?.Name})");
+        return true;
+    }
+
+    // Остановить выпечку и снять вафлю (drag — сразу в палец)
+    public PlatedWaffle TakeOutNow(bool drag)
+    {
+        if (state != State.Baking || CookingManager.Instance == null) return null;
+        pressPending = false;
+        return TakeOut(CookingManager.Instance.Current, drag);
     }
 
     private void StartBaking(CookingSession session)
@@ -98,26 +154,41 @@ public class WaffleIronBake : MonoBehaviour
         bakeTime = 0f;
         steamTimer = 0f;
 
+        // Улучшение: "золотистое" окно шире на N секунд с каждой стороны, "бледная" и "зажаристая" — той же ширины
+        float widenSeconds = GameStats.Get(StatId.BakeGreenWidenSeconds);
+        activeZones = GameStats.WidenGreenKeepYellow(zones, widenSeconds / Mathf.Max(0.01f, maxSeconds));
+        if (widenSeconds > 0f)
+            Debug.Log($"[Bake] улучшение: золотистая {activeZones.greenMin * maxSeconds:F1}–{activeZones.greenMax * maxSeconds:F1} с, " +
+                      $"зажаристая до {activeZones.yellowMax * maxSeconds:F1} с");
+
         AnimateLid(0f);
-        if (gauge != null) gauge.Show(zones, "Выпечка 0.0 с", showProgress: false);
+        if (gauge != null) gauge.Show(activeZones, "Выпечка 0.0 с", showProgress: false);
         Debug.Log("[Bake] крышка закрыта, печём");
     }
 
-    private void TakeOut(CookingSession session)
+    private PlatedWaffle TakeOut(CookingSession session, bool drag)
     {
         state = State.Done;
 
         var result = Evaluate(bakeTime / maxSeconds);
-        session.SetBake(bakeTime, result);
-        Debug.Log($"[Bake] сняли через {bakeTime:F1} с → {result}");
+        var product = session.SetBake(bakeTime, result);
+        Debug.Log($"[Bake] сняли через {bakeTime:F1} с → {result} ({product?.Name})");
 
         if (gauge != null) gauge.Hide();
         AnimateLid(1f);
-        StartCoroutine(FlyWaffleToPlate(result));
+        return SpawnWaffle(result, product, drag);
     }
 
     private void Update()
     {
+        // Нажали на вафельницу во время выпечки: отпустили на месте — тап (стоп), повели — сразу тащим вафлю
+        if (pressPending)
+        {
+            if (state != State.Baking) pressPending = false;
+            else if (!Input.GetMouseButton(0)) TakeOutNow(false);
+            else if (((Vector2)Input.mousePosition - pressScreenPos).magnitude >= dragThresholdPixels) TakeOutNow(true);
+        }
+
         if (state == State.Baking)
         {
             bakeTime += Time.deltaTime;
@@ -140,14 +211,14 @@ public class WaffleIronBake : MonoBehaviour
         // Подсказка: тесто налито, можно закрывать
         if (lidRenderer != null)
         {
-            bool hint = state == State.Idle && PourItem.Active == null &&
+            bool hint = state != State.Baking && PourItem.Active == null &&
                         CookingManager.Instance != null && CookingManager.Instance.Current.CanStartBake;
             float k = hint ? (Mathf.Sin(Time.time * 6f) + 1f) * 0.5f : 0f;
             lidRenderer.color = Color.Lerp(lidBaseColor, lidHintColor, k * 0.8f);
         }
     }
 
-    private BakeResult Evaluate(float v01) => zones.Classify(v01) switch
+    private BakeResult Evaluate(float v01) => activeZones.Classify(v01) switch
     {
         -2 => BakeResult.Raw,
         -1 => BakeResult.Undercooked,
@@ -200,7 +271,7 @@ public class WaffleIronBake : MonoBehaviour
     private IEnumerator Puff(float v01)
     {
         // Чем дольше печём, тем темнее пар: белый → серый → почти чёрный дым
-        float dark = Mathf.InverseLerp(zones.greenMax, 1f, v01);
+        float dark = Mathf.InverseLerp(activeZones.greenMax, 1f, v01);
         var color = Color.Lerp(new Color(1f, 1f, 1f, 0.8f), new Color(0.15f, 0.15f, 0.15f, 0.9f), dark);
 
         var b = GetComponent<Collider2D>() is { } col ? col.bounds : new Bounds(transform.position, Vector3.one);
@@ -223,7 +294,8 @@ public class WaffleIronBake : MonoBehaviour
 
     // ---------- Вафля ----------
 
-    private IEnumerator FlyWaffleToPlate(BakeResult result)
+    // Вафля лежит на открытой вафельнице; drag — сразу в пальце
+    private PlatedWaffle SpawnWaffle(BakeResult result, WaffleProduct product, bool drag)
     {
         SpriteRenderer waffle;
         if (wafflePrefab != null)
@@ -237,24 +309,17 @@ public class WaffleIronBake : MonoBehaviour
         }
         waffle.color = ColorFor(result);
 
-        var from = GetComponent<Collider2D>() is { } col ? col.bounds.center : transform.position;
-        var to = platePoint != null ? platePoint.position : from + Vector3.right * 3f;
+        var rest = (GetComponent<Collider2D>() is { } col ? col.bounds.center : transform.position) + Vector3.up * 0.35f;
+        rest.z = 0f;
+        waffle.transform.position = rest;
 
-        for (float t = 0f; t < flyTime; t += Time.deltaTime)
-        {
-            float k = Mathf.SmoothStep(0f, 1f, t / flyTime);
-            waffle.transform.position = Vector3.Lerp(from, to, k) + Vector3.up * (Mathf.Sin(k * Mathf.PI) * 1.2f);
-            yield return null;
-        }
-        waffle.transform.position = to;
-
-        // Вафля на тарелке кликабельна: по нажатию — в упаковку.
-        // Коллайдер выше самой вафли, чтобы по тонкой полоске было легко попасть пальцем.
+        // Коллайдер выше самой вафли, чтобы по тонкой полоске было легко попасть пальцем
         if (waffle.GetComponent<Collider2D>() == null)
-        {
-            var tapArea = waffle.gameObject.AddComponent<BoxCollider2D>();
-            tapArea.size = new Vector2(1f, 3f);
-        }
-        waffle.gameObject.AddComponent<PlatedWaffle>().Initialize(decorStation, packingStation);
+            waffle.gameObject.AddComponent<BoxCollider2D>().size = new Vector2(1f, 4f);
+
+        var plated = waffle.gameObject.AddComponent<PlatedWaffle>();
+        plated.Initialize(decorStation, packingStation, product, rest);
+        if (drag) plated.BeginDrag();
+        return plated;
     }
 }

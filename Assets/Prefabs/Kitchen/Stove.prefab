@@ -108,7 +108,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2211344503035975618
 Transform:
   m_ObjectHideFlags: 0
@@ -597,6 +597,8 @@ MonoBehaviour:
   lid: {fileID: 1375787214242717322}
   platePoint: {fileID: 5877281024979183653}
   wafflePrefab: {fileID: 0}
+  decorStation: {fileID: 0}
+  packingStation: {fileID: 0}
   maxSeconds: 20
   zones:
     yellowMin: 0.325
