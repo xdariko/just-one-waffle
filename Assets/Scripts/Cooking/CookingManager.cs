@@ -16,6 +16,8 @@ public class CookingManager : MonoBehaviour
     public WaffleRecipe CurrentRecipe { get; private set; }
     // Заказ клиента (null — кухня без рабочего дня)
     public WaffleOrder CurrentOrder { get; private set; }
+    // Ключ визита, для которого готовим: им помечены вафли, упаковка его проверяет
+    public string CurrentOrderKey => Current?.OrderKey;
 
     // Оценка последней упакованной вафли (null — ещё не упаковывали или нет рецепта)
     public WaffleScore LastScore { get; private set; }
@@ -40,20 +42,21 @@ public class CookingManager : MonoBehaviour
     }
 
     // Новый заказ: пустая миска. recipe == null — оставить текущий рецепт
-    public void StartNewOrder(WaffleRecipe recipe = null)
+    public void StartNewOrder(WaffleRecipe recipe = null, string orderKey = null)
     {
-        Current = new CookingSession();
+        // Сколько вафель можно испечь из одной миски — сколько мест на станции украшения (купленное оборудование)
+        Current = new CookingSession(orderKey) { MaxProducts = GameStats.DecorSlots };
         if (recipe != null) CurrentRecipe = recipe;
         CurrentOrder = null;
         LastScore = null;
     }
 
     // Заказ клиента из рабочего дня: нормы на шкалах — по его рецепту-ориентиру
-    public void StartNewOrder(WaffleOrder order)
+    public void StartNewOrder(WaffleOrder order, string orderKey)
     {
-        StartNewOrder(order.GuideRecipe != null ? order.GuideRecipe : defaultRecipe);
+        StartNewOrder(order.GuideRecipe != null ? order.GuideRecipe : defaultRecipe, orderKey);
         CurrentOrder = order;
-        Debug.Log($"[Cooking] новый заказ: {order.Describe()} (нормы по рецепту \"{CurrentRecipe?.DisplayName}\")");
+        Debug.Log($"[Cooking] новый заказ {orderKey}: {order.Describe()} (нормы по рецепту \"{CurrentRecipe?.DisplayName}\", вафель до {Current.MaxProducts})");
     }
 
     // Новый день: никаких следов прошлого заказа
@@ -71,11 +74,19 @@ public class CookingManager : MonoBehaviour
         return RecipeScoring.Evaluate(Current, CurrentRecipe, db);
     }
 
-    // Вызывается упаковкой: заказ готов, фиксируем оценку и отдаём вафлю клиенту
-    public WaffleScore CompleteOrder()
+    // Вызывается упаковкой: заказ готов, фиксируем оценку и отдаём вафлю клиенту.
+    // product — какую из вафель отдали (null — единственную/последнюю). Вафля другого заказа не отдаётся.
+    public WaffleScore CompleteOrder(WaffleProduct product = null)
     {
         if (Current.IsPacked) return LastScore; // второй вызов не выдаёт вафлю повторно
-        Current.MarkPacked();
+        product ??= Current.Focus;
+        if (product != null && product.OrderKey != Current.OrderKey)
+        {
+            Debug.LogError($"[Cooking] {product.Name} испечена для заказа {product.OrderKey}, а сейчас {Current.OrderKey} — не отдаём");
+            return null;
+        }
+        if (product != null) Current.Deliver(product);
+        else Current.MarkPacked();
         LastScore = EvaluateCurrent();
         if (DayRunner.Instance != null && CurrentOrder != null)
             DayRunner.Instance.DeliverWaffle(Current);
@@ -93,10 +104,10 @@ public class CookingManager : MonoBehaviour
     {
         if (FindAnyObjectByType<PackingStation>() == null) return;
 
-        var order = DayRunner.Instance != null ? DayRunner.Instance.ActiveOrder : null;
-        if (order != null)
+        var visit = DayRunner.Instance != null ? DayRunner.Instance.ActiveVisit : null;
+        if (visit != null && visit.Order != null)
         {
-            if (order != CurrentOrder || Current.IsPacked) StartNewOrder(order);
+            if (visit.Key != CurrentOrderKey || Current.IsPacked) StartNewOrder(visit.Order, visit.Key);
         }
         else if (Current.IsPacked)
         {

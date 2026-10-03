@@ -2,7 +2,10 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 
 // Прокрутка стола влево/вправо: вешается на камеру.
-// Свайп по пустому месту двигает стол, по объектам с коллайдером (лоток, яйцо, миска) — нет.
+// Свайп по пустому месту двигает стол, по объектам с коллайдером (лоток, яйцо, миска, вафля, ячейки) — нет.
+// Пока идёт игровой жест (GestureLock: сыплем, мешаем, мажем соус...), стол не двигается ни свайпом, ни колесом.
+// Ширина стола может меняться в игре (станция украшения выросла) — SetBounds.
+// Касание читается через старый Input (палец = левая кнопка мыши).
 [RequireComponent(typeof(Camera))]
 public class TableScroller : MonoBehaviour
 {
@@ -38,6 +41,19 @@ public class TableScroller : MonoBehaviour
 
     public bool IsDragging => dragging;
     public bool IsAutoMoving => autoMoving;
+    public float TableMinX => tableMinX;
+    public float TableMaxX => tableMaxX;
+
+    // Новые края стола (мировые X). Камера сразу ограничивается ими
+    public void SetBounds(float minX, float maxX)
+    {
+        tableMinX = minX;
+        tableMaxX = Mathf.Max(minX, maxX);
+        if (cam != null) SetX(transform.position.x);
+    }
+
+    // Куда может встать центр камеры при текущем экране
+    public void GetCameraRange(out float min, out float max) => GetCameraLimits(out min, out max);
 
     private void Awake()
     {
@@ -69,6 +85,15 @@ public class TableScroller : MonoBehaviour
 
     private void HandlePointer()
     {
+        // Палец двигает предмет — не стол
+        if (GestureLock.IsActive)
+        {
+            pointerDown = false;
+            dragging = false;
+            velocityX = 0f;
+            return;
+        }
+
         if (Input.GetMouseButtonDown(0))
         {
             // Нажали на интерактивный объект или UI — это не свайп стола
@@ -115,6 +140,7 @@ public class TableScroller : MonoBehaviour
 
     private void HandleKeyboardAndWheel()
     {
+        if (GestureLock.IsActive) return;
         float axis = Input.GetAxisRaw("Horizontal");
         float wheel = Input.mouseScrollDelta.y;
 
@@ -164,6 +190,15 @@ public class TableScroller : MonoBehaviour
     private static bool IsOverUI()
     {
         return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+    }
+
+    // Окно потеряло фокус — свайп обрывается без инерции
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (hasFocus) return;
+        pointerDown = false;
+        dragging = false;
+        velocityX = 0f;
     }
 
     public void JumpTo(float worldX) => SetX(worldX);

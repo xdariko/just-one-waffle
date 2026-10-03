@@ -1,11 +1,36 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 // Что игрок сделал за текущий заказ — "факт", а не рецепт.
 // Хранятся сырые значения (штуки, граммы, секунды, покрытие, позиции добавок): по ним
 // RecipeScoring сравнивает вафлю с рецептом клиента. Оценки *Result — то, что игрок видел
 // на шкалах во время готовки (для подсказок/визуала), итоговая оценка их не использует.
+//
+// Тесто в миске (яйца ... перемешивание) — одно на заказ. Вафли из него — WaffleProduct: у каждой своё
+// налитое тесто, выпечка и украшение. Свойства Batter*/Bake*/Decor ниже относятся к вафле Focus:
+// к отданной, если её уже отдали, иначе к той, что в вафельнице, иначе к последней.
+// Сколько вафель можно испечь за заказ — MaxProducts (= мест на станции украшения).
 public class CookingSession
 {
+    private readonly List<WaffleProduct> products = new();
+
+    // Заказ (визит), для которого готовим. Пусто — кухня без рабочего дня
+    public string OrderKey { get; }
+    public int MaxProducts { get; set; } = 1;
+    public IReadOnlyList<WaffleProduct> Products => products;
+
+    // Вафля в вафельнице (налито тесто или печётся)
+    public WaffleProduct IronProduct => products.FirstOrDefault(p => p.State is WaffleProductState.InIron or WaffleProductState.Baking);
+    public WaffleProduct PlateProduct => products.FirstOrDefault(p => p.State == WaffleProductState.OnPlate);
+    public WaffleProduct Delivered { get; private set; }
+    public WaffleProduct Focus => Delivered ?? IronProduct ?? (products.Count > 0 ? products[^1] : null);
+
+    public CookingSession(string orderKey = null)
+    {
+        OrderKey = orderKey;
+    }
+
     // Старый значок-порция сахара (PortionSourceClick) добавляет столько граммов за нажатие
     public const float SugarPortionGrams = 12.5f;
 
@@ -30,27 +55,32 @@ public class CookingSession
     public float OvermixSeconds { get; private set; }
     public bool IsMixed => MixResult != null;
 
-    // Миску унесли к плите: в неё больше ничего не добавляем, теперь наливаем тесто в вафельницу
+    // Тесто пошло в вафельницу (миска вернулась на место): в неё больше ничего не добавляем
     public bool BowlAtStove { get; private set; }
 
-    public float BatterAmount { get; private set; }
-    public PourResult? BatterResult { get; private set; }
+    public float BatterAmount => Focus?.BatterAmount ?? 0f;
+    public PourResult? BatterResult => Focus?.BatterResult;
 
     // Выпечка: крышку закрыли — пошёл таймер, открыли — вафлю сняли
-    public bool BakeStarted { get; private set; }
-    public float BakeSeconds { get; private set; }
-    public BakeResult? BakeResult { get; private set; }
+    public bool BakeStarted => Focus?.BakeStarted ?? false;
+    public float BakeSeconds => Focus?.BakeSeconds ?? 0f;
+    public BakeResult? BakeResult => Focus?.BakeResult;
     public bool IsBaked => BakeResult != null;
 
     // Украшение (соусы и добавки). null — ещё не украшали
-    public WaffleDecor Decor { get; private set; }
+    public WaffleDecor Decor => Focus?.Decor;
     public bool IsDecorated => Decor != null;
 
     // Вафлю положили в коробку — заказ готов, дальше диалог с клиентом
     public bool IsPacked { get; private set; }
 
     // Тесто налито, крышка ещё не закрывалась
-    public bool CanStartBake => BatterAmount > 0f && !BakeStarted;
+    public bool CanStartBake => IronProduct is { State: WaffleProductState.InIron, BatterAmount: > 0f };
+
+    // Можно начать новую вафлю: вафельница и тарелка свободны, место для украшения ещё есть
+    public bool CanStartNewProduct =>
+        IronProduct == null && PlateProduct == null && !IsPacked &&
+        products.Count(p => p.State != WaffleProductState.Discarded) < Mathf.Max(1, MaxProducts);
 
     public bool HasAnyIngredient =>
         EggsAdded > 0 || FlourAmount > 0f || MilkAmount > 0f || SugarAmount > 0f || SaltPortions > 0;
@@ -59,8 +89,10 @@ public class CookingSession
     // Тесто перемешано — оно готово, больше ничего не добавляем, миску несём к плите.
     public bool CanUseBowl => !BowlAtStove && !IsMixed;
 
+    // Тесто (миску несут на вафельницу): в ту же вафлю, пока крышка открыта, или в новую, если для неё есть место
     public bool CanPour(PourIngredient ingredient) => ingredient == PourIngredient.Batter
-        ? BowlAtStove && IsMixed && !BakeStarted
+        ? IsMixed && !IsPacked &&
+          (IronProduct is { State: WaffleProductState.InIron } || CanStartNewProduct)
         : CanUseBowl;
 
     public void AddEgg(EggCrackResult result)
@@ -77,7 +109,7 @@ public class CookingSession
     {
         PourIngredient.Flour => FlourAmount,
         PourIngredient.Milk => MilkAmount,
-        PourIngredient.Batter => BatterAmount,
+        PourIngredient.Batter => IronProduct?.BatterAmount ?? 0f,
         PourIngredient.Sugar => SugarAmount,
         _ => 0f
     };
@@ -96,8 +128,14 @@ public class CookingSession
                 MilkResult = result;
                 break;
             case PourIngredient.Batter:
-                BatterAmount = total;
-                BatterResult = result;
+                var product = IronProduct ?? StartProduct();
+                if (product == null)
+                {
+                    Debug.LogWarning("[Cooking] некуда наливать тесто: все места для вафель заняты");
+                    break;
+                }
+                product.BatterAmount = total;
+                product.BatterResult = result;
                 break;
             case PourIngredient.Sugar:
                 SugarAmount = total;
@@ -133,25 +171,59 @@ public class CookingSession
         BowlAtStove = true;
     }
 
+    // Новая вафля из того же теста (null — нет места)
+    private WaffleProduct StartProduct()
+    {
+        if (!CanStartNewProduct) return null;
+        var p = new WaffleProduct(products.Count + 1, OrderKey);
+        products.Add(p);
+        return p;
+    }
+
     public void StartBake()
     {
-        BakeStarted = true;
+        var p = IronProduct;
+        if (p == null) return;
+        p.BakeStarted = true;
+        p.State = WaffleProductState.Baking;
     }
 
-    public void SetBake(float seconds, BakeResult result)
+    // Вафлю сняли: она на тарелке. Возвращает её (null — в вафельнице ничего не было)
+    public WaffleProduct SetBake(float seconds, BakeResult result)
     {
-        BakeSeconds = seconds;
-        BakeResult = result;
+        var p = IronProduct;
+        if (p == null) return null;
+        p.BakeSeconds = seconds;
+        p.BakeResult = result;
+        p.State = WaffleProductState.OnPlate;
+        return p;
     }
 
-    public void SetDecor(WaffleDecor decor)
+    public void SetDecor(WaffleDecor decor) => SetDecor(Focus, decor);
+
+    public void SetDecor(WaffleProduct product, WaffleDecor decor)
     {
-        Decor = decor;
+        if (product != null) product.Decor = decor;
+    }
+
+    // Отдать вафлю клиенту. Остальные вафли этого заказа выбрасываются
+    public bool Deliver(WaffleProduct product)
+    {
+        if (IsPacked || product == null || !products.Contains(product)) return false;
+        Delivered = product;
+        product.State = WaffleProductState.Packed;
+        foreach (var other in products.Where(p => p != product && p.State != WaffleProductState.Discarded))
+        {
+            other.State = WaffleProductState.Discarded;
+            Debug.Log($"[Cooking] {other.Name} не понадобилась — выброшена");
+        }
+        IsPacked = true;
+        return true;
     }
 
     public void MarkPacked()
     {
-        IsPacked = true;
+        if (!Deliver(Focus)) IsPacked = true;
     }
 
     public override string ToString()
@@ -165,7 +237,8 @@ public class CookingSession
                $"Тесто в вафельнице: {BatterAmount:F0} мл ({BatterResult?.ToString() ?? "—"}) | " +
                $"Выпечка: {(IsBaked ? $"{BakeSeconds:F1} с ({BakeResult})" : BakeStarted ? "печётся" : "—")} | " +
                $"Украшение: {Decor?.ToString() ?? "—"} | " +
-               $"Упакована: {(IsPacked ? "да" : "нет")}";
+               $"Упакована: {(IsPacked ? $"да ({Delivered?.Name})" : "нет")} | " +
+               $"Вафли ({products.Count}/{MaxProducts}): {(products.Count == 0 ? "—" : string.Join("; ", products))}";
     }
 
     public void Reset()
@@ -183,12 +256,8 @@ public class CookingSession
         MixResult = null;
         OvermixSeconds = 0f;
         BowlAtStove = false;
-        BatterAmount = 0f;
-        BatterResult = null;
-        BakeStarted = false;
-        BakeSeconds = 0f;
-        BakeResult = null;
-        Decor = null;
+        products.Clear();
+        Delivered = null;
         IsPacked = false;
     }
 }
