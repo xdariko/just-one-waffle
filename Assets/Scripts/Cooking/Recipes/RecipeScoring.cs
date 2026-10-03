@@ -207,6 +207,8 @@ public static class RecipeScoring
     private static void Pour(WaffleScore score, string name, float have, PourTarget target, string unit,
         string tooLittleDefect, string tooMuchDefect)
     {
+        // Зоны с учётом улучшения "Мерная посуда" — как на шкале у игрока
+        target = GameStats.WidenPour(target);
         var result = target.Evaluate(have);
         int pts = result switch
         {

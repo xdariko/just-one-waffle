@@ -22,7 +22,10 @@
     { "id": 10, "name": "Клубника", "image": "strawberry.png", "description": "Кусочки клубники, штуки.", "tags": ["fruit"] },
     { "id": 11, "name": "Банан", "image": "banana.png", "description": "Кружочки банана, штуки.", "tags": ["fruit"] },
     { "id": 12, "name": "Черника", "image": "blueberry.png", "description": "Ягоды черники, штуки.", "tags": ["fruit"] },
-    { "id": 13, "name": "Шок. крошка", "image": "chocolate_chips.png", "description": "Шоколадная крошка, щепотки.", "tags": ["chocolate", "sweet"] }
+    { "id": 13, "name": "Шок. крошка", "image": "chocolate_chips.png", "description": "Шоколадная крошка, щепотки.", "tags": ["chocolate", "sweet"] },
+    { "id": 14, "name": "Мороженое", "image": "ice_cream.png", "description": "Шарик ванильного мороженого, штуки.", "tags": ["dairy", "sweet"] },
+    { "id": 15, "name": "Посыпка", "image": "sprinkles.png", "description": "Цветная посыпка, щепотки.", "tags": ["sweet"] },
+    { "id": 16, "name": "Мёд", "image": "honey.png", "description": "Цветочный мёд, % покрытия.", "tags": ["sweet"] }
   ],
   "recipes": [
     {
@@ -92,6 +95,37 @@
       "ingredients": [
         { "type": "recipe", "name": "Хрустящая вафля" },
         { "type": "ingredient", "id": 7, "quantity": 30 }
+      ],
+      "tags": ["crispy", "sweet"]
+    },
+    {
+      "name": "Вафля с мороженым",
+      "description": "Простая вафля и два шарика мороженого.",
+      "image": "ice_cream_waffle.png",
+      "ingredients": [
+        { "type": "recipe", "name": "Простая вафля" },
+        { "type": "ingredient", "id": 14, "quantity": 2 }
+      ],
+      "tags": ["sweet", "dairy"]
+    },
+    {
+      "name": "Праздничная вафля",
+      "description": "Простая вафля, шоколад и цветная посыпка.",
+      "image": "festive_waffle.png",
+      "ingredients": [
+        { "type": "recipe", "name": "Простая вафля" },
+        { "type": "ingredient", "id": 6, "quantity": 30 },
+        { "type": "ingredient", "id": 15, "quantity": 4 }
+      ],
+      "tags": ["sweet", "chocolate"]
+    },
+    {
+      "name": "Медовая хрустящая",
+      "description": "Зажаристая вафля с мёдом.",
+      "image": "honey_crispy.png",
+      "ingredients": [
+        { "type": "recipe", "name": "Хрустящая вафля" },
+        { "type": "ingredient", "id": 16, "quantity": 30 }
       ],
       "tags": ["crispy", "sweet"]
     }

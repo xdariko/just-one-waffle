@@ -1,0 +1,363 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61f426dea2157e94a9559c2331b51ce9, type: 3}
+  m_Name: ShopCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::ShopCatalog
+  startingIngredients:
+  - {fileID: 11400000, guid: c81936063ab2cb240a64dc8ad487df6e, type: 2}
+  - {fileID: 11400000, guid: 6a62ca99e97aed045884f570ef51a049, type: 2}
+  - {fileID: 11400000, guid: 44190ec3c57daac4bab2cdd01e16a691, type: 2}
+  - {fileID: 11400000, guid: 655d08e2a5523c7489983e47ef7343c5, type: 2}
+  - {fileID: 11400000, guid: 2eae1d457728049439c675e6be781163, type: 2}
+  - {fileID: 11400000, guid: 57e55e66b91668b418f0c9638265b3d9, type: 2}
+  - {fileID: 11400000, guid: 38f485536a34318449502c9476f8e2b5, type: 2}
+  - {fileID: 11400000, guid: 524b02b5637591c44ba66be6cd76da9f, type: 2}
+  - {fileID: 11400000, guid: 31c48c24a98ac3e46bb9969dcbfd4b65, type: 2}
+  items:
+  - id: egg_luck
+    displayName: "\u041B\u043E\u0432\u043A\u0438\u0435 \u043F\u0430\u043B\u044C\u0446\u044B"
+    description: "\u0423\u0434\u0430\u0440\u0438\u043B \u044F\u0439\u0446\u043E \u0441\u043B\u0438\u0448\u043A\u043E\u043C
+      \u0441\u0438\u043B\u044C\u043D\u043E \u2014 \u0435\u0441\u0442\u044C \u0448\u0430\u043D\u0441
+      \u043F\u043E\u0439\u043C\u0430\u0442\u044C \u0441\u043A\u043E\u0440\u043B\u0443\u043F\u0443:
+      \u044F\u0439\u0446\u043E \u0437\u0430\u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044F
+      \u0440\u0430\u0437\u0431\u0438\u0442\u044B\u043C \u0441 \u0442\u0440\u0435\u0449\u0438\u043D\u043E\u0439,
+      \u0431\u0435\u0437 \u0441\u043A\u043E\u0440\u043B\u0443\u043F\u044B \u0432
+      \u0442\u0435\u0441\u0442\u0435."
+    category: 0
+    type: 0
+    minigame: "\u042F\u0439\u0446\u0430"
+    ingredient: {fileID: 0}
+    levels:
+    - price: 60
+      effect: "\u0428\u0430\u043D\u0441 \u043F\u043E\u0439\u043C\u0430\u0442\u044C
+        \u0441\u043A\u043E\u0440\u043B\u0443\u043F\u0443 20%"
+      modifiers:
+      - stat: 0
+        value: 0.2
+    - price: 110
+      effect: "\u0428\u0430\u043D\u0441 \u043F\u043E\u0439\u043C\u0430\u0442\u044C
+        \u0441\u043A\u043E\u0440\u043B\u0443\u043F\u0443 35%"
+      modifiers:
+      - stat: 0
+        value: 0.35
+    - price: 180
+      effect: "\u0428\u0430\u043D\u0441 \u043F\u043E\u0439\u043C\u0430\u0442\u044C
+        \u0441\u043A\u043E\u0440\u043B\u0443\u043F\u0443 50%"
+      modifiers:
+      - stat: 0
+        value: 0.5
+    minDay: 1
+    requiresItem: 
+    requiresLevel: 1
+  - id: pour_scale
+    displayName: "\u041C\u0435\u0440\u043D\u0430\u044F \u043F\u043E\u0441\u0443\u0434\u0430"
+    description: "\u0417\u043E\u043D\u044B \u043D\u0430 \u0448\u043A\u0430\u043B\u0430\u0445
+      \u043D\u0430\u0441\u044B\u043F\u0430\u043D\u0438\u044F \u0438 \u043D\u0430\u043B\u0438\u0432\u0430\u043D\u0438\u044F
+      \u0448\u0438\u0440\u0435 \u2014 \u043F\u0440\u043E\u0449\u0435 \u043F\u043E\u043F\u0430\u0441\u0442\u044C
+      \u0432 \u043D\u043E\u0440\u043C\u0443. \u0421\u0430\u043C\u0430 \u043D\u043E\u0440\u043C\u0430
+      \u0440\u0435\u0446\u0435\u043F\u0442\u0430 \u043D\u0435 \u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F."
+    category: 0
+    type: 0
+    minigame: "\u041C\u0443\u043A\u0430, \u043C\u043E\u043B\u043E\u043A\u043E, \u0441\u0430\u0445\u0430\u0440,
+      \u0442\u0435\u0441\u0442\u043E"
+    ingredient: {fileID: 0}
+    levels:
+    - price: 70
+      effect: "\u0417\u043E\u043D\u044B \u0448\u043A\u0430\u043B \u0448\u0438\u0440\u0435
+        \u043D\u0430 15%"
+      modifiers:
+      - stat: 1
+        value: 0.15
+    - price: 130
+      effect: "\u0417\u043E\u043D\u044B \u0448\u043A\u0430\u043B \u0448\u0438\u0440\u0435
+        \u043D\u0430 30%"
+      modifiers:
+      - stat: 1
+        value: 0.3
+    - price: 200
+      effect: "\u0417\u043E\u043D\u044B \u0448\u043A\u0430\u043B \u0448\u0438\u0440\u0435
+        \u043D\u0430 45%"
+      modifiers:
+      - stat: 1
+        value: 0.45
+    minDay: 1
+    requiresItem: 
+    requiresLevel: 1
+  - id: whisk_balance
+    displayName: "\u0423\u0434\u043E\u0431\u043D\u044B\u0439 \u0432\u0435\u043D\u0447\u0438\u043A"
+    description: "\u0417\u0435\u043B\u0451\u043D\u0430\u044F \u0437\u043E\u043D\u0430
+      \u0448\u0438\u0440\u0435, \u0430 \u043A\u043E\u0440\u043E\u0442\u043A\u0438\u0439
+      \u0437\u0430\u0445\u043E\u0434 \u0432 \u043A\u0440\u0430\u0441\u043D\u0443\u044E
+      \u0441\u043F\u0440\u0430\u0432\u0430 \u043D\u0435 \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044F
+      \u043F\u0435\u0440\u0435\u043C\u0435\u0448\u0438\u0432\u0430\u043D\u0438\u0435\u043C."
+    category: 0
+    type: 0
+    minigame: "\u041F\u0435\u0440\u0435\u043C\u0435\u0448\u0438\u0432\u0430\u043D\u0438\u0435"
+    ingredient: {fileID: 0}
+    levels:
+    - price: 60
+      effect: "\u0417\u0435\u043B\u0451\u043D\u0430\u044F \u0437\u043E\u043D\u0430
+        +6% \u0448\u043A\u0430\u043B\u044B, \u043F\u0440\u043E\u0449\u0430\u0435\u0442\u0441\u044F
+        0.3 \u0441"
+      modifiers:
+      - stat: 2
+        value: 0.03
+      - stat: 3
+        value: 0.3
+    - price: 110
+      effect: "\u0417\u0435\u043B\u0451\u043D\u0430\u044F \u0437\u043E\u043D\u0430
+        +12% \u0448\u043A\u0430\u043B\u044B, \u043F\u0440\u043E\u0449\u0430\u0435\u0442\u0441\u044F
+        0.6 \u0441"
+      modifiers:
+      - stat: 2
+        value: 0.06
+      - stat: 3
+        value: 0.6
+    - price: 180
+      effect: "\u0417\u0435\u043B\u0451\u043D\u0430\u044F \u0437\u043E\u043D\u0430
+        +18% \u0448\u043A\u0430\u043B\u044B, \u043F\u0440\u043E\u0449\u0430\u0435\u0442\u0441\u044F
+        0.9 \u0441"
+      modifiers:
+      - stat: 2
+        value: 0.09
+      - stat: 3
+        value: 0.9
+    minDay: 1
+    requiresItem: 
+    requiresLevel: 1
+  - id: bake_timer
+    displayName: "\u0422\u0430\u0439\u043C\u0435\u0440 \u0432\u0430\u0444\u0435\u043B\u044C\u043D\u0438\u0446\u044B"
+    description: "\"\u0417\u043E\u043B\u043E\u0442\u0438\u0441\u0442\u043E\u0435\"
+      \u043E\u043A\u043D\u043E \u0434\u043E\u043B\u044C\u0448\u0435: \u0432\u0430\u0444\u043B\u044E
+      \u043C\u043E\u0436\u043D\u043E \u0441\u043D\u044F\u0442\u044C \u0447\u0443\u0442\u044C
+      \u0440\u0430\u043D\u044C\u0448\u0435 \u0438\u043B\u0438 \u0447\u0443\u0442\u044C
+      \u043F\u043E\u0437\u0436\u0435."
+    category: 0
+    type: 0
+    minigame: "\u0412\u044B\u043F\u0435\u0447\u043A\u0430"
+    ingredient: {fileID: 0}
+    levels:
+    - price: 80
+      effect: "\u0417\u043E\u043B\u043E\u0442\u0438\u0441\u0442\u0430\u044F: 8\u201312
+        \u0441 (\u043E\u043A\u043D\u043E 4 \u0441)"
+      modifiers:
+      - stat: 4
+        value: 0.5
+    - price: 140
+      effect: "\u0417\u043E\u043B\u043E\u0442\u0438\u0441\u0442\u0430\u044F: 7.5\u201312.5
+        \u0441 (\u043E\u043A\u043D\u043E 5 \u0441)"
+      modifiers:
+      - stat: 4
+        value: 1
+    - price: 220
+      effect: "\u0417\u043E\u043B\u043E\u0442\u0438\u0441\u0442\u0430\u044F: 7\u201313
+        \u0441 (\u043E\u043A\u043D\u043E 6 \u0441)"
+      modifiers:
+      - stat: 4
+        value: 1.5
+    minDay: 1
+    requiresItem: 
+    requiresLevel: 1
+  - id: decor_brush
+    displayName: "\u0428\u0438\u0440\u043E\u043A\u0430\u044F \u043A\u0438\u0441\u0442\u044C"
+    description: "\u0421\u043E\u0443\u0441 \u043B\u043E\u0436\u0438\u0442\u0441\u044F
+      \u0448\u0438\u0440\u0435 \u2014 \u043D\u0443\u0436\u043D\u043E\u0435 \u043F\u043E\u043A\u0440\u044B\u0442\u0438\u0435
+      \u043D\u0430\u0431\u0438\u0440\u0430\u0435\u0442\u0441\u044F \u0431\u044B\u0441\u0442\u0440\u0435\u0435.
+      \u0414\u043E\u0431\u0430\u0432\u043A\u0438 \u0441\u0442\u0430\u0432\u044F\u0442\u0441\u044F
+      \u043A\u0430\u043A \u0440\u0430\u043D\u044C\u0448\u0435, \u0442\u0443\u0434\u0430,
+      \u043A\u0443\u0434\u0430 \u043D\u0430\u0436\u0430\u043B."
+    category: 0
+    type: 0
+    minigame: "\u0423\u043A\u0440\u0430\u0448\u0435\u043D\u0438\u0435"
+    ingredient: {fileID: 0}
+    levels:
+    - price: 50
+      effect: "\u041A\u0438\u0441\u0442\u044C \u0448\u0438\u0440\u0435 \u043D\u0430
+        20%"
+      modifiers:
+      - stat: 5
+        value: 0.2
+    - price: 100
+      effect: "\u041A\u0438\u0441\u0442\u044C \u0448\u0438\u0440\u0435 \u043D\u0430
+        40%"
+      modifiers:
+      - stat: 5
+        value: 0.4
+    minDay: 1
+    requiresItem: 
+    requiresLevel: 1
+  - id: decor_slot_2
+    displayName: "\u0412\u0442\u043E\u0440\u043E\u0435 \u043C\u0435\u0441\u0442\u043E
+      \u0434\u043B\u044F \u0443\u043A\u0440\u0430\u0448\u0435\u043D\u0438\u044F"
+    description: "\u0418\u0437 \u0442\u043E\u0439 \u0436\u0435 \u043C\u0438\u0441\u043A\u0438
+      \u043C\u043E\u0436\u043D\u043E \u0438\u0441\u043F\u0435\u0447\u044C \u0432\u0442\u043E\u0440\u0443\u044E
+      \u0432\u0430\u0444\u043B\u044E \u0434\u043B\u044F \u0437\u0430\u043A\u0430\u0437\u0430,
+      \u043F\u043E\u043B\u043E\u0436\u0438\u0442\u044C \u043D\u0430 \u0432\u0442\u043E\u0440\u043E\u0435
+      \u043C\u0435\u0441\u0442\u043E, \u0443\u043A\u0440\u0430\u0441\u0438\u0442\u044C
+      \u043D\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043C\u043E \u0438 \u043E\u0442\u0434\u0430\u0442\u044C
+      \u043B\u044E\u0431\u0443\u044E. \u041A\u043B\u0438\u0435\u043D\u0442 \u043F\u043E-\u043F\u0440\u0435\u0436\u043D\u0435\u043C\u0443
+      \u043E\u0434\u0438\u043D."
+    category: 2
+    type: 2
+    minigame: "\u0421\u0442\u0430\u043D\u0446\u0438\u044F \u0443\u043A\u0440\u0430\u0448\u0435\u043D\u0438\u044F"
+    ingredient: {fileID: 0}
+    levels:
+    - price: 350
+      effect: "\u0414\u0432\u0430 \u043C\u0435\u0441\u0442\u0430 \u0434\u043B\u044F
+        \u0432\u0430\u0444\u0435\u043B\u044C"
+      modifiers:
+      - stat: 6
+        value: 1
+    minDay: 2
+    requiresItem: 
+    requiresLevel: 1
+  - id: ing_jam
+    displayName: "\u0414\u0436\u0435\u043C"
+    description: "\u042F\u0433\u043E\u0434\u043D\u044B\u0439 \u0434\u0436\u0435\u043C
+      \u2014 \u0441\u043E\u0443\u0441. \u041D\u0443\u0436\u0435\u043D \u0434\u043B\u044F
+      \u0444\u0440\u0443\u043A\u0442\u043E\u0432\u044B\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432
+      \u0441 \u0434\u0436\u0435\u043C\u043E\u043C."
+    category: 1
+    type: 1
+    minigame: 
+    ingredient: {fileID: 11400000, guid: 084a59fe58bcc2f4099ffbcf21efcb8d, type: 2}
+    levels:
+    - price: 60
+      effect: "\u041E\u0442\u043A\u0440\u044B\u0442 \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430"
+      modifiers: []
+    minDay: 1
+    requiresItem: 
+    requiresLevel: 1
+  - id: ing_blueberry
+    displayName: "\u0427\u0435\u0440\u043D\u0438\u043A\u0430"
+    description: "\u0415\u0449\u0451 \u043E\u0434\u0438\u043D \u0444\u0440\u0443\u043A\u0442
+      \u0434\u043B\u044F \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \"\u0441 \u0444\u0440\u0443\u043A\u0442\u0430\u043C\u0438\"."
+    category: 1
+    type: 1
+    minigame: 
+    ingredient: {fileID: 11400000, guid: 0fd249509769b654c944ae8b1d769f81, type: 2}
+    levels:
+    - price: 60
+      effect: "\u041E\u0442\u043A\u0440\u044B\u0442 \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430"
+      modifiers: []
+    minDay: 1
+    requiresItem: 
+    requiresLevel: 1
+  - id: ing_sprinkles
+    displayName: "\u041F\u043E\u0441\u044B\u043F\u043A\u0430"
+    description: "\u0426\u0432\u0435\u0442\u043D\u0430\u044F \u043F\u043E\u0441\u044B\u043F\u043A\u0430:
+      \u0441\u0442\u0430\u0432\u0438\u0442\u0441\u044F \u0449\u0435\u043F\u043E\u0442\u043A\u0430\u043C\u0438,
+      \u043A\u0430\u043A \u0434\u043E\u0431\u0430\u0432\u043A\u0438."
+    category: 1
+    type: 1
+    minigame: 
+    ingredient: {fileID: 11400000, guid: 6ca50e17746430a4f8d821ddde9ceefd, type: 2}
+    levels:
+    - price: 50
+      effect: "\u041E\u0442\u043A\u0440\u044B\u0442 \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430"
+      modifiers: []
+    minDay: 1
+    requiresItem: 
+    requiresLevel: 1
+  - id: ing_caramel
+    displayName: "\u041A\u0430\u0440\u0430\u043C\u0435\u043B\u044C"
+    description: "\u041A\u0430\u0440\u0430\u043C\u0435\u043B\u044C\u043D\u044B\u0439
+      \u0441\u043E\u0443\u0441. \u041E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442
+      \u0437\u0430\u043A\u0430\u0437 \"\u041A\u0430\u0440\u0430\u043C\u0435\u043B\u044C\u043D\u0430\u044F
+      \u0445\u0440\u0443\u0441\u0442\u044F\u0449\u0430\u044F\"."
+    category: 1
+    type: 1
+    minigame: 
+    ingredient: {fileID: 11400000, guid: 022fc7b793e99ec4e933203b792b4d55, type: 2}
+    levels:
+    - price: 70
+      effect: "\u041E\u0442\u043A\u0440\u044B\u0442 \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430"
+      modifiers: []
+    minDay: 1
+    requiresItem: 
+    requiresLevel: 1
+  - id: ing_choc_chips
+    displayName: "\u0428\u043E\u043A. \u043A\u0440\u043E\u0448\u043A\u0430"
+    description: "\u0428\u043E\u043A\u043E\u043B\u0430\u0434\u043D\u0430\u044F \u043A\u0440\u043E\u0448\u043A\u0430:
+      \u0441\u0442\u0430\u0432\u0438\u0442\u0441\u044F \u0449\u0435\u043F\u043E\u0442\u043A\u0430\u043C\u0438."
+    category: 1
+    type: 1
+    minigame: 
+    ingredient: {fileID: 11400000, guid: bbf11af11101a684ca40a712e5b0bfbe, type: 2}
+    levels:
+    - price: 70
+      effect: "\u041E\u0442\u043A\u0440\u044B\u0442 \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430"
+      modifiers: []
+    minDay: 1
+    requiresItem: 
+    requiresLevel: 1
+  - id: ing_honey
+    displayName: "\u041C\u0451\u0434"
+    description: "\u041C\u0451\u0434 \u2014 \u0441\u043E\u0443\u0441. \u041E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442
+      \u0437\u0430\u043A\u0430\u0437 \"\u041C\u0435\u0434\u043E\u0432\u0430\u044F
+      \u0445\u0440\u0443\u0441\u0442\u044F\u0449\u0430\u044F\"."
+    category: 1
+    type: 1
+    minigame: 
+    ingredient: {fileID: 11400000, guid: 8aa632030ae3eaa46bf8e8ae2f36b6ee, type: 2}
+    levels:
+    - price: 80
+      effect: "\u041E\u0442\u043A\u0440\u044B\u0442 \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430"
+      modifiers: []
+    minDay: 2
+    requiresItem: 
+    requiresLevel: 1
+  - id: ing_ice_cream
+    displayName: "\u041C\u043E\u0440\u043E\u0436\u0435\u043D\u043E\u0435"
+    description: "\u0428\u0430\u0440\u0438\u043A\u0438 \u043C\u043E\u0440\u043E\u0436\u0435\u043D\u043E\u0433\u043E.
+      \u041E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u0437\u0430\u043A\u0430\u0437
+      \"\u0412\u0430\u0444\u043B\u044F \u0441 \u043C\u043E\u0440\u043E\u0436\u0435\u043D\u044B\u043C\"."
+    category: 1
+    type: 1
+    minigame: 
+    ingredient: {fileID: 11400000, guid: bc2bf0670f919bb4d9dd2ae3eebdf2ca, type: 2}
+    levels:
+    - price: 120
+      effect: "\u041E\u0442\u043A\u0440\u044B\u0442 \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430"
+      modifiers: []
+    minDay: 2
+    requiresItem: 
+    requiresLevel: 1
+  stats:
+  - stat: 0
+    baseValue: 0
+    min: 0
+    max: 0.6
+  - stat: 1
+    baseValue: 0
+    min: 0
+    max: 0.6
+  - stat: 2
+    baseValue: 0
+    min: 0
+    max: 0.1
+  - stat: 3
+    baseValue: 0
+    min: 0
+    max: 1
+  - stat: 4
+    baseValue: 0
+    min: 0
+    max: 2
+  - stat: 5
+    baseValue: 0
+    min: 0
+    max: 0.5
+  - stat: 6
+    baseValue: 1
+    min: 1
+    max: 2

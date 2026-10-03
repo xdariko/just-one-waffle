@@ -1,0 +1,334 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using UnityEngine;
+
+// Сохраняемый прогресс игрока. Добавляешь поле — дай ему значение по умолчанию и, если старому
+// сохранению нужно особое значение, допиши шаг в GameProgress.Migrate (CurrentVersion + 1).
+[Serializable]
+public class SaveData
+{
+    [Serializable]
+    public class ItemLevel
+    {
+        public string id;
+        public int level;
+    }
+
+    [Serializable]
+    public class StoryFlag
+    {
+        public string flag;
+        public int day; // в какой день поставлен (от него считается "через N дней")
+    }
+
+    public int version;
+
+    public int money;
+    // День, который сейчас играется или будет сыгран следующим (с 1)
+    public int day = 1;
+    // Последний день, заработок которого уже перенесён в кошелёк (0 — ни одного)
+    public int lastCommittedDay;
+    public bool startingMoneyGranted;
+
+    // Уровни улучшений и оборудования (id товара ShopCatalog → уровень)
+    public List<ItemLevel> items = new();
+    // Открытые ингредиенты: ключи CraftIngredient (id с сайта) в порядке открытия — по нему стоят ячейки
+    public List<string> unlockedIngredients = new();
+
+    // Сюжет
+    public List<StoryFlag> storyFlags = new();
+    public List<string> storyDone = new();
+    // Выданные сюжетные награды ("story:<visit>:<действие>") — второй раз не выдаются
+    public List<string> grantedRewards = new();
+
+    // Статистика
+    public long totalPoints;
+    public int bestDayPoints;
+    public long totalEarned;
+}
+
+// Изменения сюжета за смену. Попадают в сохранение вместе с деньгами — в CommitShift.
+// Если игру закрыли посреди дня, день начинается заново и ничего из этого не потеряно и не выдано дважды.
+public class StoryStage
+{
+    public readonly List<(string flag, int day)> Flags = new();
+    public readonly List<string> Done = new();
+    public readonly List<string> Grants = new();
+
+    public void Clear()
+    {
+        Flags.Clear();
+        Done.Clear();
+        Grants.Clear();
+    }
+}
+
+// Единственный кошелёк и прогресс игры. Хранится в JSON (persistentDataPath/progress.json):
+// запись через временный файл и замену, предыдущая версия — progress.json.bak.
+// Перед записью проверяется, что JSON читается обратно.
+public class GameProgress
+{
+    public const int CurrentVersion = 1;
+    private const string FileName = "progress.json";
+
+    private static GameProgress current;
+    private static string overridePath;
+
+    public static GameProgress Current => current ??= Load();
+
+    // Для прогонов проверки: свой файл, чтобы не трогать сохранение игрока
+    public static void UsePath(string path)
+    {
+        overridePath = path;
+        current = null;
+    }
+
+    public static string SavePath => overridePath ?? Path.Combine(Application.persistentDataPath, FileName);
+
+    public SaveData Data { get; private set; }
+    // Что произошло при загрузке (для лога и проверки контента)
+    public string LoadNote { get; private set; }
+    public event Action Changed;
+
+    private GameProgress(SaveData data, string note)
+    {
+        Data = data;
+        LoadNote = note;
+    }
+
+    public int Money => Data.money;
+    public int Day => Data.day;
+
+    // ---------- Загрузка ----------
+
+    public static GameProgress Reload()
+    {
+        current = null;
+        return Current;
+    }
+
+    private static GameProgress Load()
+    {
+        var path = SavePath;
+        foreach (var candidate in new[] { path, path + ".bak" })
+        {
+            if (!File.Exists(candidate)) continue;
+            try
+            {
+                var json = File.ReadAllText(candidate);
+                var data = JsonUtility.FromJson<SaveData>(json);
+                if (data == null) throw new InvalidDataException("пустой файл");
+                var note = Migrate(data);
+                if (candidate != path) note += $"; основной файл не прочитан, загружена резервная копия {candidate}";
+                Debug.Log($"[Save] загружено {candidate}: день {data.day}, {EconomySettings.Money(data.money)}{(string.IsNullOrEmpty(note) ? "" : $" ({note})")}");
+                return new GameProgress(data, note);
+            }
+            catch (Exception e)
+            {
+                // Не сбрасываем молча: файл оставляем как есть, пишем в лог и пробуем резервную копию
+                Debug.LogError($"[Save] не удалось прочитать {candidate}: {e.Message}");
+                if (candidate == path) TryKeepCorrupted(path);
+            }
+        }
+
+        Debug.Log($"[Save] новая игра ({path})");
+        return new GameProgress(new SaveData { version = CurrentVersion }, "новая игра");
+    }
+
+    private static void TryKeepCorrupted(string path)
+    {
+        try
+        {
+            var keep = path + ".corrupted";
+            File.Copy(path, keep, true);
+            Debug.LogWarning($"[Save] повреждённый файл сохранён как {keep}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[Save] не удалось сохранить копию повреждённого файла: {e.Message}");
+        }
+    }
+
+    // Старое сохранение → текущая версия. JsonUtility оставляет у отсутствующих полей значения по умолчанию,
+    // здесь — то, что требует особого значения.
+    private static string Migrate(SaveData data)
+    {
+        var notes = new List<string>();
+        data.items ??= new List<SaveData.ItemLevel>();
+        data.unlockedIngredients ??= new List<string>();
+        data.storyFlags ??= new List<SaveData.StoryFlag>();
+        data.storyDone ??= new List<string>();
+        data.grantedRewards ??= new List<string>();
+
+        if (data.version < 1)
+        {
+            // v0 — прогресс до появления магазина: деньги и стартовые ингредиенты выдаются
+            // в EnsureInitialized (флаг startingMoneyGranted ещё не стоит)
+            notes.Add($"сохранение версии {data.version} обновлено до {CurrentVersion}");
+        }
+        if (data.version > CurrentVersion)
+            notes.Add($"сохранение более новой версии ({data.version}) — неизвестные поля будут потеряны при записи");
+
+        if (data.day < 1) data.day = 1;
+        if (data.lastCommittedDay >= data.day)
+        {
+            // Закрыли игру на экране итогов: день уже оплачен — продолжаем со следующего
+            data.day = data.lastCommittedDay + 1;
+            notes.Add($"день {data.lastCommittedDay} уже закрыт, продолжаем с дня {data.day}");
+        }
+        data.unlockedIngredients = data.unlockedIngredients.Where(k => !string.IsNullOrEmpty(k)).Distinct().ToList();
+        data.version = Math.Max(data.version, CurrentVersion);
+        return string.Join("; ", notes);
+    }
+
+    // Стартовые деньги и стартовые ингредиенты. Вызывается при каждом запуске:
+    // у новой игры и у старого сохранения стартовый набор всегда открыт, уже открытое не трогается.
+    public void EnsureInitialized(EconomySettings economy, ShopCatalog catalog)
+    {
+        bool changed = false;
+        if (!Data.startingMoneyGranted && economy != null)
+        {
+            Data.money += economy.startingMoney;
+            Data.startingMoneyGranted = true;
+            changed = true;
+        }
+        if (catalog != null)
+        {
+            foreach (var key in catalog.StartingKeys())
+            {
+                if (Data.unlockedIngredients.Contains(key)) continue;
+                // Стартовые — в начало, в порядке каталога: знакомые позиции не перемешиваются
+                int insertAt = Data.unlockedIngredients.TakeWhile(k => catalog.IsStarting(k)).Count();
+                Data.unlockedIngredients.Insert(insertAt, key);
+                changed = true;
+            }
+        }
+        if (changed) Save();
+    }
+
+    // ---------- Магазин ----------
+
+    public int LevelOf(string itemId)
+    {
+        var e = Data.items.FirstOrDefault(i => i.id == itemId);
+        return e?.level ?? 0;
+    }
+
+    public bool IsUnlocked(string ingredientKey) => !string.IsNullOrEmpty(ingredientKey) && Data.unlockedIngredients.Contains(ingredientKey);
+
+    // Покупка: проверки делает ShopService, здесь — атомарное применение и запись
+    internal void ApplyPurchase(int price, string itemId, int newLevel, string unlockIngredientKey)
+    {
+        Data.money -= price;
+        if (!string.IsNullOrEmpty(itemId))
+        {
+            var e = Data.items.FirstOrDefault(i => i.id == itemId);
+            if (e == null) Data.items.Add(e = new SaveData.ItemLevel { id = itemId });
+            e.level = newLevel;
+        }
+        if (!string.IsNullOrEmpty(unlockIngredientKey) && !Data.unlockedIngredients.Contains(unlockIngredientKey))
+            Data.unlockedIngredients.Add(unlockIngredientKey); // в конец: новые ячейки встают после знакомых
+        Save();
+        Changed?.Invoke();
+    }
+
+    // ---------- Сюжет ----------
+
+    public bool HasFlag(string flag) => Data.storyFlags.Any(f => f.flag == flag);
+    public int FlagDay(string flag) => Data.storyFlags.FirstOrDefault(f => f.flag == flag)?.day ?? -1;
+    public bool IsStoryDone(string visitId) => Data.storyDone.Contains(visitId);
+    public bool IsGranted(string rewardKey) => Data.grantedRewards.Contains(rewardKey);
+
+    // ---------- Конец смены ----------
+
+    // Переносит заработок смены в кошелёк и фиксирует сюжет. Для одного дня — ровно один раз:
+    // повторный вызов (двойное нажатие, повторный показ итогов, загрузка) ничего не начисляет.
+    public bool CommitShift(int day, ShiftLedger ledger, StoryStage story, out int moneyBefore)
+    {
+        moneyBefore = Data.money;
+        if (day <= Data.lastCommittedDay)
+        {
+            Debug.LogWarning($"[Save] смена {day} уже закрыта (последняя закрытая — {Data.lastCommittedDay}), повторно не начисляем");
+            return false;
+        }
+
+        int money = ledger?.TotalMoney ?? 0;
+        int points = ledger?.TotalPoints ?? 0;
+        Data.money += money;
+        Data.totalEarned += Math.Max(0, money);
+        Data.totalPoints += points;
+        Data.bestDayPoints = Math.Max(Data.bestDayPoints, points);
+        Data.lastCommittedDay = day;
+        if (Data.day < day) Data.day = day;
+
+        if (story != null)
+        {
+            foreach (var (flag, flagDay) in story.Flags)
+                if (!HasFlag(flag)) Data.storyFlags.Add(new SaveData.StoryFlag { flag = flag, day = flagDay });
+            foreach (var id in story.Done)
+                if (!Data.storyDone.Contains(id)) Data.storyDone.Add(id);
+            foreach (var key in story.Grants)
+                if (!Data.grantedRewards.Contains(key)) Data.grantedRewards.Add(key);
+        }
+
+        Save();
+        Debug.Log($"[Save] смена {day} закрыта: +{EconomySettings.Money(money)}, {points} очк. Кошелёк: {moneyBefore} → {Data.money}");
+        Changed?.Invoke();
+        return true;
+    }
+
+    public void SetDay(int day)
+    {
+        if (Data.day == day) return;
+        Data.day = day;
+        Save();
+        Changed?.Invoke();
+    }
+
+    // ---------- Запись ----------
+
+    public bool Save()
+    {
+        var path = SavePath;
+        var tmp = path + ".tmp";
+        try
+        {
+            Data.version = Math.Max(Data.version, CurrentVersion);
+            var json = JsonUtility.ToJson(Data, true);
+            // Проверка: то, что пишем, читается обратно
+            if (JsonUtility.FromJson<SaveData>(json) == null) throw new InvalidDataException("JSON не читается обратно");
+
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+            File.WriteAllText(tmp, json);
+            if (File.Exists(path))
+                File.Replace(tmp, path, path + ".bak", true);
+            else
+                File.Move(tmp, path);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[Save] не удалось записать {path}: {e.Message}. Прогресс остаётся в памяти до следующей попытки");
+            try { if (File.Exists(tmp)) File.Delete(tmp); } catch { /* временный файл не мешает */ }
+            return false;
+        }
+    }
+
+    // Новая игра (кнопка в редакторе / прогон проверки): файлы удаляются, прогресс — с нуля
+    public static void DeleteSave()
+    {
+        foreach (var f in new[] { SavePath, SavePath + ".bak", SavePath + ".tmp" })
+            if (File.Exists(f)) File.Delete(f);
+        current = null;
+    }
+
+    public string Describe() =>
+        $"день {Data.day} (закрыт {Data.lastCommittedDay}), {EconomySettings.Money(Data.money)}, " +
+        $"улучшения: {(Data.items.Count == 0 ? "нет" : string.Join(", ", Data.items.Select(i => $"{i.id}={i.level}")))}, " +
+        $"ингредиенты: {string.Join(",", Data.unlockedIngredients)}, " +
+        $"флаги: {(Data.storyFlags.Count == 0 ? "нет" : string.Join(", ", Data.storyFlags.Select(f => $"{f.flag}@{f.day}")))}, " +
+        $"визиты: {string.Join(",", Data.storyDone)}, награды: {string.Join(",", Data.grantedRewards)}";
+}

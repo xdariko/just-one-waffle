@@ -23,11 +23,24 @@ public class WaffleOrder
         GuideRecipe = guide;
     }
 
-    // null + error — заказ собрать нельзя (нет рецепта, рецепт пропал из экспорта...)
-    public static WaffleOrder Create(OrderTemplate template, CraftDatabase db, out string error)
+    // null + error — заказ собрать нельзя (нет рецепта, рецепт пропал из экспорта...).
+    // availability задана — учитываются только варианты, которые игрок может приготовить
+    // (открытые ингредиенты, купленное оборудование). Требования клиента при этом не меняются:
+    // если выполнимого варианта нет, заказа просто нет.
+    public static WaffleOrder Create(OrderTemplate template, CraftDatabase db, out string error, OrderAvailability availability = null)
     {
         error = null;
         if (template == null) { error = "заказ не задан"; return null; }
+
+        if (availability != null)
+        {
+            var missingItem = template.requiredItems.FirstOrDefault(i => !availability.HasItem(i));
+            if (missingItem != null)
+            {
+                error = $"заказ {template.id}: нет оборудования {missingItem}";
+                return null;
+            }
+        }
 
         if (template.requirements.Any(r => r.tag == null))
         {
@@ -48,6 +61,11 @@ public class WaffleOrder
                 error = $"заказ {template.id}: рецепт \"{recipes[0].DisplayName}\" пропал из последнего экспорта";
                 return null;
             }
+            if (availability != null && !availability.CanCook(recipes[0], out var missing))
+            {
+                error = $"заказ {template.id}: недоступно — {missing}";
+                return null;
+            }
             return new WaffleOrder(template, recipes, recipes[0]);
         }
 
@@ -59,6 +77,24 @@ public class WaffleOrder
         {
             error = $"заказ {template.id}: нет ни одного допустимого рецепта";
             return null;
+        }
+
+        if (availability != null)
+        {
+            // Свойство, которое клиент требует, должно быть достижимо открытыми ингредиентами или выпечкой
+            var impossible = template.requirements
+                .Where(r => r.rule == TagRule.MustHave && !availability.CanProduce(r.tag)).Select(r => r.tag.DisplayName).ToList();
+            if (impossible.Count > 0)
+            {
+                error = $"заказ {template.id}: недоступно — нечем сделать {string.Join(", ", impossible)}";
+                return null;
+            }
+            all = all.Where(availability.CanCook).ToList();
+            if (all.Count == 0)
+            {
+                error = $"заказ {template.id}: недоступно — ни один вариант не приготовить с открытыми ингредиентами";
+                return null;
+            }
         }
 
         // Рецепты, которые сами по себе не нарушают запреты ("без сахара" — не рецепты с сахаром)
@@ -78,6 +114,12 @@ public class WaffleOrder
 
         return new WaffleOrder(template, compatible, guide);
     }
+
+    // Тот же заказ, но нормы на шкалах — по варианту из реплики (если он среди допустимых)
+    public WaffleOrder WithGuide(WaffleRecipe variant) =>
+        variant != null && variant != GuideRecipe && Candidates.Contains(variant)
+            ? new WaffleOrder(Template, Candidates.ToList(), variant)
+            : this;
 
     public string Describe()
     {

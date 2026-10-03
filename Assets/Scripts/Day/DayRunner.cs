@@ -25,8 +25,13 @@ public enum DayPhase
 //    сразу после текущего клиента; DayEnd — после окончания времени, перед итогами. Если время кончилось
 //    раньше случайного момента, визит всё равно проходит перед итогами;
 //  - совпавшие визиты — по priority (больше — раньше), затем по id;
-//  - once-визит засчитывается в момент появления клиента и больше не повторяется.
-//    Системы сохранений в проекте нет: прогресс сюжета хранится здесь, в пределах текущего запуска.
+//  - once-визит засчитывается в момент появления клиента и больше не повторяется;
+//  - визит, заказ которого сейчас не приготовить (ингредиент не открыт), берёт fallbackOrder или откладывается.
+//
+// Экономика: оплата заказов, чаевые и сюжетные подарки пишутся в журнал смены (Ledger) с ключом визита.
+// В кошелёк журнал переносится один раз — в EndDay (GameProgress.CommitShift). Там же сохраняются
+// сюжетные флаги, состоявшиеся визиты и выданные награды. Заказы выбираются только выполнимые
+// (OrderAvailability: открытые ингредиенты и оборудование на начало дня).
 public class DayRunner : MonoBehaviour
 {
     public static DayRunner Instance { get; private set; }
@@ -47,6 +52,20 @@ public class DayRunner : MonoBehaviour
 
     // Заказ, который сейчас готовят (кухня берёт его отсюда)
     public WaffleOrder ActiveOrder => Phase == DayPhase.Cooking ? Current?.Order : null;
+    public CustomerVisit ActiveVisit => Phase == DayPhase.Cooking ? Current : null;
+
+    // Экономика и прогресс
+    public GameProgress Progress => GameProgress.Current;
+    public EconomySettings Economy => settings != null ? settings.economy : null;
+    public ShopCatalog Shop => settings != null ? settings.shop : null;
+    public ShiftLedger Ledger { get; private set; } = new(1);
+    // Что можно приготовить сегодня (снимок на начало смены)
+    public OrderAvailability Availability { get; private set; }
+    // Кошелёк до и после закрытия последней смены — для итогов
+    public int ReportMoneyBefore { get; private set; }
+    public int ReportMoneyAfter { get; private set; }
+    // Магазин работает только между сменами
+    public bool ShopOpen => Phase is DayPhase.BeforeDay or DayPhase.Summary;
 
     // Будет ли ещё кто-то сегодня (для подписи кнопки)
     public bool HasMoreToday => (!TimeUp && !noRegulars) || pending.Count > 0 || scheduled.Count > 0 || dayEnd.Count > 0;
@@ -58,7 +77,7 @@ public class DayRunner : MonoBehaviour
     public event Action Changed;
 
     private readonly List<CustomerVisit> served = new();
-    private readonly HashSet<string> storyDone = new();
+    private readonly StoryStage story = new();
     private readonly List<StoryVisit> pending = new();
     private readonly List<(StoryVisit visit, float at)> scheduled = new();
     private readonly List<StoryVisit> dayEnd = new();
@@ -75,7 +94,20 @@ public class DayRunner : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         if (settings == null) Debug.LogError("[Day] DayRunner: не задан DaySettings", this);
+        InitProgress();
         if (showHud) hud = DayHud.Create(transform);
+    }
+
+    private void InitProgress()
+    {
+        if (settings == null) return;
+        if (settings.economy == null) Debug.LogError("[Day] в DaySettings не задан EconomySettings — заказы не оплачиваются", this);
+        if (settings.shop == null) Debug.LogError("[Day] в DaySettings не задан ShopCatalog — магазин и улучшения недоступны", this);
+        ShopCatalog.Active = settings.shop;
+        Progress.EnsureInitialized(settings.economy, settings.shop);
+        Day = Progress.Day;
+        Ledger = new ShiftLedger(Day);
+        Availability = OrderAvailability.FromProgress(Progress, settings.Database, settings.rules);
     }
 
     private void OnDestroy()
@@ -83,9 +115,13 @@ public class DayRunner : MonoBehaviour
         if (Instance == this) Instance = null;
     }
 
+    // Перечитать настройки и прогресс (прогон логики без сцен, новая игра)
     public void Initialize(DaySettings daySettings)
     {
         settings = daySettings;
+        Phase = DayPhase.BeforeDay;
+        InitProgress();
+        ClearDayState();
     }
 
     private void Update()
@@ -132,10 +168,12 @@ public class DayRunner : MonoBehaviour
         }
 
         ClearDayState();
+        // Что можно приготовить сегодня: покупки между сменами действуют с этого дня
+        Availability = OrderAvailability.FromProgress(Progress, settings.Database, settings.rules);
 
         foreach (var v in settings.storyVisits.Where(v => v != null).Distinct())
         {
-            if (!v.AppliesTo(Day) || (v.once && storyDone.Contains(v.id))) continue;
+            if (!v.AppliesTo(Day, Progress.FlagDay) || (v.once && IsStoryDone(v.id))) continue;
             switch (v.timing)
             {
                 case VisitTiming.DayStart:
@@ -188,19 +226,96 @@ public class DayRunner : MonoBehaviour
     }
 
     // Вафлю упаковали и отдали. Вызывает CookingManager.CompleteOrder.
+    // Оценка работает всегда; оплата и очки — по политике визита (бесплатный заказ — без них).
     public OrderVerdict DeliverWaffle(CookingSession session)
     {
-        if (Phase != DayPhase.Cooking || Current == null || session == null) return null;
+        if (Phase != DayPhase.Cooking || Current == null || Current.IsNoCooking || session == null) return null;
+        if (!string.IsNullOrEmpty(session.OrderKey) && session.OrderKey != Current.Key)
+        {
+            Debug.LogError($"[Day] вафля приготовлена для заказа {session.OrderKey}, а у стойки {Current.Key} — не выдаём");
+            return null;
+        }
 
         var verdict = OrderEvaluator.Evaluate(Current.Order, session, settings.rules);
         Current.Verdict = verdict;
         Current.ReactionLine = PickReaction(Current, verdict.Mood);
+
+        var storyVisit = Current.Story;
+        bool pays = storyVisit == null || storyVisit.paysForOrder;
+        bool points = storyVisit == null || storyVisit.awardsPoints;
+        Current.Price = Economy != null ? Economy.PriceOf(Current.Order) : 0;
+        var payout = OrderPayout.Compute(Economy, Current.Price, verdict, pays, points);
+        Current.Payout = payout;
+        Ledger.Add(new LedgerEntry(Current.Key, $"{Current.CustomerName}: {Current.Order.Describe()}", LedgerKind.OrderPayment,
+            payout.Base, payout.Points));
+        if (payout.Tip > 0)
+            Ledger.Add(new LedgerEntry(Current.Key + "-tip", $"{Current.CustomerName}: чаевые", LedgerKind.Tip, payout.Tip, 0));
+
+        if (storyVisit != null)
+        {
+            bool success = storyVisit.IsSuccess(verdict);
+            RunActions(Current, success ? "success" : "failure", success ? storyVisit.onSuccess : storyVisit.onFailure);
+            Debug.Log($"[Day] сюжет {storyVisit.id}: {(success ? "успех" : "неудача")}");
+        }
+
         served.Add(Current);
         Phase = DayPhase.Reaction;
 
-        Debug.Log($"[Day] выдали вафлю клиенту {Current}\n{verdict}");
+        Debug.Log($"[Day] выдали вафлю клиенту {Current}\n{payout}\n{verdict}");
         Changed?.Invoke();
         return verdict;
+    }
+
+    // Визит без готовки: после диалога — сюжетные действия (подарок...), затем реакция и уход.
+    // Повторный вызов ничего не делает.
+    public bool CompleteNoCookingVisit()
+    {
+        if (Phase != DayPhase.Ordering || Current == null || !Current.IsNoCooking || Current.ActionsDone) return false;
+
+        RunActions(Current, "visit", Current.Story.actions);
+        Current.ActionsDone = true;
+        var farewell = NonEmpty(Current.Story.farewellLines);
+        Current.ReactionLine = farewell.Count > 0 ? farewell[Random.Range(0, farewell.Count)] : "До свидания!";
+        served.Add(Current);
+        Phase = DayPhase.Reaction;
+        Debug.Log($"[Day] визит без готовки {Current}: {string.Join("; ", Current.StoryMessages)}");
+        Changed?.Invoke();
+        return true;
+    }
+
+    // Действия сюжета. Каждое — с ключом "story:<визит>:<этап>:<номер>": выданное (сегодня или раньше) не повторяется.
+    // Деньги — в журнал смены (в кошелёк в конце дня), флаги и отметки — в сохранение вместе со сменой.
+    private void RunActions(CustomerVisit visit, string stage, List<StoryAction> actions)
+    {
+        if (visit.Story == null || actions == null) return;
+        for (int i = 0; i < actions.Count; i++)
+        {
+            var a = actions[i];
+            if (a == null) continue;
+            var key = $"story:{visit.Story.id}:{stage}:{i}";
+            if (Progress.IsGranted(key) || story.Grants.Contains(key))
+            {
+                Debug.LogWarning($"[Day] сюжетное действие {key} уже выполнено — повторно не выдаём");
+                continue;
+            }
+
+            switch (a.type)
+            {
+                case StoryActionType.GiveMoney:
+                    if (a.amount <= 0) break;
+                    var label = !string.IsNullOrWhiteSpace(a.message) ? a.message : "подарок";
+                    if (!Ledger.Add(new LedgerEntry(key, $"{visit.CustomerName}: {label}", LedgerKind.StoryGift, a.amount, 0))) continue;
+                    visit.StoryMoney += a.amount;
+                    break;
+                case StoryActionType.SetFlag:
+                    if (string.IsNullOrWhiteSpace(a.flag)) break;
+                    if (!Progress.HasFlag(a.flag) && !story.Flags.Any(f => f.flag == a.flag)) story.Flags.Add((a.flag, Day));
+                    break;
+            }
+            story.Grants.Add(key);
+            var text = a.Describe();
+            if (!string.IsNullOrWhiteSpace(text)) visit.StoryMessages.Add(text);
+        }
     }
 
     public bool FinishVisit()
@@ -215,6 +330,7 @@ public class DayRunner : MonoBehaviour
     {
         if (Phase != DayPhase.Summary) return false;
         Day++;
+        Progress.SetDay(Day);
         ClearDayState();
         Phase = DayPhase.BeforeDay;
         if (CookingManager.Instance != null) CookingManager.Instance.ResetForNewDay();
@@ -228,6 +344,8 @@ public class DayRunner : MonoBehaviour
         Clock = 0f;
         Current = null;
         served.Clear();
+        story.Clear();
+        Ledger = new ShiftLedger(Day);
         pending.Clear();
         scheduled.Clear();
         dayEnd.Clear();
@@ -242,14 +360,14 @@ public class DayRunner : MonoBehaviour
     {
         while (true)
         {
-            StoryVisit story = null;
+            StoryVisit storyVisit = null;
             if (pending.Count > 0)
             {
-                story = Pop(pending);
+                storyVisit = Pop(pending);
             }
             else if (!TimeUp && !noRegulars)
             {
-                var regular = CreateRegularVisit();
+                var regular = CreateRegularVisit() ?? CreateFallbackVisit();
                 if (regular != null)
                 {
                     SetCurrent(regular);
@@ -269,7 +387,7 @@ public class DayRunner : MonoBehaviour
             }
             else if (dayEnd.Count > 0)
             {
-                story = Pop(dayEnd);
+                storyVisit = Pop(dayEnd);
             }
             else
             {
@@ -277,10 +395,11 @@ public class DayRunner : MonoBehaviour
                 return;
             }
 
-            // Визит засчитан в момент появления — второй раз не придёт, даже если что-то пошло не так
-            if (story.once) storyDone.Add(story.id);
-            var visit = CreateStoryVisit(story);
+            // Визит засчитан в момент появления — второй раз не придёт.
+            // Не состоялся (заказ сейчас не приготовить) — не засчитан, придёт в другой день
+            var visit = CreateStoryVisit(storyVisit);
             if (visit == null) continue;
+            if (storyVisit.once) story.Done.Add(storyVisit.id);
             SetCurrent(visit);
             return;
         }
@@ -298,9 +417,15 @@ public class DayRunner : MonoBehaviour
     {
         Current = null;
         Phase = DayPhase.Summary;
-        Debug.Log($"[Day] день {Day} закончен, обслужено {served.Count}");
+        // Заработок смены — в кошелёк, один раз. Повторно для того же дня CommitShift ничего не начислит
+        bool committed = Progress.CommitShift(Day, Ledger, story, out var before);
+        ReportMoneyBefore = committed ? before : Progress.Money - Ledger.TotalMoney;
+        ReportMoneyAfter = Progress.Money;
+        Debug.Log($"[Day] день {Day} закончен, обслужено {served.Count}, заработано {Ledger.TotalMoney}, очки {Ledger.TotalPoints}");
         Changed?.Invoke();
     }
+
+    private bool IsStoryDone(string id) => Progress.IsStoryDone(id) || story.Done.Contains(id);
 
     private CustomerVisit CreateRegularVisit()
     {
@@ -310,16 +435,25 @@ public class DayRunner : MonoBehaviour
         foreach (var t in settings.orders.Where(t => t != null).Distinct())
         {
             if (t.fromDay > Day || t.weight <= 0f) continue;
-            var order = WaffleOrder.Create(t, db, out var error);
-            if (order == null)
+            if (WaffleOrder.Create(t, db, out var error) == null)
             {
                 LogOnce($"[Day] заказ {t.id} пропущен: {error}");
                 continue;
             }
-            var phrasings = PhrasingsFor(t);
+            // Только то, что игрок может приготовить сегодня
+            var order = WaffleOrder.Create(t, db, out error, Availability);
+            if (order == null)
+            {
+                LogOnce($"[Day] заказ {t.id} сегодня не выпадает: {error}", false);
+                continue;
+            }
+            var phrasings = PhrasingsFor(t, order);
             if (phrasings.Count == 0 && t.match != OrderMatch.ExactRecipe)
             {
-                LogOnce($"[Day] заказ {t.id} пропущен: нет ни одной реплики (OrderPhrasing) — клиент не сможет его произнести");
+                bool hasAny = settings.phrasings.Any(p => p != null && p.order == t);
+                LogOnce(hasAny
+                    ? $"[Day] заказ {t.id} сегодня не выпадает: все его реплики называют то, что ещё не открыто"
+                    : $"[Day] заказ {t.id} пропущен: нет ни одной реплики (OrderPhrasing) — клиент не сможет его произнести", !hasAny);
                 continue;
             }
             options.Add((t, order, phrasings));
@@ -335,67 +469,108 @@ public class DayRunner : MonoBehaviour
             if (roll <= 0f) { pick = o; break; }
         }
 
+        var customer = PickRegularCustomer();
+        if (customer == null) LogOnce("[Day] нет внешностей обычных клиентов (DaySettings.regularCustomers)");
+
+        var chosen = pick.order;
+        PickLines(ref chosen, pick.phrasings, out var request, out var clarification);
+        return new CustomerVisit(Day, ++visitCounter, customer, null, chosen, request, clarification, null, null);
+    }
+
+    private CustomerProfile PickRegularCustomer()
+    {
         var customers = settings.regularCustomers.Where(c => c != null).ToList();
         if (customers.Count > 1) customers.Remove(lastRegular);
         var customer = customers.Count > 0 ? customers[Random.Range(0, customers.Count)] : null;
-        if (customer == null) LogOnce("[Day] нет внешностей обычных клиентов (DaySettings.regularCustomers)");
         lastRegular = customer;
+        return customer;
+    }
 
-        PickLines(pick.order, pick.phrasings, out var request, out var clarification);
-        return new CustomerVisit(++visitCounter, customer, null, pick.order, request, clarification, null, null);
+    // Ни один заказ из списка сегодня не приготовить — гарантированно доступный базовый заказ
+    private CustomerVisit CreateFallbackVisit()
+    {
+        var t = settings.fallbackOrder;
+        if (t == null) return null;
+        var order = WaffleOrder.Create(t, settings.Database, out var error, Availability);
+        if (order == null)
+        {
+            LogOnce($"[Day] запасной заказ {t.id} тоже недоступен: {error}");
+            return null;
+        }
+        LogOnce($"[Day] нет выполнимых заказов из списка — клиенты заказывают запасной {t.id}", false);
+        PickLines(ref order, PhrasingsFor(t, order), out var request, out var clarification);
+        return new CustomerVisit(Day, ++visitCounter, PickRegularCustomer(), null, order, request, clarification, null, null);
     }
 
     private CustomerVisit CreateStoryVisit(StoryVisit v)
     {
+        var intro = NonEmpty(v.introLines);
+        if (v.kind == VisitKind.NoCooking)
+            return new CustomerVisit(Day, ++visitCounter, v.character, v, null, null, null, intro, v.introGraph);
+
         var db = settings.Database;
         WaffleOrder order = null;
         string error = null;
 
         if (v.order != null)
         {
-            order = WaffleOrder.Create(v.order, db, out error);
+            order = WaffleOrder.Create(v.order, db, out error, Availability);
         }
         else
         {
             var pool = v.orderPool.Where(t => t != null)
-                .Select(t => WaffleOrder.Create(t, db, out _)).Where(o => o != null).ToList();
+                .Select(t => WaffleOrder.Create(t, db, out _, Availability)).Where(o => o != null).ToList();
             if (pool.Count > 0) order = pool[Random.Range(0, pool.Count)];
-            else error = "пул заказов пуст или ни один заказ не собирается";
+            else error = "в пуле нет ни одного выполнимого заказа";
+        }
+
+        // Заказ сейчас не приготовить — заданная автором альтернатива или перенос на другой день
+        bool fallback = false;
+        if (order == null && v.fallbackOrder != null)
+        {
+            order = WaffleOrder.Create(v.fallbackOrder, db, out var fallbackError, Availability);
+            fallback = order != null;
+            if (!fallback) error += $"; запасной заказ тоже недоступен: {fallbackError}";
         }
 
         if (order == null)
         {
-            Debug.LogError($"[Day] сюжетный визит {v.id} не состоялся: {error}");
+            Debug.LogWarning($"[Day] сюжетный визит {v.id} отложен: {error}");
             return null;
         }
 
-        string request, clarification;
-        var own = NonEmpty(v.requestLines);
+        string request, clarification = null;
+        var own = NonEmpty(fallback ? v.fallbackRequestLines : v.requestLines);
         if (own.Count > 0)
         {
             request = Format(own[Random.Range(0, own.Count)], order);
-            var clar = NonEmpty(v.clarificationLines);
-            clarification = clar.Count > 0 ? Format(clar[Random.Range(0, clar.Count)], order) : null;
+            var clar = fallback ? new List<string>() : NonEmpty(v.clarificationLines);
+            if (clar.Count > 0) clarification = Format(clar[Random.Range(0, clar.Count)], order);
         }
         else
         {
-            PickLines(order, PhrasingsFor(order.Template), out request, out clarification);
+            PickLines(ref order, PhrasingsFor(order.Template, order), out request, out clarification);
         }
+        if (fallback) Debug.Log($"[Day] сюжетный визит {v.id}: основной заказ недоступен ({error}), взят запасной {order.Template.id}");
 
-        var intro = NonEmpty(v.introLines);
-        return new CustomerVisit(++visitCounter, v.character, v, order, request, clarification, intro, v.introGraph);
+        return new CustomerVisit(Day, ++visitCounter, v.character, v, order, request, clarification, intro, v.introGraph);
     }
 
-    private List<OrderPhrasing> PhrasingsFor(OrderTemplate t) =>
-        settings.phrasings.Where(p => p != null && p.order == t && NonEmpty(p.requests).Count > 0).ToList();
+    // Реплики заказа, которые можно произнести сегодня: названное в них открыто, вариант выполним
+    private List<OrderPhrasing> PhrasingsFor(OrderTemplate t, WaffleOrder order) =>
+        settings.phrasings.Where(p => p != null && p.order == t && NonEmpty(p.requests).Count > 0
+                                      && (Availability == null || Availability.CanSay(p))
+                                      && (p.variant == null || order.Candidates.Contains(p.variant))).ToList();
 
-    // Реплика заказа и уточнение берутся из одного OrderPhrasing — они согласованы между собой и с заказом
-    private void PickLines(WaffleOrder order, List<OrderPhrasing> phrasings, out string request, out string clarification)
+    // Реплика заказа и уточнение берутся из одного OrderPhrasing — они согласованы между собой и с заказом.
+    // Реплика про конкретный вариант — нормы на шкалах по нему (тот же заказ с этим рецептом-ориентиром)
+    private void PickLines(ref WaffleOrder order, List<OrderPhrasing> phrasings, out string request, out string clarification)
     {
         clarification = null;
         if (phrasings.Count > 0)
         {
             var p = phrasings[Random.Range(0, phrasings.Count)];
+            order = order.WithGuide(p.variant);
             var requests = NonEmpty(p.requests);
             request = Format(requests[Random.Range(0, requests.Count)], order);
             var clar = NonEmpty(p.clarifications);
@@ -454,8 +629,10 @@ public class DayRunner : MonoBehaviour
         list.AddRange(sorted);
     }
 
-    private void LogOnce(string message)
+    private void LogOnce(string message, bool warning = true)
     {
-        if (loggedErrors.Add(message)) Debug.LogWarning(message);
+        if (!loggedErrors.Add(message)) return;
+        if (warning) Debug.LogWarning(message);
+        else Debug.Log(message);
     }
 }

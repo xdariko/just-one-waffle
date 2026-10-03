@@ -15,6 +15,7 @@ MonoBehaviour:
   id: strawberry
   displayName: "\u041A\u043B\u0443\u0431\u043D\u0438\u043A\u0430"
   kind: 1
+  category: 2
   color: {r: 0.92, g: 0.2, b: 0.25, a: 1}
   icon: {fileID: 0}
   brushRadius: 0.28

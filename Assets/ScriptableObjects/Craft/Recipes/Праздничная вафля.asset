@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d3f1a2b9c4e4f60a8b1c2d3e4f5a6b7, type: 3}
+  m_Name: "\u041F\u0440\u0430\u0437\u0434\u043D\u0438\u0447\u043D\u0430\u044F \u0432\u0430\u0444\u043B\u044F"
+  m_EditorClassIdentifier: Assembly-CSharp::WaffleRecipe
+  source:
+    name: "\u041F\u0440\u0430\u0437\u0434\u043D\u0438\u0447\u043D\u0430\u044F \u0432\u0430\u0444\u043B\u044F"
+    description: "\u041F\u0440\u043E\u0441\u0442\u0430\u044F \u0432\u0430\u0444\u043B\u044F,
+      \u0448\u043E\u043A\u043E\u043B\u0430\u0434 \u0438 \u0446\u0432\u0435\u0442\u043D\u0430\u044F
+      \u043F\u043E\u0441\u044B\u043F\u043A\u0430."
+    image: festive_waffle.png
+    components:
+    - type: 2
+      key: "\u041F\u0440\u043E\u0441\u0442\u0430\u044F \u0432\u0430\u0444\u043B\u044F"
+      quantity: 1
+      ingredient: {fileID: 0}
+      tag: {fileID: 0}
+      recipe: {fileID: 11400000, guid: ab61752b1fb24214f8319e9f1b40f747, type: 2}
+    - type: 0
+      key: 6
+      quantity: 30
+      ingredient: {fileID: 11400000, guid: 57e55e66b91668b418f0c9638265b3d9, type: 2}
+      tag: {fileID: 0}
+      recipe: {fileID: 0}
+    - type: 0
+      key: 15
+      quantity: 4
+      ingredient: {fileID: 11400000, guid: 6ca50e17746430a4f8d821ddde9ceefd, type: 2}
+      tag: {fileID: 0}
+      recipe: {fileID: 0}
+    tags:
+    - {fileID: 11400000, guid: be638e93b2e93d64c973b62402c01506, type: 2}
+    - {fileID: 11400000, guid: 5b76ff12fd1607b4487c923d9f5ab9eb, type: 2}
+    missingInLastImport: 0
+  id: "\u043F\u0440\u0430\u0437\u0434\u043D\u0438\u0447\u043D\u0430\u044F_\u0432\u0430\u0444\u043B\u044F"
+  displayName: "\u041F\u0440\u0430\u0437\u0434\u043D\u0438\u0447\u043D\u0430\u044F
+    \u0432\u0430\u0444\u043B\u044F"
+  eggs: 2
+  flour:
+    amount: 200
+    greenTolerance: 15
+    yellowTolerance: 40
+  milk:
+    amount: 250
+    greenTolerance: 20
+    yellowTolerance: 50
+  sugar:
+    amount: 25
+    greenTolerance: 5
+    yellowTolerance: 12
+  saltPortions: 1
+  sauces:
+  - sauce: {fileID: 11400000, guid: a2b454e54584dd94a81e300e68fe1521, type: 2}
+    minCoverage: 0.3
+  toppings:
+  - topping: {fileID: 11400000, guid: d73ea43ad72f3f842bd736607f75b39d, type: 2}
+    count: 4
+    tolerance: 1
+  tagComponents: []
+  batter:
+    amount: 150
+    greenTolerance: 15
+    yellowTolerance: 35
+  preferredDoneness: 2
+  penalizeExtraDecor: 1

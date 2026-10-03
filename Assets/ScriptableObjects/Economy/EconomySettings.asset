@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3f1c810a67d39b49b5e335913fb5c57, type: 3}
+  m_Name: EconomySettings
+  m_EditorClassIdentifier: Assembly-CSharp::EconomySettings
+  startingMoney: 20
+  defaultOrderPrice: 20
+  decorComponentBonus: 5
+  happyPay: 1
+  neutralPay: 0.75
+  lowQualityPay: 0.4
+  violationPay: 0.25
+  tipFromQuality: 0.8
+  tipMinRate: 0.1
+  tipMaxRate: 0.4
+  happyPoints: 10
+  neutralPoints: 5
+  lowQualityPoints: 2
+  violationPoints: 0

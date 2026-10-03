@@ -1313,6 +1313,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1194354010}
+  - component: {fileID: 1194354011}
   m_Layer: 0
   m_Name: Decor Area
   m_TagString: Untagged
@@ -1336,6 +1337,33 @@ Transform:
   - {fileID: 1335433942}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1194354011
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1194354009}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 686ef693e5e1f234e996efa0f21f2eac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KitchenTableLayout
+  scroller: {fileID: 1689505615}
+  tableMinX: -9
+  packingRoot: {fileID: 1280946126}
+  packingExtras:
+  - {fileID: 254915442}
+  packingBacksplash: {fileID: 1068471785}
+  decorBacksplash: {fileID: 472099131}
+  workBoards:
+  - {fileID: 1335433946}
+  - {fileID: 1335433945}
+  boardPadding: 0.15
+  stretchToTableEnd:
+  - {fileID: 1212504159}
+  - {fileID: 473426150}
+  - {fileID: 501014537}
 --- !u!1 &1212504157
 GameObject:
   m_ObjectHideFlags: 0
@@ -1572,6 +1600,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1194354010}
     m_Modifications:
+    - target: {fileID: 58551267095005274, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
+      propertyPath: tableLayout
+      value: 
+      objectReference: {fileID: 1194354011}
     - target: {fileID: 58551267095005274, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
       propertyPath: tableScroller
       value: 
@@ -1891,40 +1923,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 2498356523547141224, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 543284150240899599, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 3483846552689495951, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 4314880180965208823, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 3516549730013910393, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 4564630575085490267, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 7422797320410348379, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 877433214245090024, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 8667034748318373385, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 192691691689253928, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 8575399291323583984, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
 --- !u!4 &1335433942 stripped
 Transform:
@@ -1942,6 +1941,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7cfdc2ba84143fe479e218bbdeb05342, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DecorStation
+--- !u!212 &1335433945 stripped
+SpriteRenderer:
+  m_CorrespondingSourceObject: {fileID: 2513752083361512519, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
+  m_PrefabInstance: {fileID: 1335433941}
+  m_PrefabAsset: {fileID: 0}
+--- !u!212 &1335433946 stripped
+SpriteRenderer:
+  m_CorrespondingSourceObject: {fileID: 8329939530397260399, guid: 5c34de853d01c4746b29c899972d7c7c, type: 3}
+  m_PrefabInstance: {fileID: 1335433941}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1391047277
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2279,9 +2288,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 0}
     - targetCorrespondingSourceObject: {fileID: 1079494109661858188, guid: 8cee217192cf33f4e938c2a973efe575, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 2678151225325038853, guid: 8cee217192cf33f4e938c2a973efe575, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: 8cee217192cf33f4e938c2a973efe575, type: 3}

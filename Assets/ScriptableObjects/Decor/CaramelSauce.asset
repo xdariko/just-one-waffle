@@ -15,6 +15,7 @@ MonoBehaviour:
   id: caramel_sauce
   displayName: "\u041A\u0430\u0440\u0430\u043C\u0435\u043B\u044C"
   kind: 0
+  category: 0
   color: {r: 0.85, g: 0.55, b: 0.2, a: 1}
   icon: {fileID: 0}
   brushRadius: 0.28

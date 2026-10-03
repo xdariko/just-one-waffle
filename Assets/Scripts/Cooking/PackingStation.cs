@@ -59,13 +59,18 @@ public class PackingStation : MonoBehaviour
         }
     }
 
-    public void Pack(Transform waffle)
+    // product — какая вафля заказа упаковывается (её связь с заказом проверяет CookingManager.CompleteOrder)
+    public void Pack(Transform waffle, WaffleProduct product = null)
     {
         if (packing || waffle == null) return;
-        StartCoroutine(PackRoutine(waffle));
+        StartCoroutine(PackRoutine(waffle, product));
     }
 
-    private IEnumerator PackRoutine(Transform waffle)
+    // Стол вырос: коробка переехала — камера и зона приёма берутся из новых позиций автоматически
+    public Vector3 BoxPosition => boxPoint != null ? boxPoint.position : transform.position;
+    public float DropRadius => dropRadius;
+
+    private IEnumerator PackRoutine(Transform waffle, WaffleProduct product)
     {
         packing = true;
 
@@ -94,7 +99,7 @@ public class PackingStation : MonoBehaviour
         }
 
         var manager = CookingManager.Instance;
-        var score = manager.CompleteOrder();
+        var score = manager.CompleteOrder(product);
         Debug.Log($"[Packing] вафля упакована. Итог готовки: {manager.Current}");
         if (score != null) Debug.Log($"[Packing] {score}");
 

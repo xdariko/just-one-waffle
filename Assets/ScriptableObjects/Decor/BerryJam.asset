@@ -15,6 +15,7 @@ MonoBehaviour:
   id: berry_jam
   displayName: "\u0414\u0436\u0435\u043C"
   kind: 0
+  category: 0
   color: {r: 0.75, g: 0.12, b: 0.25, a: 1}
   icon: {fileID: 0}
   brushRadius: 0.28

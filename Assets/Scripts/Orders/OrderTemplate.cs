@@ -46,6 +46,12 @@ public class OrderTemplate : ScriptableObject
     [Tooltip("Requirements: по какому рецепту показывать нормы на шкалах кухни. Пусто — самый подходящий из допустимых")]
     public WaffleRecipe guideRecipe;
 
+    [Header("Экономика и доступность")]
+    [Tooltip("Цена заказа. 0 — по EconomySettings: базовая цена + надбавка за каждое обязательное украшение рецепта")]
+    [Min(0)] public int price;
+    [Tooltip("Нужное оборудование: id товаров магазина (ShopCatalog). Пока не куплено — заказ не выпадает")]
+    public List<string> requiredItems = new();
+
     [Header("Обычные клиенты")]
     [Tooltip("Вес при случайном выборе")]
     [Min(0f)] public float weight = 1f;
