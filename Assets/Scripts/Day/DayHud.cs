@@ -22,13 +22,16 @@ public class DayHud : MonoBehaviour
 
     private void Build(RectTransform root)
     {
+        // Полоска и тикет — внутри безопасной области (вырезы экрана)
+        root = SafeAreaFitter.Create(root);
         bar = CookingUI.CreateImage("Bar", root, new Color(0f, 0f, 0f, 0.55f));
         bar.anchorMin = new Vector2(0f, 1f);
         bar.anchorMax = new Vector2(1f, 1f);
         bar.pivot = new Vector2(0.5f, 1f);
         bar.sizeDelta = new Vector2(0f, 64f);
-        status = CookingUI.CreateLabel("Status", bar, 32f, Color.white);
+        status = CookingUI.CreateLabel("Status", bar, 30f, Color.white);
         status.alignment = TextAlignmentOptions.MidlineLeft;
+        status.overflowMode = TextOverflowModes.Ellipsis;
         CookingUI.Stretch(status.rectTransform, 24f, 0f, 24f, 0f);
 
         ticket = CookingUI.CreateImage("Ticket", root, new Color(1f, 0.97f, 0.88f, 0.95f));
@@ -51,9 +54,11 @@ public class DayHud : MonoBehaviour
         if (active)
         {
             int left = Mathf.CeilToInt(day.TimeLeft);
+            // Заработок смены копится и попадёт в кошелёк в конце дня
+            var money = $"Кошелёк {day.Progress.Money}   ·   за смену +{day.Ledger.TotalMoney}";
             s = day.TimeUp
-                ? $"День {day.Day}   ·   Время вышло — дообслужите клиентов   ·   Обслужено: {day.Served.Count}"
-                : $"День {day.Day}   ·   {left / 60}:{left % 60:00}   ·   Обслужено: {day.Served.Count}";
+                ? $"День {day.Day}   ·   Время вышло — дообслужите клиентов   ·   Обслужено: {day.Served.Count}   ·   {money}"
+                : $"День {day.Day}   ·   {left / 60}:{left % 60:00}   ·   Обслужено: {day.Served.Count}   ·   {money}";
         }
         if (s != lastStatus)
         {
