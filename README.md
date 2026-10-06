@@ -20,6 +20,7 @@ Unity **6000.3.8f1** (URP 2D). Дизайн-заметки — в [`doc.md`](doc
 
 План и правила рабочего дня — [`Docs/WaffleGameImplementationPlan.md`](Docs/WaffleGameImplementationPlan.md).
 Магазин, экономика, улучшения, сюжетные визиты — [`Docs/ShopAndEconomyPlan.md`](Docs/ShopAndEconomyPlan.md), баланс с формулами и расчётом смен — [`Docs/EconomyBalance.md`](Docs/EconomyBalance.md).
+План улучшения архитектуры перед артом, звуком и UI — [`Docs/ArchitecturePlan.md`](Docs/ArchitecturePlan.md). Идеи развития игры (механики, контент, мета) — [`Docs/GameDesignIdeas.md`](Docs/GameDesignIdeas.md).
 
 Ориентация — только горизонтальная (вёрстка под 16:9; на более узких экранах стол листается).
 
