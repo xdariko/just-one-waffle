@@ -283,6 +283,7 @@ GameObject:
   - component: {fileID: 1641309636849263768}
   - component: {fileID: 7772311020639107746}
   - component: {fileID: 3690276763150334576}
+  - component: {fileID: 6013644392324105546}
   m_Layer: 0
   m_Name: WhiskHook
   m_TagString: Untagged
@@ -371,6 +372,19 @@ MonoBehaviour:
   whiskSpawnPoint: {fileID: 0}
   bowlHitArea: {fileID: 0}
   gauge: {fileID: 0}
+--- !u!210 &6013644392324105546
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1624242640439691954}
+  m_Enabled: 1
+  m_SortingLayerID: 839894224
+  m_SortingLayer: 1
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0
 --- !u!1 &6875416726629715349
 GameObject:
   m_ObjectHideFlags: 0

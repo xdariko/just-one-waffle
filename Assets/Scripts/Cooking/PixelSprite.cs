@@ -53,14 +53,15 @@ public static class PixelSprite
         return sprite;
     }
 
-    public static SpriteRenderer Create(string name, Transform parent, Sprite sprite, Color color, int sortingOrder)
+    // layer — слой отрисовки (SortLayer), order — порядок внутри слоя
+    public static SpriteRenderer Create(string name, Transform parent, Sprite sprite, Color color, string layer, int order = 0)
     {
         var go = new GameObject(name);
         if (parent != null) go.transform.SetParent(parent, false);
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = sprite;
         sr.color = color;
-        sr.sortingOrder = sortingOrder;
+        SortLayer.Set(sr, layer, order);
         return sr;
     }
 }

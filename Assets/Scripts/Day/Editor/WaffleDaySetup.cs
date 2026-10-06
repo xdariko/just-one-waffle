@@ -43,6 +43,7 @@ public static class WaffleDaySetup
         WaffleShopSetup.Setup(log);
         SetupCounter(log);
         SetupSystems(log, recipePath);
+        WaffleSortingSetup.Setup(log);
         SetupBuildSettings(log);
         AssetDatabase.SaveAssets();
         return log.ToString();

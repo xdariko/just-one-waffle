@@ -50,9 +50,8 @@ public class DecorStation : MonoBehaviour
     [Header("Вафля")]
     [Tooltip("Старый режим (без раскладки): размер вафли")]
     [SerializeField] private float waffleSize = 5.5f;
-    [Tooltip("Необязательно: своя картинка вафли сверху. Пусто — сетка-заглушка. Тонируется цветом пропечки")]
-    [SerializeField] private Sprite waffleSprite;
-    [SerializeField] private int waffleSortingOrder = 5;
+    [Tooltip("Вид вафли по пропечке: картинка сверху и цвет. Пусто — сетка-заглушка")]
+    [SerializeField] private WaffleLook look;
 
     [Header("Места")]
     [SerializeField] private Color slotFrameColor = new(0.55f, 0.4f, 0.28f, 0.35f);
@@ -73,6 +72,10 @@ public class DecorStation : MonoBehaviour
     [SerializeField] private float edgeScrollZone = 0.12f;
     [Tooltip("Скорость прокрутки стола у края, мировых ед./сек")]
     [SerializeField] private float edgeScrollSpeed = 16f;
+
+    // Рамка и подпись пустого места — на доске (Stations), над ячейками; подпись вафли — WorldUI
+    private const int FrameOrder = 10;
+    private const int LabelOrder = 11;
 
     private readonly List<Slot> slots = new();
     private readonly List<DecorBin> bins = new();
@@ -217,7 +220,7 @@ public class DecorStation : MonoBehaviour
     {
         var slot = new Slot { Index = index, Center = center };
 
-        slot.Frame = PixelSprite.Create($"Slot{index + 1}_Frame", transform, PixelSprite.Center, slotFrameColor, waffleSortingOrder - 1);
+        slot.Frame = PixelSprite.Create($"Slot{index + 1}_Frame", transform, PixelSprite.Center, slotFrameColor, SortLayer.Stations, FrameOrder);
         slot.Frame.transform.position = center;
         slot.Frame.transform.localScale = new Vector3(slotWaffleSize + 0.24f, slotWaffleSize + 0.24f, 1f);
 
@@ -228,7 +231,7 @@ public class DecorStation : MonoBehaviour
         slot.Label.fontSize = 3f;
         slot.Label.alignment = TextAlignmentOptions.Center;
         slot.Label.color = new Color(0.35f, 0.22f, 0.12f, 0.8f);
-        slot.Label.sortingOrder = waffleSortingOrder - 1;
+        SortLayer.Set(slot.Label.renderer, SortLayer.Stations, LabelOrder);
         UpdateSlotLook(slot);
         return slot;
     }
@@ -242,14 +245,14 @@ public class DecorStation : MonoBehaviour
         {
             slot.Label.text = slots.Count > 1 || layout != null ? $"Место {slot.Index + 1}\n<size=70%>свободно</size>" : "";
             slot.Label.transform.position = slot.Center;
-            slot.Label.sortingOrder = waffleSortingOrder - 1;
+            SortLayer.Set(slot.Label.renderer, SortLayer.Stations, LabelOrder);
         }
         else
         {
             var p = slot.Product;
             slot.Label.text = p != null ? $"{p.Name}: {WaffleProduct.DescribeBake(p.BakeResult)}{(isActive ? "  •" : "")}" : "";
             slot.Label.transform.position = slot.Center + Vector3.down * (slotWaffleSize * 0.5f + 0.32f);
-            slot.Label.sortingOrder = waffleSortingOrder + 50;
+            SortLayer.Set(slot.Label.renderer, SortLayer.WorldUI, 0);
         }
     }
 
@@ -307,7 +310,8 @@ public class DecorStation : MonoBehaviour
         // Маленькая вафля летит на доску и "раскрывается" в квадрат вида сверху
         var tr = plated.transform;
         var sr = plated.GetComponent<SpriteRenderer>();
-        var bakeColor = sr != null ? sr.color : Color.white;
+        var view = WaffleLook.OrDefault(look);
+        var bakeColor = product?.BakeResult != null ? view.Tint(product.BakeResult) : sr != null ? sr.color : Color.white;
         var fromPos = tr.position;
         var fromScale = tr.localScale;
         var toScale = new Vector3(slotWaffleSize, slotWaffleSize, 1f);
@@ -325,7 +329,7 @@ public class DecorStation : MonoBehaviour
 
         slot.Waffle = new GameObject($"DecorWaffle_{slot.Index + 1}").AddComponent<DecorWaffle>();
         slot.Waffle.transform.position = target;
-        slot.Waffle.Setup(slotWaffleSize, bakeColor, waffleSprite, waffleSortingOrder);
+        slot.Waffle.Setup(slotWaffleSize, bakeColor, view.Top(product?.BakeResult));
         slot.Product = product;
         if (product != null) product.Slot = slot.Index;
         slot.Busy = false;
@@ -412,6 +416,7 @@ public class DecorStation : MonoBehaviour
         dragSlot = slot;
         EndPaint();
         GestureLock.Begin(this);
+        SortLayer.Move(slot.Waffle, SortLayer.Held); // в пальце — поверх всего на столе
         carry01 = 0f;
         if (returnRoutine != null)
         {
@@ -489,6 +494,7 @@ public class DecorStation : MonoBehaviour
         waffle.transform.position = to;
         carry01 = 0f;
         SetCarry(waffle, 0f);
+        SortLayer.Move(waffle, SortLayer.Food);
         returnRoutine = null;
     }
 
@@ -524,6 +530,7 @@ public class DecorStation : MonoBehaviour
         carry01 = 0f;
         if (active == slot) active = null;
         foreach (var s in slots) UpdateSlotLook(s);
+        SortLayer.Move(packed, SortLayer.Food); // в коробке — между задней и передней стенкой
         packingStation.Pack(packed.transform, product);
         return true;
     }

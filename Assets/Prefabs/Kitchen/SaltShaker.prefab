@@ -192,6 +192,7 @@ GameObject:
   - component: {fileID: 5938278381704292548}
   - component: {fileID: 3944535029397935410}
   - component: {fileID: 6174409424381669713}
+  - component: {fileID: 107495628781894740}
   m_Layer: 0
   m_Name: SaltShaker
   m_TagString: Untagged
@@ -284,7 +285,19 @@ MonoBehaviour:
   grainSize: 0.08
   dropHeight: 1.6
   fallTime: 0.35
-  sortingOrder: 9
+--- !u!210 &107495628781894740
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3187022752834067411}
+  m_Enabled: 1
+  m_SortingLayerID: 839894224
+  m_SortingLayer: 1
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0
 --- !u!1 &3323456704530246263
 GameObject:
   m_ObjectHideFlags: 0

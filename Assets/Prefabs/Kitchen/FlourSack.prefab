@@ -374,6 +374,7 @@ GameObject:
   - component: {fileID: 2014778246965487064}
   - component: {fileID: 7658310994854635368}
   - component: {fileID: 1150435487327371257}
+  - component: {fileID: 8029942201523951991}
   m_Layer: 0
   m_Name: FlourSack
   m_TagString: Untagged
@@ -467,3 +468,16 @@ MonoBehaviour:
     greenTolerance: 15
     yellowTolerance: 40
   gaugeMax: 400
+--- !u!210 &8029942201523951991
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3632989756406747668}
+  m_Enabled: 1
+  m_SortingLayerID: 839894224
+  m_SortingLayer: 1
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0

@@ -29,10 +29,12 @@ public class DecorWaffle : MonoBehaviour
 
     public float Size => size;
 
-    public void Setup(float worldSize, Color bakeColor, Sprite waffleSprite, int sortingOrder)
+    public void Setup(float worldSize, Color bakeColor, Sprite waffleSprite)
     {
         size = worldSize;
-        baseOrder = sortingOrder;
+        baseOrder = 0;
+        // Вафля сортируется целиком (основа → соус → добавки) в слое Food; в пальце её переносят в Held
+        SortLayer.Group(gameObject, SortLayer.Food);
 
         // --- основа ---
         baseRenderer = new GameObject("Base").AddComponent<SpriteRenderer>();

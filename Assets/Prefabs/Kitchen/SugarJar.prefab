@@ -102,6 +102,7 @@ GameObject:
   - component: {fileID: 4849280302031997257}
   - component: {fileID: 952234642341958668}
   - component: {fileID: 3475486591470417796}
+  - component: {fileID: 142854196021418479}
   m_Layer: 0
   m_Name: SugarJar
   m_TagString: Untagged
@@ -195,6 +196,19 @@ MonoBehaviour:
     greenTolerance: 5
     yellowTolerance: 12
   gaugeMax: 80
+--- !u!210 &142854196021418479
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2228499996628967919}
+  m_Enabled: 1
+  m_SortingLayerID: 839894224
+  m_SortingLayer: 1
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0
 --- !u!1 &5387244116973864403
 GameObject:
   m_ObjectHideFlags: 0

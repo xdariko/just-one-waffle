@@ -78,14 +78,15 @@ public class DecorBin : MonoBehaviour
         var go = new GameObject("Bin", typeof(BoxCollider2D));
         go.transform.SetParent(parent, false);
         go.GetComponent<BoxCollider2D>().size = Vector2.one;
+        SortLayer.Group(go, SortLayer.Stations); // ячейка сортируется целиком, порядок частей — внутри
 
-        var back = PixelSprite.Create("Visual", go.transform, PixelSprite.Center, new Color(0.93f, 0.88f, 0.78f), 2);
+        var back = PixelSprite.Create("Visual", go.transform, PixelSprite.Center, new Color(0.93f, 0.88f, 0.78f), SortLayer.Stations, 2);
         back.transform.localScale = new Vector3(0.96f, 0.96f, 1f);
 
-        var hl = PixelSprite.Create("Highlight", go.transform, PixelSprite.Center, new Color(1f, 0.8f, 0.2f), 1);
+        var hl = PixelSprite.Create("Highlight", go.transform, PixelSprite.Center, new Color(1f, 0.8f, 0.2f), SortLayer.Stations, 1);
         hl.transform.localScale = new Vector3(1.08f, 1.08f, 1f);
 
-        var ic = PixelSprite.Create("Icon", go.transform, PixelSprite.Circle, Color.white, 3);
+        var ic = PixelSprite.Create("Icon", go.transform, PixelSprite.Circle, Color.white, SortLayer.Stations, 3);
         ic.transform.localPosition = new Vector3(0f, 0.08f, 0f);
         ic.transform.localScale = Vector3.one * 0.55f;
 

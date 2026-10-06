@@ -2,7 +2,7 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
-  serializedVersion: 2
+  serializedVersion: 3
   tags: []
   layers:
   - Default
@@ -38,6 +38,29 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Background
+    uniqueID: 711265747
+    locked: 0
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Stations
+    uniqueID: 839894224
+    locked: 0
+  - name: Food
+    uniqueID: 349637895
+    locked: 0
+  - name: StationsFront
+    uniqueID: 2017019790
+    locked: 0
+  - name: Held
+    uniqueID: 1507548796
+    locked: 0
+  - name: FX
+    uniqueID: 893556385
+    locked: 0
+  - name: WorldUI
+    uniqueID: 2098303927
+    locked: 0
+  m_RenderingLayers:
+  - Default

@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e9ed1680363c4044ab26896f7fab75b, type: 3}
+  m_Name: WaffleLook
+  m_EditorClassIdentifier: Assembly-CSharp::WaffleLook
+  side: {fileID: 0}
+  top: {fileID: 0}
+  placeholderSideSize: {x: 1.4, y: 0.3}
+  stages:
+  - result: 0
+    tint: {r: 0.98, g: 0.93, b: 0.72, a: 1}
+    side: {fileID: 0}
+    top: {fileID: 0}
+  - result: 1
+    tint: {r: 0.96, g: 0.83, b: 0.52, a: 1}
+    side: {fileID: 0}
+    top: {fileID: 0}
+  - result: 2
+    tint: {r: 0.86, g: 0.6, b: 0.26, a: 1}
+    side: {fileID: 0}
+    top: {fileID: 0}
+  - result: 3
+    tint: {r: 0.55, g: 0.33, b: 0.15, a: 1}
+    side: {fileID: 0}
+    top: {fileID: 0}
+  - result: 4
+    tint: {r: 0.18, g: 0.11, b: 0.07, a: 1}
+    side: {fileID: 0}
+    top: {fileID: 0}

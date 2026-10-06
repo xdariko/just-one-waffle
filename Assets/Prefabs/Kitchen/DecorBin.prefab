@@ -374,6 +374,7 @@ GameObject:
   - component: {fileID: 2438732980121443040}
   - component: {fileID: 5830015898944389774}
   - component: {fileID: 2466056761428923186}
+  - component: {fileID: 4648733416052729651}
   m_Layer: 0
   m_Name: DecorBin
   m_TagString: Untagged
@@ -463,6 +464,19 @@ MonoBehaviour:
   highlight: {fileID: 2275671093506739715}
   icon: {fileID: 3287579642607027534}
   label: {fileID: 6946114685526250225}
+--- !u!210 &4648733416052729651
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7451242581599129271}
+  m_Enabled: 1
+  m_SortingLayerID: 839894224
+  m_SortingLayer: 1
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0
 --- !u!1 &7956600346938584808
 GameObject:
   m_ObjectHideFlags: 0

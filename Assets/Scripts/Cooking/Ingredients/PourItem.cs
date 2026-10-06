@@ -255,7 +255,7 @@ public class PourItem : MonoBehaviour
     private void CreateStream()
     {
         // pivot сверху — струя растёт вниз от горлышка
-        stream = PixelSprite.Create($"{name}_Stream", null, PixelSprite.TopCenter, streamColor, 0);
+        stream = PixelSprite.Create($"{name}_Stream", null, PixelSprite.TopCenter, streamColor, SortLayer.Held);
         // Струя за пакетом, но поверх миски
         stream.sortingLayerID = spriteRenderer != null ? spriteRenderer.sortingLayerID : 0;
         stream.sortingOrder = spriteRenderer != null ? spriteRenderer.sortingOrder - 1 : 0;

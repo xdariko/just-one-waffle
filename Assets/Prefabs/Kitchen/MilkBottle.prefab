@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2153449167123614081}
   - component: {fileID: 169204515058886664}
   - component: {fileID: 3397178748445835254}
+  - component: {fileID: 1546716168572740774}
   m_Layer: 0
   m_Name: MilkBottle
   m_TagString: Untagged
@@ -105,6 +106,19 @@ MonoBehaviour:
     greenTolerance: 20
     yellowTolerance: 50
   gaugeMax: 500
+--- !u!210 &1546716168572740774
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613710676320161090}
+  m_Enabled: 1
+  m_SortingLayerID: 839894224
+  m_SortingLayer: 1
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0
 --- !u!1 &4753599871607783793
 GameObject:
   m_ObjectHideFlags: 0
