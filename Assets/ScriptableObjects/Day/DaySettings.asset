@@ -16,8 +16,6 @@ MonoBehaviour:
   economy: {fileID: 11400000, guid: 19c57a4c8d015d940bc583d2690151f5, type: 2}
   shop: {fileID: 11400000, guid: da345ce37f78dee4e8179301db40d576, type: 2}
   dayDurationSeconds: 240
-  counterScene: SampleScene
-  kitchenScene: MainScene
   regularCustomers:
   - {fileID: 11400000, guid: f5a7f9f8f621b984baf3fb30bf9734bc, type: 2}
   - {fileID: 11400000, guid: d12c54c6d8005ff419ad768bd9339827, type: 2}

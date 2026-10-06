@@ -1,11 +1,10 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 // Зона упаковки (последняя на столе). Готовую вафлю с тарелки переносим сюда:
 // камера едет к коробке, вафля перелетает в неё, крышка закрывается —
-// и сразу загружается сцена диалога с клиентом. CookingManager живёт между сценами
-// (DontDestroyOnLoad), так что результат готовки доступен в диалоге.
+// и переходим на стойку (SceneLoader). CookingManager живёт между сценами (префаб Systems),
+// так что результат готовки доступен на стойке.
 public class PackingStation : MonoBehaviour
 {
     [Header("Refs")]
@@ -21,9 +20,7 @@ public class PackingStation : MonoBehaviour
     [Tooltip("Отпустил вафлю ближе этого расстояния к коробке — она упаковывается")]
     [SerializeField] private float dropRadius = 2.5f;
 
-    [Header("Переход к диалогу")]
-    [Tooltip("Сцена с диалогом клиента (должна быть в Build Settings)")]
-    [SerializeField] private string dialogueSceneName = "SampleScene";
+    [Header("Переход на стойку")]
     [Tooltip("Пауза после закрытия коробки перед переходом")]
     [SerializeField] private float delayBeforeDialogue = 0.6f;
 
@@ -105,15 +102,7 @@ public class PackingStation : MonoBehaviour
 
         yield return new WaitForSeconds(delayBeforeDialogue);
 
-        // Во время рабочего дня — на стойку из настроек дня, иначе — сцена из инспектора
-        var day = DayRunner.Instance;
-        var scene = day != null && day.Settings != null ? day.Settings.counterScene : dialogueSceneName;
-        if (string.IsNullOrEmpty(scene))
-        {
-            Debug.LogWarning("[Packing] не задана сцена диалога");
-            yield break;
-        }
-        SceneManager.LoadScene(scene);
+        SceneLoader.Go(GameScene.Counter);
     }
 
     private void SetLid(float open01)

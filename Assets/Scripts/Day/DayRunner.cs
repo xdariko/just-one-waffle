@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using Random = UnityEngine.Random;
 
 public enum DayPhase
@@ -14,7 +13,7 @@ public enum DayPhase
     Summary    // итоги дня — время не идёт
 }
 
-// Рабочий день: таймер, очередь клиентов, сюжетные визиты, итоги. Живёт между сценами (DontDestroyOnLoad).
+// Рабочий день: таймер, очередь клиентов, сюжетные визиты, итоги. Живёт в префабе Systems (GameBootstrap) между сценами.
 // Сцены только показывают состояние и вызывают методы (StartDay, AcceptOrder, ...). Каждый метод проверяет
 // фазу, поэтому повторное нажатие кнопки или перезагрузка сцены не запускают действие второй раз.
 //
@@ -91,7 +90,7 @@ public class DayRunner : MonoBehaviour
     {
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
-        DontDestroyOnLoad(gameObject);
+        if (transform.parent == null) DontDestroyOnLoad(gameObject);
 
         if (settings == null) Debug.LogError("[Day] DayRunner: не задан DaySettings", this);
         InitProgress();
@@ -222,7 +221,7 @@ public class DayRunner : MonoBehaviour
     public void GoToKitchen()
     {
         if (Phase != DayPhase.Cooking || !LoadScenes) return;
-        SceneManager.LoadScene(settings.kitchenScene);
+        SceneLoader.Go(GameScene.Kitchen);
     }
 
     // Вафлю упаковали и отдали. Вызывает CookingManager.CompleteOrder.

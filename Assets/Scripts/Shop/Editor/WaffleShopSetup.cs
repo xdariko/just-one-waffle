@@ -11,12 +11,12 @@ using UnityEngine;
 //  - ассеты: EconomySettings, ShopCatalog, DecorStationLayout, префаб ячейки DecorBin, новые украшения
 //    (мороженое, посыпка, мёд), заказы и реплики с ними, цепочка "Студент" (помощь → благодарность);
 //  - DecorTable: ячейки больше не расставлены руками — станция строит их по данным;
-//  - кухня (MainScene): KitchenTableLayout (упаковка и фон двигаются при росте стола);
+//  - кухня (Kitchen): KitchenTableLayout (упаковка и фон двигаются при росте стола);
 //  - плита: половник выключен (тесто — миской на вафельницу);
 //  - Player Settings: только горизонтальная ориентация.
 public static class WaffleShopSetup
 {
-    private const string KitchenScenePath = "Assets/Scenes/MainScene.unity";
+    private static readonly string KitchenScenePath = GameScenes.Path(GameScene.Kitchen);
     private const string DecorTablePath = "Assets/Prefabs/Kitchen/DecorTable.prefab";
     private const string BinPrefabPath = "Assets/Prefabs/Kitchen/DecorBin.prefab";
     private const string EconomyPath = "Assets/ScriptableObjects/Economy/EconomySettings.asset";

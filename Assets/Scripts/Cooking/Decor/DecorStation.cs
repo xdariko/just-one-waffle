@@ -149,7 +149,7 @@ public class DecorStation : MonoBehaviour
             return;
         }
 
-        if (ShopCatalog.Active == null) ShopCatalog.Active = catalog;
+        // Каталог выставляет DayRunner (префаб Systems); свой — только запасной, глобальный не трогаем
         var progress = GameProgress.Current;
         progress.EnsureInitialized(null, ShopCatalog.Active != null ? ShopCatalog.Active : catalog);
 

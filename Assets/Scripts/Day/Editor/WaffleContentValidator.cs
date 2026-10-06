@@ -58,11 +58,14 @@ public static class WaffleContentValidator
         if (rules == null) result.Errors.Add($"{S(settings)}: не задан WaffleRules");
         if (db == null) result.Errors.Add($"{S(settings)}: у WaffleRules не задана CraftDatabase — сначала импортируй рецепты");
         if (settings.dayDurationSeconds < 10f) result.Errors.Add($"{S(settings)}: день короче 10 секунд");
-        if (string.IsNullOrEmpty(settings.counterScene) || string.IsNullOrEmpty(settings.kitchenScene))
-            result.Errors.Add($"{S(settings)}: не заданы сцены стойки и кухни");
-        foreach (var scene in new[] { settings.counterScene, settings.kitchenScene })
-            if (!string.IsNullOrEmpty(scene) && !EditorBuildSettings.scenes.Any(b => b.enabled && b.path.EndsWith($"/{scene}.unity")))
-                result.Errors.Add($"{S(settings)}: сцены {scene} нет в Build Settings");
+        foreach (GameScene scene in System.Enum.GetValues(typeof(GameScene)))
+            if (!EditorBuildSettings.scenes.Any(b => b.enabled && b.path == GameScenes.Path(scene)))
+                result.Errors.Add($"Сцены {GameScenes.Path(scene)} нет в Build Settings — Tools → Waffle → Настроить сцены дня");
+        var systems = Resources.Load<GameObject>(GameBootstrap.SystemsResource);
+        if (systems == null)
+            result.Errors.Add($"Нет префаба Resources/{GameBootstrap.SystemsResource} (DayRunner, CookingManager, SceneLoader) — Tools → Waffle → Настроить сцены дня");
+        else if (systems.GetComponentInChildren<DayRunner>(true) is not { } prefabRunner || prefabRunner.Settings == null)
+            result.Errors.Add($"Префаб Systems: нет DayRunner или у него не задан DaySettings — Tools → Waffle → Настроить сцены дня");
 
         if (settings.regularCustomers.All(c => c == null))
             result.Warnings.Add($"{S(settings)}: нет внешностей обычных клиентов — придут безымянные заглушки");

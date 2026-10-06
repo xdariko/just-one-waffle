@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// Живёт между сценами (кухня ↔ диалог). Хранит текущий заказ: что приготовили (Current)
+// Живёт в префабе Systems (GameBootstrap) между сценами (кухня ↔ стойка). Хранит текущий заказ: что приготовили (Current)
 // и что заказал клиент (CurrentOrder + CurrentRecipe — рецепт для норм на шкалах), считает оценку (RecipeScoring).
 // Во время рабочего дня заказ берётся из DayRunner, а готовая вафля отдаётся ему на проверку.
 // Без DayRunner (кухню запустили отдельно) — как раньше, по defaultRecipe.
@@ -26,7 +26,7 @@ public class CookingManager : MonoBehaviour
     {
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
-        DontDestroyOnLoad(gameObject);
+        if (transform.parent == null) DontDestroyOnLoad(gameObject);
 
         Current = new CookingSession();
         CurrentRecipe = defaultRecipe;
@@ -102,7 +102,7 @@ public class CookingManager : MonoBehaviour
     // новый заказ по тому же рецепту, иначе миска "занята" старым.
     private void SyncWithDay()
     {
-        if (FindAnyObjectByType<PackingStation>() == null) return;
+        if (SceneManager.GetActiveScene().name != GameScenes.Name(GameScene.Kitchen)) return;
 
         var visit = DayRunner.Instance != null ? DayRunner.Instance.ActiveVisit : null;
         if (visit != null && visit.Order != null)

@@ -14,10 +14,6 @@ public class DaySettings : ScriptableObject
     [Header("День")]
     [Tooltip("Длительность дня в секундах. Время идёт в диалоге, на кухне и во время реакции")]
     [Min(10f)] public float dayDurationSeconds = 240f;
-    [Tooltip("Сцена стойки с клиентом (диалог, реакция, итоги)")]
-    public string counterScene = "SampleScene";
-    [Tooltip("Сцена кухни")]
-    public string kitchenScene = "MainScene";
 
     [Header("Обычные клиенты")]
     [Tooltip("Внешность выбирается случайно (подряд один и тот же не приходит, если есть выбор)")]

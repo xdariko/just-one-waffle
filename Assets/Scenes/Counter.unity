@@ -564,52 +564,6 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: -1
   m_TargetDisplay: 0
---- !u!1 &723007717
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 723007719}
-  - component: {fileID: 723007718}
-  m_Layer: 0
-  m_Name: DayRunner
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &723007718
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 723007717}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 65d778b94d7fbbc418fd528ba8800eee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DayRunner
-  settings: {fileID: 11400000, guid: 03e2199c0e6384248a32a32d6fa003d4, type: 2}
-  showHud: 1
---- !u!4 &723007719
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 723007717}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &768768080
 GameObject:
   m_ObjectHideFlags: 0
@@ -1378,6 +1332,5 @@ SceneRoots:
   - {fileID: 1469004793}
   - {fileID: 768768083}
   - {fileID: 2494684926481428836}
-  - {fileID: 723007719}
   - {fileID: 696318232}
   - {fileID: 1830574772}
