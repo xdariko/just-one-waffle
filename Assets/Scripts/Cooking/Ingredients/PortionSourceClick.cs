@@ -21,7 +21,6 @@ public class PortionSourceClick : MonoBehaviour
     [Tooltip("С какой высоты над краем миски падают крупинки")]
     [SerializeField] private float dropHeight = 1.6f;
     [SerializeField] private float fallTime = 0.35f;
-    [SerializeField] private int sortingOrder = 9;
 
     private Vector3 baseScale;
     private Coroutine punchRoutine;
@@ -75,7 +74,7 @@ public class PortionSourceClick : MonoBehaviour
 
         for (int i = 0; i < grainCount; i++)
         {
-            var go = PixelSprite.Create("Grain", null, PixelSprite.Center, grainColor, sortingOrder).gameObject;
+            var go = PixelSprite.Create("Grain", null, PixelSprite.Center, grainColor, SortLayer.FX).gameObject;
             go.transform.localScale = Vector3.one * grainSize;
 
             starts[i] = new Vector3(b.center.x + Random.Range(-0.25f, 0.25f), topY + Random.Range(0f, 0.3f), 0f);

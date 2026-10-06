@@ -6,7 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Стойка (сцена SampleScene): показывает то, что сейчас происходит в DayRunner.
+// Стойка (сцена Counter): показывает то, что сейчас происходит в DayRunner.
 //  - BeforeDay: "День N", кошелёк → "Магазин" / "Открыть вафельную";
 //  - Ordering:  клиент, вступление (если есть), заказ → "Начать готовить" / "Уточнить" (только если уточнение задано);
 //               визит без готовки: вступление → сюжетные действия (подарок) → реакция;
@@ -40,8 +40,8 @@ public class CounterController : MonoBehaviour
         runner = DayRunner.Instance;
         if (runner == null || dialogue == null)
         {
-            ShowPanel("Нет рабочего дня", "В сцене нет DayRunner или DialogueManager.\nTools → Waffle → Настроить сцены дня.");
-            Debug.LogError("[Counter] нет DayRunner или DialogueManager — запусти Tools → Waffle → Настроить сцены дня", this);
+            ShowPanel("Нет рабочего дня", "Нет DayRunner (префаб Resources/Systems) или DialogueManager в сцене.\nTools → Waffle → Настроить сцены дня.");
+            Debug.LogError("[Counter] нет DayRunner (Resources/Systems) или DialogueManager — запусти Tools → Waffle → Настроить сцены дня", this);
             return;
         }
 

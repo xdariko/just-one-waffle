@@ -72,6 +72,7 @@ public class PlatedWaffle : MonoBehaviour
         returning = false;
         transform.localScale = baseScale;
         GestureLock.Begin(this);
+        SortLayer.Move(this, SortLayer.Held); // в пальце — поверх всего на столе
         var world = PointerWorld();
         grabOffset = IsPointerOnWaffle() ? transform.position - world : Vector3.zero;
         grabOffset.z = 0f;
@@ -98,6 +99,7 @@ public class PlatedWaffle : MonoBehaviour
         if (!dragging) return;
         dragging = false;
         GestureLock.End(this);
+        SortLayer.Move(this, SortLayer.Food);
 
         if (canPlace)
         {

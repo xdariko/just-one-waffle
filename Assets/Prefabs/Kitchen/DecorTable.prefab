@@ -91,11 +91,11 @@ MonoBehaviour:
   tableLayout: {fileID: 0}
   binsRoot: {fileID: 2055979162886961987}
   waffleSize: 5.5
-  waffleSprite: {fileID: 0}
-  waffleSortingOrder: 5
+  look: {fileID: 11400000, guid: 3b347cdbe3be9ed438bab8a4c4c8992a, type: 2}
   slotFrameColor: {r: 0.55, g: 0.4, b: 0.28, a: 0.35}
   activeSlotColor: {r: 1, g: 0.78, b: 0.25, a: 0.9}
   arriveDuration: 1
+  dropDuration: 0.35
   arcHeight: 2
   carryScale: 0.4
   pickUpTime: 0.15
@@ -179,8 +179,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: 839894224
+  m_SortingLayer: 1
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
@@ -332,8 +332,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: 839894224
+  m_SortingLayer: 1
   m_SortingOrder: 1
   m_MaskInteraction: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
@@ -427,8 +427,8 @@ MeshRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: 839894224
+  m_SortingLayer: 1
   m_SortingOrder: 20
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}

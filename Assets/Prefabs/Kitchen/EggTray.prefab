@@ -283,6 +283,7 @@ GameObject:
   - component: {fileID: 2739980371664048889}
   - component: {fileID: 2657112320599997983}
   - component: {fileID: 5319484939550935879}
+  - component: {fileID: 7613553454289586380}
   m_Layer: 0
   m_Name: EggTray
   m_TagString: Untagged
@@ -368,3 +369,16 @@ MonoBehaviour:
   eggPrefab: {fileID: 7927800802598076377, guid: deb94157b5a9d0c4ba79fff7638fcbd1, type: 3}
   eggSpawnPoint: {fileID: 0}
   bowlHitArea: {fileID: 0}
+--- !u!210 &7613553454289586380
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5632975544517254227}
+  m_Enabled: 1
+  m_SortingLayerID: 839894224
+  m_SortingLayer: 1
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0

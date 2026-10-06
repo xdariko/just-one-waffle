@@ -51,12 +51,8 @@ public class WaffleIronBake : MonoBehaviour
     [SerializeField] private float steamSize = 0.14f;
 
     [Header("Вафля")]
-    [SerializeField] private Vector2 waffleSize = new(1.4f, 0.3f);
-    [SerializeField] private Color rawColor = new(0.98f, 0.93f, 0.72f);
-    [SerializeField] private Color undercookedColor = new(0.96f, 0.83f, 0.52f);
-    [SerializeField] private Color perfectColor = new(0.86f, 0.6f, 0.26f);
-    [SerializeField] private Color overcookedColor = new(0.55f, 0.33f, 0.15f);
-    [SerializeField] private Color burntColor = new(0.18f, 0.11f, 0.07f);
+    [Tooltip("Вид вафли по пропечке: картинка сбоку и цвет. Пусто — полоска-заглушка")]
+    [SerializeField] private WaffleLook look;
 
     private State state = State.Idle;
     private bool pressPending;
@@ -227,15 +223,6 @@ public class WaffleIronBake : MonoBehaviour
         _ => BakeResult.Burnt
     };
 
-    private Color ColorFor(BakeResult r) => r switch
-    {
-        BakeResult.Raw => rawColor,
-        BakeResult.Undercooked => undercookedColor,
-        BakeResult.Perfect => perfectColor,
-        BakeResult.Overcooked => overcookedColor,
-        _ => burntColor
-    };
-
     // ---------- Крышка ----------
 
     private void AnimateLid(float open01)
@@ -277,7 +264,7 @@ public class WaffleIronBake : MonoBehaviour
         var b = GetComponent<Collider2D>() is { } col ? col.bounds : new Bounds(transform.position, Vector3.one);
         var start = new Vector3(Random.Range(b.min.x + 0.2f, b.max.x - 0.2f), b.max.y, 0f);
 
-        var sr = PixelSprite.Create("Steam", null, PixelSprite.Center, color, 30);
+        var sr = PixelSprite.Create("Steam", null, PixelSprite.Center, color, SortLayer.FX);
         var tr = sr.transform;
         float drift = Random.Range(-0.3f, 0.3f);
 
@@ -297,25 +284,36 @@ public class WaffleIronBake : MonoBehaviour
     // Вафля лежит на открытой вафельнице; drag — сразу в пальце
     private PlatedWaffle SpawnWaffle(BakeResult result, WaffleProduct product, bool drag)
     {
+        var view = WaffleLook.OrDefault(look);
+        var sprite = view.Side(result);
         SpriteRenderer waffle;
         if (wafflePrefab != null)
         {
             waffle = Instantiate(wafflePrefab);
+            if (sprite != null) waffle.sprite = sprite;
+        }
+        else if (sprite != null)
+        {
+            waffle = PixelSprite.Create("Waffle", null, sprite, Color.white, SortLayer.Food);
         }
         else
         {
-            waffle = PixelSprite.Create("Waffle", null, PixelSprite.Center, Color.white, 25);
-            waffle.transform.localScale = new Vector3(waffleSize.x, waffleSize.y, 1f);
+            waffle = PixelSprite.Create("Waffle", null, PixelSprite.Center, Color.white, SortLayer.Food);
+            waffle.transform.localScale = new Vector3(view.placeholderSideSize.x, view.placeholderSideSize.y, 1f);
         }
-        waffle.color = ColorFor(result);
+        waffle.sortingLayerName = SortLayer.Food;
+        waffle.color = view.Tint(result);
 
         var rest = (GetComponent<Collider2D>() is { } col ? col.bounds.center : transform.position) + Vector3.up * 0.35f;
         rest.z = 0f;
         waffle.transform.position = rest;
 
-        // Коллайдер выше самой вафли, чтобы по тонкой полоске было легко попасть пальцем
+        // Коллайдер по картинке; у полоски-заглушки — выше самой вафли, чтобы было легко попасть пальцем
         if (waffle.GetComponent<Collider2D>() == null)
-            waffle.gameObject.AddComponent<BoxCollider2D>().size = new Vector2(1f, 4f);
+        {
+            var box = waffle.gameObject.AddComponent<BoxCollider2D>();
+            if (waffle.sprite == PixelSprite.Center) box.size = new Vector2(1f, 4f);
+        }
 
         var plated = waffle.gameObject.AddComponent<PlatedWaffle>();
         plated.Initialize(decorStation, packingStation, product, rest);

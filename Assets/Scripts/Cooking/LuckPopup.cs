@@ -19,7 +19,7 @@ public class LuckPopup : MonoBehaviour
         popup.text.fontSize = 4f;
         popup.text.alignment = TextAlignmentOptions.Center;
         popup.text.color = new Color(1f, 0.85f, 0.2f);
-        popup.text.sortingOrder = 100;
+        SortLayer.Set(popup.text.renderer, SortLayer.WorldUI, 10);
         popup.text.rectTransform.sizeDelta = new Vector2(8f, 1.5f);
         popup.start = world;
     }

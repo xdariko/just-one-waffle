@@ -261,6 +261,7 @@ GameObject:
   - component: {fileID: 3254098161423278612}
   - component: {fileID: 3798971267486992684}
   - component: {fileID: 301966864772922771}
+  - component: {fileID: 4524818270678218153}
   m_Layer: 0
   m_Name: Bowl
   m_TagString: Untagged
@@ -343,14 +344,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c93c7138b1a8ac747b0d0a208f4f7710, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BowlCarry
-  stoveBowlPoint: {fileID: 0}
-  stoveCameraFocus: {fileID: 0}
+  waffleIron: {fileID: 0}
   tableScroller: {fileID: 0}
   wobbleAngle: 4
   wobbleSpeed: 10
   wobbleBurst: 0.6
   wobblePause: 1.2
   clickPadding: 0.8
-  carryDuration: 0.9
-  liftHeight: 1.2
-  liftScale: 1.08
+  edgeScrollZone: 0.12
+  edgeScrollSpeed: 16
+  dragScale: 0.85
+  returnTime: 0.35
+--- !u!210 &4524818270678218153
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8499944596403894265}
+  m_Enabled: 1
+  m_SortingLayerID: 839894224
+  m_SortingLayer: 1
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0

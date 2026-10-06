@@ -58,11 +58,15 @@ public static class WaffleContentValidator
         if (rules == null) result.Errors.Add($"{S(settings)}: не задан WaffleRules");
         if (db == null) result.Errors.Add($"{S(settings)}: у WaffleRules не задана CraftDatabase — сначала импортируй рецепты");
         if (settings.dayDurationSeconds < 10f) result.Errors.Add($"{S(settings)}: день короче 10 секунд");
-        if (string.IsNullOrEmpty(settings.counterScene) || string.IsNullOrEmpty(settings.kitchenScene))
-            result.Errors.Add($"{S(settings)}: не заданы сцены стойки и кухни");
-        foreach (var scene in new[] { settings.counterScene, settings.kitchenScene })
-            if (!string.IsNullOrEmpty(scene) && !EditorBuildSettings.scenes.Any(b => b.enabled && b.path.EndsWith($"/{scene}.unity")))
-                result.Errors.Add($"{S(settings)}: сцены {scene} нет в Build Settings");
+        foreach (GameScene scene in System.Enum.GetValues(typeof(GameScene)))
+            if (!EditorBuildSettings.scenes.Any(b => b.enabled && b.path == GameScenes.Path(scene)))
+                result.Errors.Add($"Сцены {GameScenes.Path(scene)} нет в Build Settings — Tools → Waffle → Настроить сцены дня");
+        var systems = Resources.Load<GameObject>(GameBootstrap.SystemsResource);
+        if (systems == null)
+            result.Errors.Add($"Нет префаба Resources/{GameBootstrap.SystemsResource} (DayRunner, CookingManager, SceneLoader) — Tools → Waffle → Настроить сцены дня");
+        else if (systems.GetComponentInChildren<DayRunner>(true) is not { } prefabRunner || prefabRunner.Settings == null)
+            result.Errors.Add($"Префаб Systems: нет DayRunner или у него не задан DaySettings — Tools → Waffle → Настроить сцены дня");
+        ValidateSorting(result);
 
         if (settings.regularCustomers.All(c => c == null))
             result.Warnings.Add($"{S(settings)}: нет внешностей обычных клиентов — придут безымянные заглушки");
@@ -360,6 +364,29 @@ public static class WaffleContentValidator
         AssetDatabase.FindAssets($"t:{typeof(T).Name}")
             .Select(g => AssetDatabase.LoadAssetAtPath<T>(AssetDatabase.GUIDToAssetPath(g)))
             .Where(a => a != null).ToList();
+
+    // Слои отрисовки есть и стоят по порядку; спрайты кухни не остались в Default (их не будет видно как надо)
+    private static void ValidateSorting(Result result)
+    {
+        var names = SortingLayer.layers.Select(l => l.name).ToList();
+        var missing = SortLayer.Ordered.Where(n => !names.Contains(n)).ToList();
+        if (missing.Count > 0)
+            result.Errors.Add($"Нет слоёв отрисовки {string.Join(", ", missing)} — Tools → Waffle → Настроить сцены дня");
+        else if (!names.Where(n => SortLayer.Ordered.Contains(n)).SequenceEqual(SortLayer.Ordered))
+            result.Errors.Add($"Слои отрисовки не по порядку: нужно {string.Join(" → ", SortLayer.Ordered)}");
+
+        foreach (var guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs/Kitchen", "Assets/Prefabs/Items" }))
+        {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null) continue;
+            foreach (var r in prefab.GetComponentsInChildren<Renderer>(true))
+            {
+                if (r.sortingLayerID != 0 || r.GetComponentInParent<UnityEngine.Rendering.SortingGroup>(true) != null) continue;
+                result.Warnings.Add($"{path}: «{r.name}» в слое Default — поставь слой (SortLayer) или запусти Tools → Waffle → Настроить сцены дня");
+            }
+        }
+    }
 
     private static string Truncate(string s, int max) => s.Length <= max ? s : s.Substring(0, max) + "\n…(полностью — в консоли)";
 

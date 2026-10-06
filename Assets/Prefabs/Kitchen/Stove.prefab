@@ -599,6 +599,8 @@ MonoBehaviour:
   wafflePrefab: {fileID: 0}
   decorStation: {fileID: 0}
   packingStation: {fileID: 0}
+  dropPadding: 1.2
+  dragThresholdPixels: 18
   maxSeconds: 20
   zones:
     yellowMin: 0.325
@@ -613,13 +615,7 @@ MonoBehaviour:
   steamRise: 1.2
   steamLife: 0.9
   steamSize: 0.14
-  waffleSize: {x: 1.4, y: 0.3}
-  flyTime: 0.5
-  rawColor: {r: 0.98, g: 0.93, b: 0.72, a: 1}
-  undercookedColor: {r: 0.96, g: 0.83, b: 0.52, a: 1}
-  perfectColor: {r: 0.86, g: 0.6, b: 0.26, a: 1}
-  overcookedColor: {r: 0.55, g: 0.33, b: 0.15, a: 1}
-  burntColor: {r: 0.18, g: 0.11, b: 0.07, a: 1}
+  look: {fileID: 11400000, guid: 3b347cdbe3be9ed438bab8a4c4c8992a, type: 2}
 --- !u!1 &2353892171259598330
 GameObject:
   m_ObjectHideFlags: 0
@@ -1875,6 +1871,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5322898184947761544}
+  - component: {fileID: 4475557054126081817}
   m_Layer: 0
   m_Name: Stove
   m_TagString: Untagged
@@ -1904,6 +1901,19 @@ Transform:
   - {fileID: 2211344503035975618}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!210 &4475557054126081817
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5678835342551639324}
+  m_Enabled: 1
+  m_SortingLayerID: 839894224
+  m_SortingLayer: 1
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0
 --- !u!1 &6049108692869357801
 GameObject:
   m_ObjectHideFlags: 0

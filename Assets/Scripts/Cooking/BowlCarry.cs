@@ -135,6 +135,7 @@ public class BowlCarry : MonoBehaviour
         StopWobble();
         dragging = true;
         GestureLock.Begin(this);
+        SortLayer.Move(this, SortLayer.Held); // несомая миска — поверх плиты и вафельницы
         grabOffset = transform.position - GetPointerWorld();
         transform.localScale = baseScale * dragScale;
     }
@@ -192,6 +193,7 @@ public class BowlCarry : MonoBehaviour
         }
         transform.SetPositionAndRotation(home, Quaternion.identity);
         transform.localScale = baseScale;
+        SortLayer.Move(this, SortLayer.Stations);
         returning = false;
     }
 
