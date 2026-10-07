@@ -60,6 +60,7 @@ public class WaffleIronBake : MonoBehaviour
     // Зоны текущей выпечки (с учётом улучшения "Таймер вафельницы"), фиксируются при закрытии крышки
     private GaugeZones activeZones;
     private float bakeTime;
+    private BakeResult bakeStage;
     private float steamTimer;
 
     private Vector3 lidClosedPos;
@@ -148,6 +149,7 @@ public class WaffleIronBake : MonoBehaviour
         session.StartBake();
         state = State.Baking;
         bakeTime = 0f;
+        bakeStage = BakeResult.Raw;
         steamTimer = 0f;
 
         // Улучшение: "золотистое" окно шире на N секунд с каждой стороны, "бледная" и "зажаристая" — той же ширины
@@ -160,6 +162,7 @@ public class WaffleIronBake : MonoBehaviour
         AnimateLid(0f);
         if (gauge != null) gauge.Show(activeZones, "Выпечка 0.0 с", showProgress: false);
         Debug.Log("[Bake] крышка закрыта, печём");
+        KitchenEvents.RaiseBakeStarted();
     }
 
     private PlatedWaffle TakeOut(CookingSession session, bool drag)
@@ -169,6 +172,7 @@ public class WaffleIronBake : MonoBehaviour
         var result = Evaluate(bakeTime / maxSeconds);
         var product = session.SetBake(bakeTime, result);
         Debug.Log($"[Bake] сняли через {bakeTime:F1} с → {result} ({product?.Name})");
+        KitchenEvents.RaiseWaffleTakenOut(result);
 
         if (gauge != null) gauge.Hide();
         AnimateLid(1f);
@@ -194,6 +198,14 @@ public class WaffleIronBake : MonoBehaviour
             {
                 gauge.SetValue(v);
                 gauge.SetLabel($"Выпечка {bakeTime:F1} с");
+            }
+
+            // Шкала перешла в следующую зону: "золотистая — пора снимать", "подгорает"
+            var stage = Evaluate(v);
+            if (stage != bakeStage)
+            {
+                bakeStage = stage;
+                KitchenEvents.RaiseBakeStageReached(stage);
             }
 
             steamTimer += Time.deltaTime;

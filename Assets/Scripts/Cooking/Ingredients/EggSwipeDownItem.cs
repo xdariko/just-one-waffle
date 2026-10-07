@@ -116,7 +116,10 @@ public class EggSwipeDownItem : MonoBehaviour
         Debug.Log($"[Egg] удар: скорость {speed:F1} (стук < {crackSpeed}, трещина < {cleanMinSpeed}, чисто <= {cleanMaxSpeed}, дальше — раздавили)");
 
         if (speed < crackSpeed)
+        {
+            KitchenEvents.RaiseEggKnocked(transform.position);
             return;
+        }
 
         if (speed < cleanMinSpeed)
         {
@@ -125,6 +128,8 @@ public class EggSwipeDownItem : MonoBehaviour
 
             if (crackStage >= cracksToBreak)
                 Break(EggCrackResult.Good);
+            else
+                KitchenEvents.RaiseEggKnocked(transform.position);
             return;
         }
 
@@ -141,6 +146,7 @@ public class EggSwipeDownItem : MonoBehaviour
         {
             Debug.Log($"[Egg] удача ({luck * 100f:F0}%): скорлупу поймали");
             LuckPopup.Show("Повезло! Скорлупу поймали", transform.position + Vector3.up * 0.8f);
+            KitchenEvents.RaiseLuckTriggered(transform.position);
             Break(EggCrackResult.Good);
             return;
         }
@@ -158,6 +164,7 @@ public class EggSwipeDownItem : MonoBehaviour
             Instantiate(effect, transform.position, Quaternion.identity);
 
         Debug.Log($"[Egg] результат: {result}");
+        KitchenEvents.RaiseEggCracked(result, transform.position);
         OnResolved?.Invoke(result);
         Destroy(gameObject);
     }

@@ -175,6 +175,7 @@ public class BowlCarry : MonoBehaviour
         if (iron.StartFromBowl(out var reason)) return true;
         Debug.Log($"[Bowl] вафельница не принимает тесто: {reason}");
         LuckPopup.Show(reason, iron.transform.position + Vector3.up * 1.5f);
+        KitchenEvents.RaiseActionRefused(iron.transform.position);
         return false;
     }
 

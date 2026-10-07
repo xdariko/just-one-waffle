@@ -63,6 +63,8 @@ public class PourItem : MonoBehaviour
 
     // Пакет слева от миски — наклоняется вправо, справа — влево. Определяется в Initialize
     private bool tiltToRight;
+    private PourIngredient ingredient;
+    private bool flowing;
     private bool holding;
     private bool hasPoured;
     private bool resolved;
@@ -90,8 +92,9 @@ public class PourItem : MonoBehaviour
     }
 
     // alreadyInBowl — сколько уже насыпали раньше (можно досыпать повторным нажатием на мешок)
-    public void Initialize(Collider2D bowl, PourGauge pourGauge, PourTarget pourTarget, float gaugeMax, float alreadyInBowl = 0f)
+    public void Initialize(PourIngredient what, Collider2D bowl, PourGauge pourGauge, PourTarget pourTarget, float gaugeMax, float alreadyInBowl = 0f)
     {
+        ingredient = what;
         bowlArea = bowl;
         gauge = pourGauge;
         target = pourTarget;
@@ -157,6 +160,7 @@ public class PourItem : MonoBehaviour
             hasPoured = true;
             if (gauge != null) gauge.SetAmount(poured);
         }
+        SetFlowing(flow > 0f);
 
         UpdateStreamVisual(flow);
 
@@ -189,12 +193,24 @@ public class PourItem : MonoBehaviour
         UpdateStreamVisual(0f);
         if (gauge != null) gauge.Hide();
 
+        SetFlowing(false);
+        KitchenEvents.RaisePourDone(ingredient, result);
         OnResolved?.Invoke(poured, result);
         Destroy(gameObject);
     }
 
+    // Поток пошёл / остановился — для звука струи
+    private void SetFlowing(bool value)
+    {
+        if (flowing == value) return;
+        flowing = value;
+        if (value) KitchenEvents.RaisePourStarted(ingredient);
+        else KitchenEvents.RaisePourStopped(ingredient);
+    }
+
     private void OnDestroy()
     {
+        SetFlowing(false); // уничтожили посреди струи (переход сцены) — звук не должен остаться
         GestureLock.End(this);
         if (Active == this) Active = null;
         if (stream != null) Destroy(stream.gameObject);

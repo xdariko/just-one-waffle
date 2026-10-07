@@ -94,6 +94,7 @@ public class PackingStation : MonoBehaviour
             }
             SetLid(0f);
         }
+        KitchenEvents.RaiseWafflePacked();
 
         var manager = CookingManager.Instance;
         var score = manager.CompleteOrder(product);

@@ -329,6 +329,7 @@ public class CounterController : MonoBehaviour
             {
                 // Одно нажатие — одно действие; дальше панель перерисует DayRunner.Changed
                 if (!b.interactable) return;
+                UiEvents.RaiseButtonClicked();
                 // Магазин открывается поверх и не меняет фазу: кнопки остаются активными
                 bool opensOverlay = label == "Магазин";
                 if (!opensOverlay)

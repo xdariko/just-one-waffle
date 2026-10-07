@@ -94,6 +94,12 @@ public static class KitchenEvents
 - `AudioMixer` с группами Music / SFX / UI, громкость каждой хранится в `PlayerPrefs` (это настройка устройства, а не прогресс, поэтому не в `progress.json`).
 - Импорт: SFX — `Decompress On Load`, музыка — `Streaming`, Vorbis.
 
+**Как сделано (этап 3):**
+- `KitchenEvents` (кухня) и `UiEvents` (кнопки, покупка, магазин). У зацикленных действий пары `Started/Stopped`, `Stopped` приходит и при уничтожении объекта посреди действия.
+- `AudioService` только проигрывает звук: пул SFX, 4 источника для зацикленных звуков (струя, венчик, соус, шипение) с затуханием, кроссфейд музыки. `AudioCues` решает, какой звук на какое событие и какая музыка играет (сцена, фаза дня, открыт ли магазин). Реакция клиента откладывается до загрузки стойки.
+- Отличие от плана: `AudioMixer` не обязателен, потому что ассет микшера нельзя создать скриптом. Громкость каналов считается в коде и хранится в `PlayerPrefs`, а группы микшера можно подключить в инспекторе, если они понадобятся (например, для эффектов на шине).
+- `SoundBank` создаёт **Настроить сцены дня**. Импорт аудио настраивается по папке (`WaffleAudioImport`), «Проверить контент» проверяет `AudioService` в `Systems`, повторы записей и тип загрузки музыки.
+
 ### Р4. Bootstrap и SceneLoader
 - Префаб `Systems` (в `Resources/`), который создаётся до первой сцены через `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]`: `DayRunner`, `CookingManager`, `AudioService`, `SceneLoader`. Любую сцену можно запустить через Play, сервисы есть всегда, порядок `Awake` не важен.
 - `SceneLoader.Go(GameScene.Kitchen)`: затемнение → `LoadSceneAsync` → снятие затемнения. `enum GameScene` вместо строк; имена сцен — в одном месте.
@@ -142,7 +148,7 @@ public static class KitchenEvents
 |---|---|---|---|---|---|
 | 1 | Bootstrap + SceneLoader с затемнением, переименование сцен | Р4 | Нужен для музыки и переходов; убирает ошибку «нет DayRunner» | S | ✅ |
 | 2 | Sorting layers + `WaffleLook` | Р6 (часть) | До того, как положить первый настоящий спрайт | S | ✅ |
-| 3 | `KitchenEvents` + `AudioService` + `SoundBank` | Р2, Р3 | Звук можно подключать, не трогая мини-игры | M | ⬜ |
+| 3 | `KitchenEvents` + `AudioService` + `SoundBank` | Р2, Р3 | Звук можно подключать, не трогая мини-игры | M | ✅ |
 | 4 | UI на префабах: `UiTheme`, `CounterPanelView`, `DayHudView`, `ShopView`/`ShopCardView` | Р1 | Главное условие для красивого UI | L | ⬜ |
 | 5 | Разделить `WaffleIronBake` и `DecorStation` на логику и вид, пар на частицах | Р6 | Анимации и арт станций | M | ⬜ |
 | 6 | `KitchenAction` + `CarryHelper` | Р5 | Перед новыми мини-играми (миксер, начинки) | S | ⬜ |

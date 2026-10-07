@@ -8,7 +8,7 @@ using UnityEngine.UI;
 // недостающее создаёт, существующее только перепривязывает.
 //  - сцены: SampleScene → Counter, MainScene → Kitchen (переименование с сохранением GUID, один раз);
 //  - префаб Resources/Systems (GameBootstrap): DayRunner с DaySettings, CookingManager с рецептом по умолчанию,
-//    SceneLoader с затемнением. Из сцен эти объекты убираются — их настройки переносятся в префаб;
+//    SceneLoader с затемнением, AudioService + AudioCues с SoundBank. Из сцен эти объекты убираются — их настройки переносятся в префаб;
 //  - кухня (Kitchen): сахар сыпется удержанием — SugarJar с PourSourceClick, пакет SugarBag, шкала и миска;
 //  - экономика, магазин, станция украшения по данным, сюжетная цепочка, ориентация — WaffleShopSetup;
 //  - стойка (Counter): CounterController, клиент (CustomerView),
@@ -290,10 +290,25 @@ public static class WaffleDaySetup
             log.AppendLine("✓ SceneLoader: затемнение (Canvas поверх всего, CanvasGroup)");
         }
 
+        // Звук: AudioService играет, AudioCues решает, что играть (на том же объекте)
+        var audio = Child<AudioService>(root, "Audio", log);
+        if (audio.GetComponent<AudioCues>() == null)
+        {
+            audio.gameObject.AddComponent<AudioCues>();
+            log.AppendLine("✓ Systems: AudioCues (звуки по событиям игры, музыка по сцене и фазе дня)");
+        }
+        var bank = WaffleAudioSetup.EnsureBank(log); // заодно дописывает записи для новых SoundId
+        var au = new SerializedObject(audio);
+        if (au.FindProperty("bank").objectReferenceValue == null)
+        {
+            au.FindProperty("bank").objectReferenceValue = bank;
+            au.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         PrefabUtility.SaveAsPrefabAsset(root, SystemsPath, out bool saved);
         if (exists) PrefabUtility.UnloadPrefabContents(root);
         else Object.DestroyImmediate(root);
-        log.AppendLine(saved ? $"✓ Префаб {SystemsPath}: DayRunner, CookingManager, SceneLoader" : $"✗ Не удалось сохранить {SystemsPath}");
+        log.AppendLine(saved ? $"✓ Префаб {SystemsPath}: DayRunner, CookingManager, SceneLoader, AudioService" : $"✗ Не удалось сохранить {SystemsPath}");
     }
 
     private static T Child<T>(GameObject root, string name, System.Text.StringBuilder log) where T : Component

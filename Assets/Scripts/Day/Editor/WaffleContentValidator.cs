@@ -66,6 +66,7 @@ public static class WaffleContentValidator
             result.Errors.Add($"Нет префаба Resources/{GameBootstrap.SystemsResource} (DayRunner, CookingManager, SceneLoader) — Tools → Waffle → Настроить сцены дня");
         else if (systems.GetComponentInChildren<DayRunner>(true) is not { } prefabRunner || prefabRunner.Settings == null)
             result.Errors.Add($"Префаб Systems: нет DayRunner или у него не задан DaySettings — Tools → Waffle → Настроить сцены дня");
+        if (systems != null) ValidateAudio(systems, result);
         ValidateSorting(result);
 
         if (settings.regularCustomers.All(c => c == null))
@@ -364,6 +365,29 @@ public static class WaffleContentValidator
         AssetDatabase.FindAssets($"t:{typeof(T).Name}")
             .Select(g => AssetDatabase.LoadAssetAtPath<T>(AssetDatabase.GUIDToAssetPath(g)))
             .Where(a => a != null).ToList();
+
+    // Звук: AudioService с банком в Systems, записи банка не повторяются. Пустые клипы — не ошибка (звуки добавляются по одному)
+    private static void ValidateAudio(GameObject systems, Result result)
+    {
+        var audio = systems.GetComponentInChildren<AudioService>(true);
+        if (audio == null || audio.GetComponent<AudioCues>() == null)
+        {
+            result.Warnings.Add("Префаб Systems: нет AudioService или AudioCues — звука не будет (Tools → Waffle → Настроить сцены дня)");
+            return;
+        }
+        var bank = audio.Bank;
+        if (bank == null)
+        {
+            result.Warnings.Add("AudioService: не задан SoundBank — звука не будет");
+            return;
+        }
+        foreach (var g in bank.sounds.Where(s => s != null).GroupBy(s => s.id).Where(g => g.Count() > 1))
+            result.Warnings.Add($"{bank.name}: звук {g.Key} задан {g.Count()} раза — играет только первый");
+        foreach (var g in bank.music.Where(m => m != null).GroupBy(m => m.id).Where(g => g.Count() > 1))
+            result.Warnings.Add($"{bank.name}: трек {g.Key} задан {g.Count()} раза — играет только первый");
+        foreach (var m in bank.music.Where(m => m?.clip != null && m.clip.loadType != AudioClipLoadType.Streaming))
+            result.Warnings.Add($"{bank.name}: музыка {m.id} ({m.clip.name}) не Streaming — целиком в памяти (положи в Assets/Audio/Music или выставь Load Type)");
+    }
 
     // Слои отрисовки есть и стоят по порядку; спрайты кухни не остались в Default (их не будет видно как надо)
     private static void ValidateSorting(Result result)

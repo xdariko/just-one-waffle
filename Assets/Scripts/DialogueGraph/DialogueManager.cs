@@ -205,6 +205,7 @@ public class DialogueManager : MonoBehaviour
         {
             // Защита от двойного нажатия: после первого клика все кнопки этой реплики выключаются
             if (!button.interactable) return;
+            UiEvents.RaiseButtonClicked();
             foreach (var b in buttons)
                 if (b != null) b.interactable = false;
             onClick?.Invoke();

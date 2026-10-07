@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // Постоянные сервисы игры создаются до загрузки первой сцены из префаба Resources/Systems:
-// DayRunner, CookingManager, SceneLoader. Поэтому любую сцену (стойку или кухню) можно запустить
+// DayRunner, CookingManager, SceneLoader, AudioService. Поэтому любую сцену (стойку или кухню) можно запустить
 // кнопкой Play, а порядок Awake между сценами не важен. В сценах этих объектов нет.
 // Префаб собирает и перепривязывает Tools → Waffle → Настроить сцены дня.
 public static class GameBootstrap

@@ -51,12 +51,14 @@ public class ShopPanel : MonoBehaviour
         dim.gameObject.SetActive(true);
         Refresh();
         scroll.verticalNormalizedPosition = 1f;
+        UiEvents.RaiseShopToggled(true);
     }
 
     public void Close()
     {
         if (!IsOpen) return;
         dim.gameObject.SetActive(false);
+        UiEvents.RaiseShopToggled(false);
         var closed = onClosed;
         onClosed = null;
         closed?.Invoke();
@@ -92,7 +94,11 @@ public class ShopPanel : MonoBehaviour
         var crt = (RectTransform)close.transform;
         crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(1f, 1f);
         crt.anchoredPosition = new Vector2(-28f, -16f);
-        close.onClick.AddListener(Close);
+        close.onClick.AddListener(() =>
+        {
+            UiEvents.RaiseButtonClicked();
+            Close();
+        });
 
         // Разделы
         var categories = new[] { (ShopCategory.Cooking, "Приготовление"), (ShopCategory.Ingredients, "Ингредиенты"), (ShopCategory.Equipment, "Оборудование") };
@@ -104,6 +110,7 @@ public class ShopPanel : MonoBehaviour
             Place((RectTransform)b.transform, new Vector2(from, 1f), new Vector2(to, 1f), new Vector2(i == 0 ? 30f : 8f, -196f), new Vector2(i == categories.Length - 1 ? -30f : -8f, -116f));
             b.onClick.AddListener(() =>
             {
+                UiEvents.RaiseButtonClicked();
                 tab = cat;
                 message.text = "";
                 Refresh();
@@ -230,6 +237,7 @@ public class ShopPanel : MonoBehaviour
             if (!buy.interactable) return;
             buy.interactable = false; // до перерисовки; повторную покупку всё равно не пропустит ShopService
             var result = ShopService.TryPurchase(Catalog, id, GameProgress.Current, Day, ShopOpen, out var text);
+            UiEvents.RaisePurchaseDone(result == PurchaseStatus.Available);
             message.text = result == PurchaseStatus.Available ? $"<color=#3a7a2a>Куплено: {text}</color>" : $"<color=#b03020>{text}</color>";
             Refresh();
         });

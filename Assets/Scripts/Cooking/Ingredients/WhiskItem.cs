@@ -103,6 +103,7 @@ public class WhiskItem : MonoBehaviour
         if (finished) return;
         dragging = true;
         GestureLock.Begin(this);
+        KitchenEvents.RaiseWhiskStarted();
         dragOffset = (Vector2)(transform.position - GetMouseWorld());
     }
 
@@ -127,6 +128,7 @@ public class WhiskItem : MonoBehaviour
 
     private void StopDragging()
     {
+        if (dragging) KitchenEvents.RaiseWhiskStopped();
         dragging = false;
         GestureLock.End(this);
     }
@@ -198,13 +200,14 @@ public class WhiskItem : MonoBehaviour
         Debug.Log($"[Whisk] перемешано, перемешивали {overmixSeconds:F1} с → {result}");
 
         if (gauge != null) gauge.Hide();
+        KitchenEvents.RaiseMixDone(result);
         OnResolved?.Invoke(result, overmixSeconds);
         Destroy(gameObject);
     }
 
     private void OnDestroy()
     {
-        GestureLock.End(this);
+        StopDragging(); // уничтожили в руке (переход сцены) — звук венчика не должен остаться
         if (Active == this) Active = null;
     }
 

@@ -82,6 +82,7 @@ public class DecorStation : MonoBehaviour
     private DecorBin selected;
     private Slot active;
     private Slot paintSlot;
+    private DecorIngredient paintSauce;
     private Vector3 lastPaint;
     private Slot dragSlot;
     private float carry01; // 0 — лежит на доске, 1 — поднята (уменьшена)
@@ -119,6 +120,7 @@ public class DecorStation : MonoBehaviour
 
     private void OnDestroy()
     {
+        EndPaint(); // ушли со сцены посреди мазка — звук соуса не должен остаться
         GestureLock.End(this);
     }
 
@@ -274,6 +276,7 @@ public class DecorStation : MonoBehaviour
         {
             Debug.Log("[Decor] все места для украшения заняты");
             LuckPopup.Show("Места заняты: отдай одну вафлю", world + Vector3.up);
+            KitchenEvents.RaiseActionRefused(world);
             return false;
         }
         StartCoroutine(ReceiveRoutine(plated, slot, dropDuration, 0.4f, false));
@@ -334,6 +337,7 @@ public class DecorStation : MonoBehaviour
         if (product != null) product.Slot = slot.Index;
         slot.Busy = false;
         SetActive(slot);
+        KitchenEvents.RaiseWafflePlaced(target);
         Debug.Log($"[Decor] {product?.Name ?? "вафля"} на месте {slot.Index + 1} — выбирай соус или добавку");
     }
 
@@ -377,13 +381,16 @@ public class DecorStation : MonoBehaviour
                 if (ingredient.IsSauce)
                 {
                     paintSlot = slot;
+                    paintSauce = ingredient;
                     GestureLock.Begin(this);
                     lastPaint = world;
                     slot.Waffle.Paint(world, world, ingredient, BrushScale);
+                    KitchenEvents.RaiseSauceStarted(ingredient);
                 }
                 else
                 {
                     slot.Waffle.PlaceTopping(world, ingredient);
+                    KitchenEvents.RaiseToppingPlaced(ingredient, world);
                 }
             }
         }
@@ -406,6 +413,8 @@ public class DecorStation : MonoBehaviour
         if (paintSlot == null) return;
         paintSlot = null;
         GestureLock.End(this);
+        KitchenEvents.RaiseSauceStopped(paintSauce);
+        paintSauce = null;
     }
 
     private Slot SlotAt(Vector3 world) =>
@@ -513,6 +522,7 @@ public class DecorStation : MonoBehaviour
         {
             Debug.LogWarning($"[Decor] {product.Name} испечена для заказа {product.OrderKey}, а сейчас {manager.CurrentOrderKey} — не упаковываем");
             LuckPopup.Show("Эта вафля для другого заказа", slot.Center + Vector3.up * 2f);
+            KitchenEvents.RaiseActionRefused(slot.Center);
             return false;
         }
 

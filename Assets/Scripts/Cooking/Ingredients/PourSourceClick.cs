@@ -48,7 +48,7 @@ public class PourSourceClick : MonoBehaviour
         var pourTarget = GameStats.WidenPour(recipe != null ? recipe.GetPourTarget(ingredient) : target);
         // Шкала должна вмещать жёлтую зону рецепта с запасом
         float max = Mathf.Max(gaugeMax, pourTarget.YellowMax * 1.3f);
-        current.Initialize(bowlHitArea, gauge, pourTarget, max, session.GetPoured(ingredient));
+        current.Initialize(ingredient, bowlHitArea, gauge, pourTarget, max, session.GetPoured(ingredient));
 
         current.OnResolved += (total, result) =>
         {
