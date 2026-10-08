@@ -70,6 +70,16 @@
 - Стили — `UiTheme` (ScriptableObject): цвета, шрифты TMP, спрайты кнопок. Цвета из `ShopPanel` (`BoxColor`, `Ink`…) и `CounterController` переносятся туда.
 - `CookingUI.Create*` остаётся только в editor-скрипте, который один раз генерирует префабы-заглушки (как сейчас `WaffleShopSetup`).
 
+**Как сделано (этап 4):**
+- Префабы `Prefabs/UI`: `UiButton` (вложен во все остальные — правка кнопки меняет все), `CounterPanel`, `ShopPanel` + `ShopCard`, `DayHud`. Заглушки собирает `WaffleUiSetup` из «Настроить сцены дня»; **существующие префабы он не трогает**, пересобрать заново — `Tools → Waffle → Пересоздать заглушки UI` (с подтверждением).
+- View: `PanelView` (база окна: Canvas + CanvasGroup, затемнение, появление/скрытие), `CounterPanelView`, `ShopView`, `ShopCardView`, `DayHudView`, `UiButtonView` (стиль, доступность, сжатие при нажатии, щелчок `UiEvents.ButtonClicked`; у «Купить» щелчок выключен — там свой звук покупки).
+- Презентеры: `CounterController` (кнопки по ролям `PanelButton.Shop/StartDay/NextDay`), `ShopPresenter` (бывший `ShopPanel`, обычный класс), `DayHud` (собирает строки только при изменении показанного, а не каждый кадр).
+- `CounterPanel` и `ShopPanel` стоят экземплярами в сцене `Counter`, `DayHud` — в префабе `Systems` (живёт между сценами). `DayRunner` больше не создаёт HUD.
+- `UiTheme` (`ScriptableObjects/UI/UiTheme`): шрифт, цвета, спрайты панели и кнопок, параметры анимаций, оттенки текста `Paint(text, UiTone)` вместо `<color=#...>` в коде.
+- Анимации на DOTween (`SetUpdate(true)` + `SetLink`): окна, кнопки по очереди, карточки магазина, толчок кошелька после покупки, тикет заказа выезжает справа, клиент появляется с отскоком и подпрыгивает при смене настроения, затемнение `SceneLoader`.
+- `CookingUI` оставлен только для шкал мини-игр (`PourGauge`, `ZoneGauge`) и запасной сборки `CustomerView`. Диалог (`DialogueManager`) уже на ссылках из инспектора, его не трогали.
+- «Проверить контент»: префабы UI на месте, у View нет пустых ссылок, HUD есть в `Systems`.
+
 ### Р2. Игровые события → звук и эффекты
 Один статический хаб без ScriptableObject-каналов, потому что проект уже использует статику (`GestureLock`, `ShopCatalog.Active`) и так проще:
 
@@ -149,7 +159,7 @@ public static class KitchenEvents
 | 1 | Bootstrap + SceneLoader с затемнением, переименование сцен | Р4 | Нужен для музыки и переходов; убирает ошибку «нет DayRunner» | S | ✅ |
 | 2 | Sorting layers + `WaffleLook` | Р6 (часть) | До того, как положить первый настоящий спрайт | S | ✅ |
 | 3 | `KitchenEvents` + `AudioService` + `SoundBank` | Р2, Р3 | Звук можно подключать, не трогая мини-игры | M | ✅ |
-| 4 | UI на префабах: `UiTheme`, `CounterPanelView`, `DayHudView`, `ShopView`/`ShopCardView` | Р1 | Главное условие для красивого UI | L | ⬜ |
+| 4 | UI на префабах: `UiTheme`, `CounterPanelView`, `DayHudView`, `ShopView`/`ShopCardView` | Р1 | Главное условие для красивого UI | L | ✅ |
 | 5 | Разделить `WaffleIronBake` и `DecorStation` на логику и вид, пар на частицах | Р6 | Анимации и арт станций | M | ⬜ |
 | 6 | `KitchenAction` + `CarryHelper` | Р5 | Перед новыми мини-играми (миксер, начинки) | S | ⬜ |
 | 7 | `VisitFactory` + `StoryScheduler` | Р7 | Перед расширением сюжета и типов клиентов | M | ⬜ |
@@ -175,4 +185,4 @@ S — до дня, M — 1–2 дня, L — 3+ дня.
 **Что внедряем вместо:**
 - **`UnityEngine.Pool.ObjectPool<T>`** (встроенный в Unity, свой класс не пишем) — для `LuckPopup` и других всплывашек (этап 5).
 - **`ParticleSystem` вместо самодельного пара** — он сам переиспользует частицы, отдельный пул не нужен (этап 5).
-- **DOTween** — для этапа 4 (UI) и анимаций станций. Сейчас каждая анимация — своя корутина с `Lerp`, а для «сочного» UI нужны easing, последовательности (`Sequence`) и отмена (`SetLink`/`Kill`). Пакет импортируется на этапе 4.
+- **DOTween** — для этапа 4 (UI) и анимаций станций. Сейчас каждая анимация — своя корутина с `Lerp`, а для «сочного» UI нужны easing, последовательности (`Sequence`) и отмена (`SetLink`/`Kill`). Импортирован на этапе 4 (`Assets/Plugins/Demigiant`), UI уже на нём; корутины станций переводятся на этапе 5.
