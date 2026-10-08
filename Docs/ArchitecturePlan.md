@@ -122,6 +122,11 @@ public static class KitchenEvents
 - `CarryHelper` — **статические функции**, а не слой ввода: `ScreenToWorld(cam)`, `EdgeScroll(scroller, zone, speed)`, корутина `ReturnTo(transform, pos, scale, time)`. Ввод по-прежнему читается внутри `BowlCarry`, `PlatedWaffle` и `DecorStation` через `Input`.
 - Мини-игры получают сессию через `CookingManager.Instance.Current` в одном месте (свойство `Session` в базовом классе `KitchenTool : MonoBehaviour`), а не в каждом методе.
 
+**Как сделано (этап 6):**
+- `KitchenAction` (`CanBegin`, `TryBegin`, `Begin`/`End`, `IsBusy`, `IsRunning`) вместо `PourItem.Active`, `WhiskItem.Active` и `FindAnyObjectByType<EggSwipeDownItem>`. Кто кому мешает — одна таблица `Blocks`; перенесена как была: венчик несовместим ни с чем, пакет — с пакетом, вафельницей и переносом миски, яйцо с пакетом совместимо. Пакет, венчик, яйцо и несомая миска держат действие, пока живут; уничтоженный владелец кухню не занимает. Щепотка и тап по вафельнице — мгновенные действия, только `CanBegin`.
+- `CarryHelper`: `ScreenToWorld`, `EdgeScroll`, `ReturnTo` (DOTween вместо корутины). Использует `BowlCarry`, `PlatedWaffle`, `DecorStation`, а `ScreenToWorld` — ещё венчик и яйцо. Ввод по-прежнему читается внутри скриптов через старый `Input`.
+- `KitchenTool` (`Session`, `Kitchen`) — база для `WaffleIronBake`, `BowlCarry`, `DecorStation`, `PackingStation`, `EggTrayClick`, `PourSourceClick`, `WhiskClick`, `PortionSourceClick`. Без `CookingManager` действие просто не начинается (раньше — NullReferenceException).
+
 ### Р6. Отделить визуал от логики станций
 - `WaffleIronBake` → логика + `WaffleIronView` (крышка, пар, цвет вафли, подсветка). Пар — `ParticleSystem` (поле уже предусмотрено для пакетов), без Instantiate/Destroy.
 - `DecorStation` → `DecorStationBuilder` (раскладка, ячейки, места), `DecorPainter` (соус и добавки по выбранной вафле), `DecorStation` (приём вафли, перенос, упаковка).
@@ -168,7 +173,7 @@ public static class KitchenEvents
 | 3 | `KitchenEvents` + `AudioService` + `SoundBank` | Р2, Р3 | Звук можно подключать, не трогая мини-игры | M | ✅ |
 | 4 | UI на префабах: `UiTheme`, `CounterPanelView`, `DayHudView`, `ShopView`/`ShopCardView` | Р1 | Главное условие для красивого UI | L | ✅ |
 | 5 | Разделить `WaffleIronBake` и `DecorStation` на логику и вид, пар на частицах | Р6 | Анимации и арт станций | M | ✅ |
-| 6 | `KitchenAction` + `CarryHelper` | Р5 | Перед новыми мини-играми (миксер, начинки) | S | ⬜ |
+| 6 | `KitchenAction` + `CarryHelper` | Р5 | Перед новыми мини-играми (миксер, начинки) | S | ✅ |
 | 7 | `VisitFactory` + `StoryScheduler` | Р7 | Перед расширением сюжета и типов клиентов | M | ⬜ |
 | 8 | Логи, аллокации, атласы, `targetFrameRate`, asmdef, чистка | Р8, Р9 | Перед первой сборкой на телефон | S | ⬜ |
 
