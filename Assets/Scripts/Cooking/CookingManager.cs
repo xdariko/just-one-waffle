@@ -56,7 +56,7 @@ public class CookingManager : MonoBehaviour
     {
         StartNewOrder(order.GuideRecipe != null ? order.GuideRecipe : defaultRecipe, orderKey);
         CurrentOrder = order;
-        Debug.Log($"[Cooking] новый заказ {orderKey}: {order.Describe()} (нормы по рецепту \"{CurrentRecipe?.DisplayName}\", вафель до {Current.MaxProducts})");
+        Log.Info($"[Cooking] новый заказ {orderKey}: {order.Describe()} (нормы по рецепту \"{CurrentRecipe?.DisplayName}\", вафель до {Current.MaxProducts})");
     }
 
     // Новый день: никаких следов прошлого заказа
@@ -119,7 +119,7 @@ public class CookingManager : MonoBehaviour
     [ContextMenu("Log Current Session")]
     public void LogCurrent()
     {
-        Debug.Log($"[Cooking] {Current}");
+        Log.Info($"[Cooking] {Current}");
     }
 
     // ПКМ по компоненту — как сейчас выглядит оценка по рецепту
@@ -127,6 +127,6 @@ public class CookingManager : MonoBehaviour
     public void LogScore()
     {
         var score = EvaluateCurrent();
-        Debug.Log(score != null ? $"[Cooking] {score}" : "[Cooking] рецепт не выбран (defaultRecipe пуст)");
+        Log.Info(score != null ? $"[Cooking] {score}" : "[Cooking] рецепт не выбран (defaultRecipe пуст)");
     }
 }

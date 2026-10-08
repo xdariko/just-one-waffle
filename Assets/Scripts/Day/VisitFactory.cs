@@ -141,7 +141,7 @@ public class VisitFactory
 
         if (order == null)
         {
-            Debug.LogWarning($"[Day] сюжетный визит {v.id} отложен: {error}");
+            Log.Warn($"[Day] сюжетный визит {v.id} отложен: {error}");
             return null;
         }
 
@@ -157,7 +157,7 @@ public class VisitFactory
         {
             PickLines(ref order, PhrasingsFor(order.Template, order), out request, out clarification);
         }
-        if (fallback) Debug.Log($"[Day] сюжетный визит {v.id}: основной заказ недоступен ({error}), взят запасной {order.Template.id}");
+        if (fallback) Log.Info($"[Day] сюжетный визит {v.id}: основной заказ недоступен ({error}), взят запасной {order.Template.id}");
 
         return new CustomerVisit(day, ++visitCounter, v.character, v, order, request, clarification, intro, v.introGraph);
     }
@@ -235,7 +235,7 @@ public class VisitFactory
     private void LogOnce(string message, bool warning = true)
     {
         if (!loggedErrors.Add(message)) return;
-        if (warning) Debug.LogWarning(message);
-        else Debug.Log(message);
+        if (warning) Log.Warn(message);
+        else Log.Info(message);
     }
 }

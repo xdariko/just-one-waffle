@@ -41,7 +41,7 @@ public class SceneLoader : MonoBehaviour
     {
         if (IsLoading)
         {
-            Debug.LogWarning($"[Scene] переход в {scene} пропущен: уже идёт другой переход");
+            Log.Warn($"[Scene] переход в {scene} пропущен: уже идёт другой переход");
             return false;
         }
         StartCoroutine(LoadRoutine(GameScenes.Name(scene)));

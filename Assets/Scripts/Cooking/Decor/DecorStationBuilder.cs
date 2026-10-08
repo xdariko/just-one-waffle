@@ -60,7 +60,7 @@ public class DecorStationBuilder
         if (CameraFocus != null) CameraFocus.position = new Vector3(r.WorkCenterX, CameraFocus.position.y, CameraFocus.position.z);
         if (TableLayout != null) TableLayout.Apply(r);
 
-        Debug.Log($"[Decor] станция: {r}; ингредиенты: {string.Join(", ", decorItems.Select(d => d.decor.id))}");
+        Log.Info($"[Decor] станция: {r}; ингредиенты: {string.Join(", ", decorItems.Select(d => d.decor.id))}");
         return result;
     }
 
@@ -79,14 +79,14 @@ public class DecorStationBuilder
             var ing = db != null ? db.FindIngredient(key) : null;
             if (ing == null)
             {
-                Debug.LogWarning($"[Decor] открытый ингредиент {key} не найден в каталоге — ячейки нет");
+                Log.Warn($"[Decor] открытый ингредиент {key} не найден в каталоге — ячейки нет");
                 continue;
             }
             // Ингредиенты теста и другие виды стоят не здесь (их станции — задел на будущее)
             if (ing.kind is not (WaffleIngredientKind.Sauce or WaffleIngredientKind.Topping)) continue;
             if (ing.decor == null)
             {
-                Debug.LogWarning($"[Decor] у ингредиента \"{ing.DisplayName}\" нет ассета украшения — ячейки нет");
+                Log.Warn($"[Decor] у ингредиента \"{ing.DisplayName}\" нет ассета украшения — ячейки нет");
                 continue;
             }
             if (items.Any(d => d.decor == ing.decor)) continue;

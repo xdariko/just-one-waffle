@@ -110,7 +110,7 @@ public class DecorStation : KitchenTool
     {
         if (slots.Any(s => s.Waffle != null || s.Busy))
         {
-            Debug.LogWarning("[Decor] на станции вафли — перестройка отложена");
+            Log.Warn("[Decor] на станции вафли — перестройка отложена");
             return;
         }
         Build();
@@ -158,7 +158,7 @@ public class DecorStation : KitchenTool
         var slot = slots.Where(s => s.Free).OrderBy(s => Mathf.Abs(s.Center.x - world.x)).FirstOrDefault();
         if (slot == null)
         {
-            Debug.Log("[Decor] все места для украшения заняты");
+            Log.Info("[Decor] все места для украшения заняты");
             LuckPopup.Show("Места заняты: отдай одну вафлю", world + Vector3.up);
             KitchenEvents.RaiseActionRefused(world);
             return false;
@@ -225,7 +225,7 @@ public class DecorStation : KitchenTool
         SetActive(slot);
         slot.Pulse();
         KitchenEvents.RaiseWafflePlaced(slot.Center);
-        Debug.Log($"[Decor] {product?.Name ?? "вафля"} на месте {slot.Index + 1} — выбирай соус или добавку");
+        Log.Info($"[Decor] {product?.Name ?? "вафля"} на месте {slot.Index + 1} — выбирай соус или добавку");
     }
 
     // ---------- Выбор ячейки ----------
@@ -366,12 +366,12 @@ public class DecorStation : KitchenTool
         var product = slot.Product;
         if (manager.Current.IsPacked)
         {
-            Debug.LogWarning("[Decor] заказ уже отдан");
+            Log.Warn("[Decor] заказ уже отдан");
             return false;
         }
         if (product != null && product.OrderKey != manager.CurrentOrderKey)
         {
-            Debug.LogWarning($"[Decor] {product.Name} испечена для заказа {product.OrderKey}, а сейчас {manager.CurrentOrderKey} — не упаковываем");
+            Log.Warn($"[Decor] {product.Name} испечена для заказа {product.OrderKey}, а сейчас {manager.CurrentOrderKey} — не упаковываем");
             LuckPopup.Show("Эта вафля для другого заказа", slot.Center + Vector3.up * 2f);
             KitchenEvents.RaiseActionRefused(slot.Center);
             return false;
@@ -383,7 +383,7 @@ public class DecorStation : KitchenTool
         var decor = slot.Waffle.Snapshot();
         if (product != null) manager.Current.SetDecor(product, decor);
         else manager.Current.SetDecor(decor);
-        Debug.Log($"[Decor] {product?.Name ?? "вафля"} (место {slot.Index + 1}) в упаковке: {decor}");
+        Log.Info($"[Decor] {product?.Name ?? "вафля"} (место {slot.Index + 1}) в упаковке: {decor}");
 
         var packed = slot.Waffle;
         slot.Waffle = null;
@@ -396,8 +396,10 @@ public class DecorStation : KitchenTool
         return true;
     }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
     // Для прогонов проверки: отдать вафлю с места без жеста
     public bool PackSlotForTest(int slot) => slot >= 0 && slot < slots.Count && slots[slot].Waffle != null && TryPack(slots[slot]);
+#endif
 
     private Vector3 GetPointerWorld() => CarryHelper.ScreenToWorld(cam);
 

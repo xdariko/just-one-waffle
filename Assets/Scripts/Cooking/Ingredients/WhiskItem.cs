@@ -92,7 +92,7 @@ public class WhiskItem : MonoBehaviour
         perfectMaxOvermix += grace;
         goodMaxOvermix += grace;
         if (widen > 0f || grace > 0f)
-            Debug.Log($"[Whisk] улучшение: зелёная зона {zones.greenMin:F2}–{zones.greenMax:F2}, допуск перемешивания +{grace:F1} с");
+            Log.Info($"[Whisk] улучшение: зелёная зона {zones.greenMin:F2}–{zones.greenMax:F2}, допуск перемешивания +{grace:F1} с");
 
         if (gauge != null) gauge.Show(zones, "Перемешивание 0%", showProgress: true);
     }
@@ -196,7 +196,7 @@ public class WhiskItem : MonoBehaviour
             : overmixSeconds <= goodMaxOvermix ? MixResult.Good
             : MixResult.Bad;
 
-        Debug.Log($"[Whisk] перемешано, перемешивали {overmixSeconds:F1} с → {result}");
+        Log.Info($"[Whisk] перемешано, перемешивали {overmixSeconds:F1} с → {result}");
 
         if (gauge != null) gauge.Hide();
         KitchenEvents.RaiseMixDone(result);

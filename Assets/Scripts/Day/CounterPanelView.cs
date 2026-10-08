@@ -57,6 +57,7 @@ public class CounterPanelView : PanelView
         foreach (var (_, view) in buttons) view.Interactable = value;
     }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
     // Нажать кнопку так же, как игрок (прогон проверки)
     public bool Press(PanelButton role)
     {
@@ -68,6 +69,7 @@ public class CounterPanelView : PanelView
         }
         return false;
     }
+#endif
 
     private void SetButtons(PanelButton[] roles)
     {

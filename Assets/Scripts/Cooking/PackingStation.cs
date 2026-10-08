@@ -98,8 +98,8 @@ public class PackingStation : KitchenTool
 
         var manager = Kitchen;
         var score = manager.CompleteOrder(product);
-        Debug.Log($"[Packing] вафля упакована. Итог готовки: {manager.Current}");
-        if (score != null) Debug.Log($"[Packing] {score}");
+        Log.Info($"[Packing] вафля упакована. Итог готовки: {manager.Current}");
+        if (score != null) Log.Info($"[Packing] {score}");
 
         yield return new WaitForSeconds(delayBeforeDialogue);
 

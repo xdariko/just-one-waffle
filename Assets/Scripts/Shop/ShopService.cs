@@ -113,7 +113,7 @@ public static class ShopService
         if (!state.CanBuy)
         {
             message = state.Reason;
-            Debug.Log($"[Shop] {item.id}: покупка отклонена — {state.Reason}");
+            Log.Info($"[Shop] {item.id}: покупка отклонена — {state.Reason}");
             return state.Status;
         }
 
@@ -128,7 +128,7 @@ public static class ShopService
             progress.ApplyPurchase(state.Price, item.id, state.Level + 1, null);
             message = $"«{item.displayName}» — уровень {state.Level + 1}";
         }
-        Debug.Log($"[Shop] куплено {item.id} за {state.Price}: {message}. Кошелёк {moneyBefore} → {progress.Money}");
+        Log.Info($"[Shop] куплено {item.id} за {state.Price}: {message}. Кошелёк {moneyBefore} → {progress.Money}");
         return PurchaseStatus.Available;
     }
 }

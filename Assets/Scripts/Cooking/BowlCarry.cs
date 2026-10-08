@@ -171,7 +171,7 @@ public class BowlCarry : KitchenTool
     public bool TryPourInto(WaffleIronBake iron)
     {
         if (iron.StartFromBowl(out var reason)) return true;
-        Debug.Log($"[Bowl] вафельница не принимает тесто: {reason}");
+        Log.Info($"[Bowl] вафельница не принимает тесто: {reason}");
         LuckPopup.Show(reason, iron.transform.position + Vector3.up * 1.5f);
         KitchenEvents.RaiseActionRefused(iron.transform.position);
         return false;

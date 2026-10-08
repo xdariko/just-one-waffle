@@ -58,7 +58,7 @@ public class StoryScheduler
         for (int i = scheduled.Count - 1; i >= 0; i--)
         {
             if (clock < scheduled[i].at) continue;
-            Debug.Log($"[Day] наступил момент сюжетного визита {scheduled[i].visit.id} — придёт следующим");
+            Log.Info($"[Day] наступил момент сюжетного визита {scheduled[i].visit.id} — придёт следующим");
             now.Add(scheduled[i].visit);
             scheduled.RemoveAt(i);
             moved = true;

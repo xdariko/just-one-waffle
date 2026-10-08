@@ -98,6 +98,7 @@ public class ShopView : PanelView
         }
     }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
     // Нажать "Купить" у товара так же, как игрок (прогон проверки)
     public bool PressBuy(string itemId)
     {
@@ -109,4 +110,5 @@ public class ShopView : PanelView
         }
         return false;
     }
+#endif
 }

@@ -227,7 +227,7 @@ public class DialogueManager : MonoBehaviour
     {
         if (commandLibrary == null || !commandLibrary.Execute(command))
         {
-            Debug.LogWarning($"Failed to execute command: {command}");
+            Log.Warn($"Failed to execute command: {command}");
         }
     }
 }

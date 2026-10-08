@@ -150,8 +150,10 @@ public class ShopPresenter
             .Select(r => r.DisplayName).Take(3).ToList();
     }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
     // Для прогона проверки: нажать "Купить" у товара так же, как игрок (через кнопку карточки)
     public bool ClickBuyForTest(string itemId) => view.PressBuy(itemId);
 
     public void ShowTabForTest(ShopCategory category) => SelectTab(category);
+#endif
 }

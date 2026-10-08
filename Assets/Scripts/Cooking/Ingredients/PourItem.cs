@@ -186,7 +186,7 @@ public class PourItem : MonoBehaviour
     {
         resolved = true;
         var result = target.Evaluate(poured);
-        Debug.Log($"[Pour] {displayName}: {poured:F0} {unit} (цель {target.amount:F0} ±{target.greenTolerance:F0}/±{target.yellowTolerance:F0}) → {result}");
+        Log.Info($"[Pour] {displayName}: {poured:F0} {unit} (цель {target.amount:F0} ±{target.greenTolerance:F0}/±{target.yellowTolerance:F0}) → {result}");
 
         UpdateStreamVisual(0f);
         if (gauge != null) gauge.Hide();

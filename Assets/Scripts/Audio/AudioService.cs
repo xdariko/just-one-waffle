@@ -56,7 +56,7 @@ public class AudioService : MonoBehaviour
         Instance = this;
         if (transform.parent == null) DontDestroyOnLoad(gameObject);
 
-        if (bank == null) Debug.LogWarning("[Audio] AudioService: не задан SoundBank — звука не будет (Tools → Waffle → Настроить сцены дня)", this);
+        if (bank == null) Log.Warn("[Audio] AudioService: не задан SoundBank — звука не будет (Tools → Waffle → Настроить сцены дня)", this);
         foreach (AudioChannel c in System.Enum.GetValues(typeof(AudioChannel)))
             channelVolume[(int)c] = PlayerPrefs.GetFloat(VolumeKey(c), 1f);
 
@@ -169,7 +169,7 @@ public class AudioService : MonoBehaviour
         var voice = loops.Find(v => v.Sound == sound) ?? loops.Find(v => v.Sound == null);
         if (voice == null)
         {
-            Debug.LogWarning($"[Audio] нет свободного источника для зацикленного {id} (одновременно не больше {loopVoices})");
+            Log.Warn($"[Audio] нет свободного источника для зацикленного {id} (одновременно не больше {loopVoices})");
             return;
         }
 

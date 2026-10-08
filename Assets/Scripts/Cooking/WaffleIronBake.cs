@@ -99,7 +99,7 @@ public class WaffleIronBake : KitchenTool
         session.SetPoured(PourIngredient.Batter, amount, PourResult.Perfect);
         session.MoveBowlToStove(); // тесто пошло в дело: в миску больше ничего не добавляем
         StartBaking(session);
-        Debug.Log($"[Bake] тесто из миски: {amount:F0} мл, печём ({session.IronProduct?.Name})");
+        Log.Info($"[Bake] тесто из миски: {amount:F0} мл, печём ({session.IronProduct?.Name})");
         return true;
     }
 
@@ -122,13 +122,13 @@ public class WaffleIronBake : KitchenTool
         float widenSeconds = GameStats.Get(StatId.BakeGreenWidenSeconds);
         activeZones = GameStats.WidenGreenKeepYellow(zones, widenSeconds / Mathf.Max(0.01f, maxSeconds));
         if (widenSeconds > 0f)
-            Debug.Log($"[Bake] улучшение: золотистая {activeZones.greenMin * maxSeconds:F1}–{activeZones.greenMax * maxSeconds:F1} с, " +
+            Log.Info($"[Bake] улучшение: золотистая {activeZones.greenMin * maxSeconds:F1}–{activeZones.greenMax * maxSeconds:F1} с, " +
                       $"зажаристая до {activeZones.yellowMax * maxSeconds:F1} с");
 
         view.SetLidOpen(false);
         view.StartSteam();
         if (gauge != null) gauge.Show(activeZones, "Выпечка 0.0 с", showProgress: false);
-        Debug.Log("[Bake] крышка закрыта, печём");
+        Log.Info("[Bake] крышка закрыта, печём");
         KitchenEvents.RaiseBakeStarted();
     }
 
@@ -138,7 +138,7 @@ public class WaffleIronBake : KitchenTool
 
         var result = Evaluate(bakeTime / maxSeconds);
         var product = session.SetBake(bakeTime, result);
-        Debug.Log($"[Bake] сняли через {bakeTime:F1} с → {result} ({product?.Name})");
+        Log.Info($"[Bake] сняли через {bakeTime:F1} с → {result} ({product?.Name})");
         KitchenEvents.RaiseWaffleTakenOut(result);
 
         if (gauge != null) gauge.Hide();

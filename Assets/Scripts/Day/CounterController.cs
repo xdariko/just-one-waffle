@@ -262,10 +262,12 @@ public class CounterController : MonoBehaviour
         return s >= 60 ? $"{s / 60} мин {(s % 60 > 0 ? $"{s % 60} с" : "")}".Trim() : $"{s} с";
     }
 
-    // ---------- Прогоны проверки ----------
+    // ---------- Прогоны проверки (только редактор и Development Build) ----------
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
     // Нажать кнопку панели так же, как игрок
     public bool ClickPanelButtonForTest(PanelButton role) => panel != null && panel.Press(role);
 
     public string PanelTextForTest => panel != null ? panel.Text : "";
+#endif
 }

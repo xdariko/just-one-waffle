@@ -135,7 +135,7 @@ public class DayRunner : MonoBehaviour
 
         if (!wasUp && TimeUp)
         {
-            Debug.Log("[Day] время вышло: новых обычных клиентов не будет, текущий заказ доделываем");
+            Log.Info("[Day] время вышло: новых обычных клиентов не будет, текущий заказ доделываем");
             Changed?.Invoke();
         }
     }
@@ -157,7 +157,7 @@ public class DayRunner : MonoBehaviour
         visits.BeginDay(settings, Day, Availability);
         stories.Plan(settings.storyVisits, Day, Duration, Progress.FlagDay, IsStoryDone);
 
-        Debug.Log($"[Day] день {Day} начался: {Duration:F0} с, сюжетных визитов: {stories}");
+        Log.Info($"[Day] день {Day} начался: {Duration:F0} с, сюжетных визитов: {stories}");
         NextCustomer();
         return true;
     }
@@ -166,7 +166,7 @@ public class DayRunner : MonoBehaviour
     {
         if (Phase != DayPhase.Ordering || Current == null) return false;
         Phase = DayPhase.Cooking;
-        Debug.Log($"[Day] заказ принят: {Current}");
+        Log.Info($"[Day] заказ принят: {Current}");
         Changed?.Invoke();
         GoToKitchen();
         return true;
@@ -220,13 +220,13 @@ public class DayRunner : MonoBehaviour
         {
             bool success = storyVisit.IsSuccess(verdict);
             RunActions(Current, success ? "success" : "failure", success ? storyVisit.onSuccess : storyVisit.onFailure);
-            Debug.Log($"[Day] сюжет {storyVisit.id}: {(success ? "успех" : "неудача")}");
+            Log.Info($"[Day] сюжет {storyVisit.id}: {(success ? "успех" : "неудача")}");
         }
 
         served.Add(Current);
         Phase = DayPhase.Reaction;
 
-        Debug.Log($"[Day] выдали вафлю клиенту {Current}\n{payout}\n{verdict}");
+        Log.Info($"[Day] выдали вафлю клиенту {Current}\n{payout}\n{verdict}");
         Changed?.Invoke();
         return verdict;
     }
@@ -242,7 +242,7 @@ public class DayRunner : MonoBehaviour
         Current.ReactionLine = VisitFactory.Farewell(Current.Story);
         served.Add(Current);
         Phase = DayPhase.Reaction;
-        Debug.Log($"[Day] визит без готовки {Current}: {string.Join("; ", Current.StoryMessages)}");
+        Log.Info($"[Day] визит без готовки {Current}: {string.Join("; ", Current.StoryMessages)}");
         Changed?.Invoke();
         return true;
     }
@@ -259,7 +259,7 @@ public class DayRunner : MonoBehaviour
             var key = $"story:{visit.Story.id}:{stage}:{i}";
             if (Progress.IsGranted(key) || story.Grants.Contains(key))
             {
-                Debug.LogWarning($"[Day] сюжетное действие {key} уже выполнено — повторно не выдаём");
+                Log.Warn($"[Day] сюжетное действие {key} уже выполнено — повторно не выдаём");
                 continue;
             }
 
@@ -298,7 +298,7 @@ public class DayRunner : MonoBehaviour
         ClearDayState();
         Phase = DayPhase.BeforeDay;
         if (CookingManager.Instance != null) CookingManager.Instance.ResetForNewDay();
-        Debug.Log($"[Day] переход к дню {Day}");
+        Log.Info($"[Day] переход к дню {Day}");
         Changed?.Invoke();
         return true;
     }
@@ -358,7 +358,7 @@ public class DayRunner : MonoBehaviour
     {
         Current = visit;
         Phase = DayPhase.Ordering;
-        Debug.Log($"[Day] пришёл клиент {visit}");
+        Log.Info($"[Day] пришёл клиент {visit}");
         Changed?.Invoke();
     }
 
@@ -370,7 +370,7 @@ public class DayRunner : MonoBehaviour
         bool committed = Progress.CommitShift(Day, Ledger, story, out var before);
         ReportMoneyBefore = committed ? before : Progress.Money - Ledger.TotalMoney;
         ReportMoneyAfter = Progress.Money;
-        Debug.Log($"[Day] день {Day} закончен, обслужено {served.Count}, заработано {Ledger.TotalMoney}, очки {Ledger.TotalPoints}");
+        Log.Info($"[Day] день {Day} закончен, обслужено {served.Count}, заработано {Ledger.TotalMoney}, очки {Ledger.TotalPoints}");
         Changed?.Invoke();
     }
 
