@@ -1,33 +1,20 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using TMPro;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 // Зона украшения. Готовую вафлю перетаскивают с вафельницы и отпускают над станцией (TryDropWaffle):
 // она ложится на ближайшее свободное место и раскрывается в большую вафлю (вид сверху).
-//  - ячейки ингредиентов стоят по данным: открытые ингредиенты (сохранение, в порядке открытия) → DecorStationLayout
-//    (верхние ряды → правая колонка → левая...). Не влезли — стол растёт, упаковка переезжает (KitchenTableLayout);
-//  - мест для вафель 1 или 2 (оборудование из магазина, GameStats.DecorSlots). Каждая вафля — свой WaffleProduct
-//    со своим украшением; действие идёт с той вафлей, которой коснулся палец, она же подсвечивается;
-//  - нажми ячейку с соусом и води пальцем по вафле — соус мажется; с добавкой — тапай, кусочки остаются;
+//  - раскладку (ячейки ингредиентов, места для вафель, стол) собирает DecorStationBuilder по данным;
+//  - каждая вафля — свой WaffleProduct со своим украшением; действие идёт с той вафлей, которой коснулся палец,
+//    она же подсвечивается (DecorSlot);
+//  - нажми ячейку с соусом и води пальцем по вафле — соус мажется; с добавкой — тапай, кусочки остаются (DecorPainter);
 //  - сними выбор (нажми выбранную ячейку ещё раз), зажми вафлю и тащи к коробке: у края экрана стол сам
 //    прокручивается. Отпустил над коробкой — вафля упаковывается (если она для текущего заказа), мимо — возвращается.
+// Здесь — приём вафли, выбор ячейки, перенос и упаковка; ввод — старый Input, как во всех мини-играх кухни.
 public class DecorStation : MonoBehaviour
 {
-    private class Slot
-    {
-        public int Index;
-        public Vector3 Center;
-        public DecorWaffle Waffle;
-        public WaffleProduct Product;
-        public bool Busy;
-        public SpriteRenderer Frame;
-        public TextMeshPro Label;
-        public bool Free => Waffle == null && !Busy;
-    }
-
     [Header("Refs")]
     [Tooltip("Центр рабочей области (двигается раскладкой)")]
     [SerializeField] private Transform wafflePoint;
@@ -37,7 +24,7 @@ public class DecorStation : MonoBehaviour
     [SerializeField] private PackingStation packingStation;
 
     [Header("Раскладка по данным")]
-    [Tooltip("Геометрия станции. Пусто — старый режим: ячейки, расставленные руками в префабе, одно место")]
+    [Tooltip("Геометрия станции: ячейки, места для вафель, стол")]
     [SerializeField] private DecorStationLayout layout;
     [Tooltip("Магазин: стартовый набор и улучшения (если кухню запустили без рабочего дня)")]
     [SerializeField] private ShopCatalog catalog;
@@ -48,8 +35,6 @@ public class DecorStation : MonoBehaviour
     [SerializeField] private Transform binsRoot;
 
     [Header("Вафля")]
-    [Tooltip("Старый режим (без раскладки): размер вафли")]
-    [SerializeField] private float waffleSize = 5.5f;
     [Tooltip("Вид вафли по пропечке: картинка сверху и цвет. Пусто — сетка-заглушка")]
     [SerializeField] private WaffleLook look;
 
@@ -73,20 +58,14 @@ public class DecorStation : MonoBehaviour
     [Tooltip("Скорость прокрутки стола у края, мировых ед./сек")]
     [SerializeField] private float edgeScrollSpeed = 16f;
 
-    // Рамка и подпись пустого места — на доске (Stations), над ячейками; подпись вафли — WorldUI
-    private const int FrameOrder = 10;
-    private const int LabelOrder = 11;
-
-    private readonly List<Slot> slots = new();
+    private readonly List<DecorSlot> slots = new();
     private readonly List<DecorBin> bins = new();
+    private readonly DecorPainter painter = new();
     private DecorBin selected;
-    private Slot active;
-    private Slot paintSlot;
-    private DecorIngredient paintSauce;
-    private Vector3 lastPaint;
-    private Slot dragSlot;
+    private DecorSlot active;
+    private DecorSlot dragSlot;
     private float carry01; // 0 — лежит на доске, 1 — поднята (уменьшена)
-    private Coroutine returnRoutine;
+    private Tween returnTween;
     private Camera cam;
     private float slotWaffleSize;
 
@@ -120,7 +99,7 @@ public class DecorStation : MonoBehaviour
 
     private void OnDestroy()
     {
-        EndPaint(); // ушли со сцены посреди мазка — звук соуса не должен остаться
+        painter.End(); // ушли со сцены посреди мазка — звук соуса не должен остаться
         GestureLock.End(this);
     }
 
@@ -139,129 +118,34 @@ public class DecorStation : MonoBehaviour
 
     private void Build()
     {
-        foreach (var s in slots)
-        {
-            if (s.Frame != null) Destroy(s.Frame.gameObject);
-            if (s.Label != null) Destroy(s.Label.gameObject);
-        }
+        foreach (var s in slots) s.Destroy();
         slots.Clear();
+        bins.Clear();
         selected = null;
         active = null;
 
-        if (layout == null)
+        var builder = new DecorStationBuilder
         {
-            BuildLegacy();
-            return;
-        }
-
-        // Каталог выставляет DayRunner (префаб Systems); свой — только запасной, глобальный не трогаем
-        var progress = GameProgress.Current;
-        progress.EnsureInitialized(null, ShopCatalog.Active != null ? ShopCatalog.Active : catalog);
-
-        var db = database != null ? database
-            : DayRunner.Instance != null && DayRunner.Instance.Settings != null ? DayRunner.Instance.Settings.Database : null;
-        var decorItems = new List<(string key, DecorIngredient decor)>();
-        foreach (var key in progress.Data.unlockedIngredients)
-        {
-            var ing = db != null ? db.FindIngredient(key) : null;
-            if (ing == null)
-            {
-                Debug.LogWarning($"[Decor] открытый ингредиент {key} не найден в каталоге — ячейки нет");
-                continue;
-            }
-            // Ингредиенты теста и другие виды стоят не здесь (их станции — задел на будущее)
-            if (ing.kind is not (WaffleIngredientKind.Sauce or WaffleIngredientKind.Topping)) continue;
-            if (ing.decor == null)
-            {
-                Debug.LogWarning($"[Decor] у ингредиента \"{ing.DisplayName}\" нет ассета украшения — ячейки нет");
-                continue;
-            }
-            if (decorItems.Any(d => d.decor == ing.decor)) continue;
-            decorItems.Add((key, ing.decor));
-        }
-
-        int slotCount = GameStats.DecorSlots;
-        var r = DecorLayout.Compute(layout, slotCount, decorItems.Count);
-        LastLayout = r;
-        slotWaffleSize = layout.waffleSize;
-
-        // Ячейки: старые (из префаба или прошлой сборки) убираем, ставим по раскладке
-        var root = binsRoot != null ? binsRoot : transform;
-        foreach (var old in GetComponentsInChildren<DecorBin>(true)) Destroy(old.gameObject);
-        bins.Clear();
-        for (int i = 0; i < decorItems.Count; i++)
-        {
-            var bin = layout.binPrefab != null ? Instantiate(layout.binPrefab, root) : DecorBin.CreatePlaceholder(root);
-            bin.gameObject.SetActive(true);
-            bin.transform.position = new Vector3(r.Cells[i].position.x, r.Cells[i].position.y, 0f);
-            bin.Setup(decorItems[i].decor, decorItems[i].key, this, layout.cellSize);
-            bins.Add(bin);
-        }
-
-        for (int i = 0; i < r.Slots.Count; i++)
-            slots.Add(CreateSlot(i, new Vector3(r.Slots[i].x, r.Slots[i].y, 0f)));
-
-        var work = new Vector3(r.WorkCenterX, layout.waffleCenterY, 0f);
-        if (wafflePoint != null) wafflePoint.position = work;
-        if (cameraFocus != null) cameraFocus.position = new Vector3(r.WorkCenterX, cameraFocus.position.y, cameraFocus.position.z);
-        if (tableLayout != null) tableLayout.Apply(r);
-
-        Debug.Log($"[Decor] станция: {r}; ингредиенты: {string.Join(", ", decorItems.Select(d => d.decor.id))}");
+            Layout = layout, Catalog = catalog, Database = database, TableLayout = tableLayout,
+            BinsRoot = binsRoot, WafflePoint = wafflePoint, CameraFocus = cameraFocus
+        };
+        var result = builder.Build(this);
+        LastLayout = result.Layout;
+        slotWaffleSize = layout != null ? layout.waffleSize : 4f;
+        bins.AddRange(result.Bins);
+        slots.AddRange(result.Slots);
+        RefreshSlots();
     }
 
-    // Без раскладки: ячейки из префаба, одно место в wafflePoint
-    private void BuildLegacy()
+    private void RefreshSlots()
     {
-        bins.Clear();
-        bins.AddRange(GetComponentsInChildren<DecorBin>(true));
-        slotWaffleSize = waffleSize;
-        slots.Add(CreateSlot(0, wafflePoint != null ? wafflePoint.position : transform.position));
+        foreach (var s in slots) s.Refresh(s == active, slotFrameColor, activeSlotColor);
     }
 
-    private Slot CreateSlot(int index, Vector3 center)
-    {
-        var slot = new Slot { Index = index, Center = center };
-
-        slot.Frame = PixelSprite.Create($"Slot{index + 1}_Frame", transform, PixelSprite.Center, slotFrameColor, SortLayer.Stations, FrameOrder);
-        slot.Frame.transform.position = center;
-        slot.Frame.transform.localScale = new Vector3(slotWaffleSize + 0.24f, slotWaffleSize + 0.24f, 1f);
-
-        slot.Label = new GameObject($"Slot{index + 1}_Label").AddComponent<TextMeshPro>();
-        slot.Label.transform.SetParent(transform, false);
-        slot.Label.transform.position = center + Vector3.up * 0.1f;
-        slot.Label.rectTransform.sizeDelta = new Vector2(slotWaffleSize, 1f);
-        slot.Label.fontSize = 3f;
-        slot.Label.alignment = TextAlignmentOptions.Center;
-        slot.Label.color = new Color(0.35f, 0.22f, 0.12f, 0.8f);
-        SortLayer.Set(slot.Label.renderer, SortLayer.Stations, LabelOrder);
-        UpdateSlotLook(slot);
-        return slot;
-    }
-
-    private void UpdateSlotLook(Slot slot)
-    {
-        bool isActive = slot == active && slot.Waffle != null;
-        slot.Frame.color = isActive ? activeSlotColor : slotFrameColor;
-        // Подпись видна, пока место пустое: "Место 2 — свободно". С вафлей — её номер поверх, мелко у края
-        if (slot.Waffle == null)
-        {
-            slot.Label.text = slots.Count > 1 || layout != null ? $"Место {slot.Index + 1}\n<size=70%>свободно</size>" : "";
-            slot.Label.transform.position = slot.Center;
-            SortLayer.Set(slot.Label.renderer, SortLayer.Stations, LabelOrder);
-        }
-        else
-        {
-            var p = slot.Product;
-            slot.Label.text = p != null ? $"{p.Name}: {WaffleProduct.DescribeBake(p.BakeResult)}{(isActive ? "  •" : "")}" : "";
-            slot.Label.transform.position = slot.Center + Vector3.down * (slotWaffleSize * 0.5f + 0.32f);
-            SortLayer.Set(slot.Label.renderer, SortLayer.WorldUI, 0);
-        }
-    }
-
-    private void SetActive(Slot slot)
+    private void SetActive(DecorSlot slot)
     {
         active = slot;
-        foreach (var s in slots) UpdateSlotLook(s);
+        RefreshSlots();
     }
 
     // ---------- Приём вафли ----------
@@ -279,16 +163,14 @@ public class DecorStation : MonoBehaviour
             KitchenEvents.RaiseActionRefused(world);
             return false;
         }
-        StartCoroutine(ReceiveRoutine(plated, slot, dropDuration, 0.4f, false));
+        FlyToSlot(plated, slot, dropDuration, 0.4f, false);
         return true;
     }
 
-    // Точка над станцией украшения: между краями зоны (раскладка) или рядом с местом (старый режим)
-    public bool IsOverStation(Vector3 world)
-    {
-        if (LastLayout != null) return world.x >= LastLayout.AreaMinX && world.x <= LastLayout.AreaMaxX;
-        return slots.Any(s => Mathf.Abs(world.x - s.Center.x) <= slotWaffleSize);
-    }
+    // Точка над станцией украшения: между краями зоны раскладки
+    public bool IsOverStation(Vector3 world) =>
+        LastLayout != null ? world.x >= LastLayout.AreaMinX && world.x <= LastLayout.AreaMaxX
+            : slots.Any(s => Mathf.Abs(world.x - s.Center.x) <= slotWaffleSize);
 
     // Принять вафлю на первое свободное место с анимацией перелёта (без перетаскивания)
     public bool Receive(PlatedWaffle plated)
@@ -296,11 +178,12 @@ public class DecorStation : MonoBehaviour
         if (plated == null) return false;
         var slot = slots.FirstOrDefault(s => s.Free);
         if (slot == null) return false;
-        StartCoroutine(ReceiveRoutine(plated, slot, arriveDuration, arcHeight, true));
+        FlyToSlot(plated, slot, arriveDuration, arcHeight, true);
         return true;
     }
 
-    private IEnumerator ReceiveRoutine(PlatedWaffle plated, Slot slot, float duration, float arc, bool moveCamera)
+    // Маленькая вафля летит на доску по дуге и "раскрывается" в квадрат вида сверху
+    private void FlyToSlot(PlatedWaffle plated, DecorSlot slot, float duration, float arc, bool moveCamera)
     {
         slot.Busy = true;
         var product = plated.Product;
@@ -310,7 +193,6 @@ public class DecorStation : MonoBehaviour
         if (moveCamera && tableScroller != null)
             tableScroller.MoveTo(cameraFocus != null ? cameraFocus.position.x : target.x, duration);
 
-        // Маленькая вафля летит на доску и "раскрывается" в квадрат вида сверху
         var tr = plated.transform;
         var sr = plated.GetComponent<SpriteRenderer>();
         var view = WaffleLook.OrDefault(look);
@@ -319,25 +201,30 @@ public class DecorStation : MonoBehaviour
         var fromScale = tr.localScale;
         var toScale = new Vector3(slotWaffleSize, slotWaffleSize, 1f);
 
-        for (float t = 0f; t < duration; t += Time.deltaTime)
-        {
-            float k = Mathf.SmoothStep(0f, 1f, t / duration);
-            tr.position = Vector3.Lerp(fromPos, target, k) + Vector3.up * (Mathf.Sin(k * Mathf.PI) * arc);
-            // Сначала летим, раскрываемся ближе к концу
-            tr.localScale = Vector3.Lerp(fromScale, toScale, Mathf.SmoothStep(0f, 1f, (k - 0.5f) * 2f));
-            yield return null;
-        }
+        DOVirtual.Float(0f, 1f, duration, t =>
+            {
+                float k = Mathf.SmoothStep(0f, 1f, t);
+                tr.position = Vector3.Lerp(fromPos, target, k) + Vector3.up * (Mathf.Sin(k * Mathf.PI) * arc);
+                // Сначала летим, раскрываемся ближе к концу
+                tr.localScale = Vector3.Lerp(fromScale, toScale, Mathf.SmoothStep(0f, 1f, (k - 0.5f) * 2f));
+            })
+            .SetEase(Ease.Linear).SetLink(plated.gameObject)
+            .OnComplete(() => Place(plated, slot, product, view, bakeColor));
+    }
 
+    private void Place(PlatedWaffle plated, DecorSlot slot, WaffleProduct product, WaffleLook view, Color bakeColor)
+    {
         Destroy(plated.gameObject);
 
         slot.Waffle = new GameObject($"DecorWaffle_{slot.Index + 1}").AddComponent<DecorWaffle>();
-        slot.Waffle.transform.position = target;
+        slot.Waffle.transform.position = slot.Center;
         slot.Waffle.Setup(slotWaffleSize, bakeColor, view.Top(product?.BakeResult));
         slot.Product = product;
         if (product != null) product.Slot = slot.Index;
         slot.Busy = false;
         SetActive(slot);
-        KitchenEvents.RaiseWafflePlaced(target);
+        slot.Pulse();
+        KitchenEvents.RaiseWafflePlaced(slot.Center);
         Debug.Log($"[Decor] {product?.Name ?? "вафля"} на месте {slot.Index + 1} — выбирай соус или добавку");
     }
 
@@ -352,7 +239,7 @@ public class DecorStation : MonoBehaviour
         if (selected != null) selected.SetSelected(true);
     }
 
-    // ---------- Рисование / штампы / перетаскивание ----------
+    // ---------- Ввод: украшение или перенос ----------
 
     private void Update()
     {
@@ -376,62 +263,31 @@ public class DecorStation : MonoBehaviour
                     StartDrag(slot);
                     return;
                 }
-
-                var ingredient = selected.Ingredient;
-                if (ingredient.IsSauce)
-                {
-                    paintSlot = slot;
-                    paintSauce = ingredient;
-                    GestureLock.Begin(this);
-                    lastPaint = world;
-                    slot.Waffle.Paint(world, world, ingredient, BrushScale);
-                    KitchenEvents.RaiseSauceStarted(ingredient);
-                }
-                else
-                {
-                    slot.Waffle.PlaceTopping(world, ingredient);
-                    KitchenEvents.RaiseToppingPlaced(ingredient, world);
-                }
+                painter.Touch(slot, selected.Ingredient, world);
             }
         }
-        else if (paintSlot != null && selected != null && Input.GetMouseButton(0) && paintSlot.Waffle != null)
+        else if (Input.GetMouseButton(0) && selected != null)
         {
-            // Кисть рисует только по той вафле, на которой начали мазок
-            paintSlot.Waffle.Paint(lastPaint, world, selected.Ingredient, BrushScale);
-            lastPaint = world;
+            painter.Drag(world);
         }
 
         if (Input.GetMouseButtonUp(0))
-            EndPaint();
+            painter.End();
     }
 
-    // Улучшение "Широкая кисть"
-    private static float BrushScale => 1f + Mathf.Max(0f, GameStats.Get(StatId.SauceBrushBonus));
-
-    private void EndPaint()
-    {
-        if (paintSlot == null) return;
-        paintSlot = null;
-        GestureLock.End(this);
-        KitchenEvents.RaiseSauceStopped(paintSauce);
-        paintSauce = null;
-    }
-
-    private Slot SlotAt(Vector3 world) =>
+    private DecorSlot SlotAt(Vector3 world) =>
         slots.FirstOrDefault(s => s.Waffle != null && !s.Busy && s.Waffle.Contains(world));
 
-    private void StartDrag(Slot slot)
+    // ---------- Перенос в упаковку ----------
+
+    private void StartDrag(DecorSlot slot)
     {
         dragSlot = slot;
-        EndPaint();
+        painter.End();
         GestureLock.Begin(this);
         SortLayer.Move(slot.Waffle, SortLayer.Held); // в пальце — поверх всего на столе
-        carry01 = 0f;
-        if (returnRoutine != null)
-        {
-            StopCoroutine(returnRoutine);
-            returnRoutine = null;
-        }
+        returnTween?.Kill();
+        returnTween = null;
     }
 
     private void UpdateDrag(Vector3 world)
@@ -465,13 +321,13 @@ public class DecorStation : MonoBehaviour
         GestureLock.End(this);
         if (canPack && packingStation != null && packingStation.IsInDropZone(slot.Waffle.transform.position) && TryPack(slot))
             return;
-        returnRoutine = StartCoroutine(ReturnToSlot(slot));
+        ReturnToSlot(slot);
     }
 
     private void OnApplicationFocus(bool hasFocus)
     {
         if (hasFocus) return;
-        EndPaint();
+        painter.End();
         EndDrag(false);
     }
 
@@ -482,7 +338,7 @@ public class DecorStation : MonoBehaviour
     }
 
     // Отпустили мимо коробки — вафля плавно возвращается на своё место, камера тоже
-    private IEnumerator ReturnToSlot(Slot slot)
+    private void ReturnToSlot(DecorSlot slot)
     {
         var waffle = slot.Waffle;
         var from = waffle.transform.position;
@@ -492,23 +348,23 @@ public class DecorStation : MonoBehaviour
         if (tableScroller != null)
             tableScroller.MoveTo(cameraFocus != null ? cameraFocus.position.x : to.x, returnTime * 2f);
 
-        for (float t = 0f; t < returnTime; t += Time.deltaTime)
-        {
-            float k = Mathf.SmoothStep(0f, 1f, t / returnTime);
-            waffle.transform.position = Vector3.Lerp(from, to, k);
-            SetCarry(waffle, Mathf.Lerp(fromCarry, 0f, k));
-            yield return null;
-        }
-
-        waffle.transform.position = to;
-        carry01 = 0f;
-        SetCarry(waffle, 0f);
-        SortLayer.Move(waffle, SortLayer.Food);
-        returnRoutine = null;
+        returnTween = DOVirtual.Float(0f, 1f, returnTime, t =>
+            {
+                float k = Mathf.SmoothStep(0f, 1f, t);
+                waffle.transform.position = Vector3.Lerp(from, to, k);
+                carry01 = Mathf.Lerp(fromCarry, 0f, k);
+                SetCarry(waffle, carry01);
+            })
+            .SetEase(Ease.Linear).SetLink(waffle.gameObject)
+            .OnComplete(() =>
+            {
+                SortLayer.Move(waffle, SortLayer.Food);
+                returnTween = null;
+            });
     }
 
     // Донесли до коробки: проверяем, что вафля для текущего заказа, фиксируем украшение и отдаём упаковке
-    private bool TryPack(Slot slot)
+    private bool TryPack(DecorSlot slot)
     {
         var manager = CookingManager.Instance;
         if (manager == null) return false;
@@ -539,7 +395,7 @@ public class DecorStation : MonoBehaviour
         slot.Product = null;
         carry01 = 0f;
         if (active == slot) active = null;
-        foreach (var s in slots) UpdateSlotLook(s);
+        RefreshSlots();
         SortLayer.Move(packed, SortLayer.Food); // в коробке — между задней и передней стенкой
         packingStation.Pack(packed.transform, product);
         return true;

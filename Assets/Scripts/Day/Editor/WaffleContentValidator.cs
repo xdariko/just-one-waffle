@@ -15,7 +15,8 @@ using UnityEngine;
 //  - доступность: какие заказы есть со стартовым набором, какие не станут доступны никогда,
 //    сюжетный заказ, недоступный в свой день (отложится или возьмёт запасной), запасной заказ дня;
 //  - сюжетные цепочки: флаг "после" кто-то ставит, визит без готовки что-то делает;
-//  - интерфейс: префабы Prefabs/UI на месте, у View заполнены ссылки, HUD дня в Systems.
+//  - интерфейс: префабы Prefabs/UI на месте, у View заполнены ссылки, HUD дня в Systems;
+//  - станции кухни: у вафельницы есть вид с крышкой и паром, у станции украшения — раскладка.
 public static class WaffleContentValidator
 {
     public class Result
@@ -69,6 +70,7 @@ public static class WaffleContentValidator
             result.Errors.Add($"Префаб Systems: нет DayRunner или у него не задан DaySettings — Tools → Waffle → Настроить сцены дня");
         if (systems != null) ValidateAudio(systems, result);
         ValidateUi(systems, result);
+        ValidateStations(result);
         ValidateSorting(result);
 
         if (settings.regularCustomers.All(c => c == null))
@@ -420,6 +422,27 @@ public static class WaffleContentValidator
 
         if (systems != null && systems.GetComponentInChildren<DayHud>(true) == null)
             result.Warnings.Add($"Префаб Systems: нет HUD дня (DayHud) — не видно времени и заказа на кухне ({fix})");
+    }
+
+    // Станции кухни: вид вафельницы (крышка, пар) и раскладка станции украшения
+    private static void ValidateStations(Result result)
+    {
+        const string fix = "Tools → Waffle → Настроить сцены дня";
+        var stove = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Kitchen/Stove.prefab");
+        var view = stove != null ? stove.GetComponentInChildren<WaffleIronView>(true) : null;
+        if (view == null) result.Errors.Add($"Вафельница (Prefabs/Kitchen/Stove): нет WaffleIronView — {fix}");
+        else
+        {
+            var so = new SerializedObject(view);
+            if (so.FindProperty("lid").objectReferenceValue == null) result.Warnings.Add("WaffleIronView: не задана крышка — не будет видно, что вафля печётся");
+            if (so.FindProperty("steamPrefab").objectReferenceValue == null) result.Warnings.Add($"WaffleIronView: не задан пар (Prefabs/FX/Steam) — {fix}");
+        }
+
+        var table = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Kitchen/DecorTable.prefab");
+        var decor = table != null ? table.GetComponentInChildren<DecorStation>(true) : null;
+        if (decor == null) result.Errors.Add("Нет DecorStation в Prefabs/Kitchen/DecorTable");
+        else if (new SerializedObject(decor).FindProperty("layout").objectReferenceValue == null)
+            result.Errors.Add($"DecorStation: не задан DecorStationLayout — станция украшения не соберётся ({fix})");
     }
 
     // Слои отрисовки есть и стоят по порядку; спрайты кухни не остались в Default (их не будет видно как надо)
