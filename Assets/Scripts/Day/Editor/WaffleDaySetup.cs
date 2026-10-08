@@ -8,10 +8,11 @@ using UnityEngine.UI;
 // недостающее создаёт, существующее только перепривязывает.
 //  - сцены: SampleScene → Counter, MainScene → Kitchen (переименование с сохранением GUID, один раз);
 //  - префаб Resources/Systems (GameBootstrap): DayRunner с DaySettings, CookingManager с рецептом по умолчанию,
-//    SceneLoader с затемнением, AudioService + AudioCues с SoundBank. Из сцен эти объекты убираются — их настройки переносятся в префаб;
+//    SceneLoader с затемнением, AudioService + AudioCues с SoundBank, HUD дня. Из сцен эти объекты убираются — их настройки переносятся в префаб;
+//  - интерфейс: тема UiTheme и префабы-заглушки Prefabs/UI (WaffleUiSetup; существующие префабы не трогает);
 //  - кухня (Kitchen): сахар сыпется удержанием — SugarJar с PourSourceClick, пакет SugarBag, шкала и миска;
 //  - экономика, магазин, станция украшения по данным, сюжетная цепочка, ориентация — WaffleShopSetup;
-//  - стойка (Counter): CounterController, клиент (CustomerView),
+//  - стойка (Counter): CounterController, клиент (CustomerView), панель стойки и магазин (префабы CounterPanel, ShopPanel),
 //    DialogueManager не играет тестовый граф сам, Canvas масштабируется как на кухне;
 //  - Build Settings: стойка первой (с неё начинается день), кухня второй.
 public static class WaffleDaySetup
@@ -41,6 +42,7 @@ public static class WaffleDaySetup
         SetupSugarPrefabs(log);
         var recipePath = SetupKitchen(log);
         WaffleShopSetup.Setup(log);
+        WaffleUiSetup.Setup(log);
         SetupCounter(log);
         SetupSystems(log, recipePath);
         WaffleSortingSetup.Setup(log);
@@ -216,9 +218,15 @@ public static class WaffleDaySetup
             counter = new GameObject("Counter").AddComponent<CounterController>();
             log.AppendLine("✓ Стойка: добавлен CounterController");
         }
+        // Панель и магазин — экземпляры префабов в сцене (их можно двигать и править прямо в ней)
+        var panel = WaffleUiSetup.PlaceInScene<CounterPanelView>(WaffleUiSetup.CounterPanelPath, log);
+        var shop = WaffleUiSetup.PlaceInScene<ShopView>(WaffleUiSetup.ShopPanelPath, log);
+
         var cc = new SerializedObject(counter);
         cc.FindProperty("dialogue").objectReferenceValue = dialogue;
         cc.FindProperty("customerView").objectReferenceValue = view;
+        cc.FindProperty("panel").objectReferenceValue = panel;
+        cc.FindProperty("shopView").objectReferenceValue = shop;
         cc.ApplyModifiedPropertiesWithoutUndo();
 
         EditorSceneManager.MarkSceneDirty(scene);
@@ -305,10 +313,12 @@ public static class WaffleDaySetup
             au.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        WaffleUiSetup.AddHud(root, log);
+
         PrefabUtility.SaveAsPrefabAsset(root, SystemsPath, out bool saved);
         if (exists) PrefabUtility.UnloadPrefabContents(root);
         else Object.DestroyImmediate(root);
-        log.AppendLine(saved ? $"✓ Префаб {SystemsPath}: DayRunner, CookingManager, SceneLoader, AudioService" : $"✗ Не удалось сохранить {SystemsPath}");
+        log.AppendLine(saved ? $"✓ Префаб {SystemsPath}: DayRunner, CookingManager, SceneLoader, AudioService, DayHud" : $"✗ Не удалось сохранить {SystemsPath}");
     }
 
     private static T Child<T>(GameObject root, string name, System.Text.StringBuilder log) where T : Component

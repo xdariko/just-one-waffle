@@ -14,7 +14,8 @@ using UnityEngine;
 //  - экономика и магазин: id товаров, уровни, цены, ингредиенты, пределы эффектов, стартовый набор;
 //  - доступность: какие заказы есть со стартовым набором, какие не станут доступны никогда,
 //    сюжетный заказ, недоступный в свой день (отложится или возьмёт запасной), запасной заказ дня;
-//  - сюжетные цепочки: флаг "после" кто-то ставит, визит без готовки что-то делает.
+//  - сюжетные цепочки: флаг "после" кто-то ставит, визит без готовки что-то делает;
+//  - интерфейс: префабы Prefabs/UI на месте, у View заполнены ссылки, HUD дня в Systems.
 public static class WaffleContentValidator
 {
     public class Result
@@ -67,6 +68,7 @@ public static class WaffleContentValidator
         else if (systems.GetComponentInChildren<DayRunner>(true) is not { } prefabRunner || prefabRunner.Settings == null)
             result.Errors.Add($"Префаб Systems: нет DayRunner или у него не задан DaySettings — Tools → Waffle → Настроить сцены дня");
         if (systems != null) ValidateAudio(systems, result);
+        ValidateUi(systems, result);
         ValidateSorting(result);
 
         if (settings.regularCustomers.All(c => c == null))
@@ -387,6 +389,37 @@ public static class WaffleContentValidator
             result.Warnings.Add($"{bank.name}: трек {g.Key} задан {g.Count()} раза — играет только первый");
         foreach (var m in bank.music.Where(m => m?.clip != null && m.clip.loadType != AudioClipLoadType.Streaming))
             result.Warnings.Add($"{bank.name}: музыка {m.id} ({m.clip.name}) не Streaming — целиком в памяти (положи в Assets/Audio/Music или выставь Load Type)");
+    }
+
+    // Интерфейс: префабы на месте, у View нет пустых ссылок (иначе окно упадёт при показе), HUD дня в Systems
+    private static void ValidateUi(GameObject systems, Result result)
+    {
+        const string fix = "Tools → Waffle → Настроить сцены дня";
+        foreach (var path in new[] { WaffleUiSetup.ButtonPath, WaffleUiSetup.CounterPanelPath, WaffleUiSetup.ShopPanelPath, WaffleUiSetup.ShopCardPath, WaffleUiSetup.DayHudPath })
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null)
+            {
+                result.Errors.Add($"Нет префаба {path} — {fix}");
+                continue;
+            }
+            foreach (var view in prefab.GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (view is not (PanelView or UiButtonView or ShopCardView or DayHudView or DayHud)) continue;
+                var so = new SerializedObject(view);
+                var p = so.GetIterator();
+                while (p.NextVisible(true))
+                {
+                    if (p.propertyType != SerializedPropertyType.ObjectReference || p.objectReferenceValue != null) continue;
+                    // Тема необязательна (есть значения по умолчанию), остальное — части окна
+                    if (p.name == "theme") result.Warnings.Add($"{path}: у {view.GetType().Name} не задана UiTheme — цвета по умолчанию");
+                    else result.Errors.Add($"{path}: у {view.GetType().Name} («{view.name}») пустое поле {p.propertyPath}");
+                }
+            }
+        }
+
+        if (systems != null && systems.GetComponentInChildren<DayHud>(true) == null)
+            result.Warnings.Add($"Префаб Systems: нет HUD дня (DayHud) — не видно времени и заказа на кухне ({fix})");
     }
 
     // Слои отрисовки есть и стоят по порядку; спрайты кухни не остались в Default (их не будет видно как надо)

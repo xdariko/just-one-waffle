@@ -36,8 +36,6 @@ public class DayRunner : MonoBehaviour
     public static DayRunner Instance { get; private set; }
 
     [SerializeField] private DaySettings settings;
-    [Tooltip("Полоска сверху: день, время, текущий заказ")]
-    [SerializeField] private bool showHud = true;
 
     public DaySettings Settings => settings;
     public int Day { get; private set; } = 1;
@@ -84,7 +82,6 @@ public class DayRunner : MonoBehaviour
     private CustomerProfile lastRegular;
     private bool noRegulars;
     private int visitCounter;
-    private DayHud hud;
 
     private void Awake()
     {
@@ -94,7 +91,6 @@ public class DayRunner : MonoBehaviour
 
         if (settings == null) Debug.LogError("[Day] DayRunner: не задан DaySettings", this);
         InitProgress();
-        if (showHud) hud = DayHud.Create(transform);
     }
 
     private void InitProgress()
@@ -126,7 +122,6 @@ public class DayRunner : MonoBehaviour
     private void Update()
     {
         Tick(Time.deltaTime);
-        if (hud != null) hud.Refresh(this);
     }
 
     // ---------- Время ----------
