@@ -11,6 +11,7 @@ using UnityEngine.UI;
 //    SceneLoader с затемнением, AudioService + AudioCues с SoundBank, HUD дня. Из сцен эти объекты убираются — их настройки переносятся в префаб;
 //  - интерфейс: тема UiTheme и префабы-заглушки Prefabs/UI (WaffleUiSetup; существующие префабы не трогает);
 //  - кухня (Kitchen): сахар сыпется удержанием — SugarJar с PourSourceClick, пакет SugarBag, шкала и миска;
+//  - вид станций: вафельница (WaffleIronView), пар на частицах Prefabs/FX/Steam — WaffleStationSetup;
 //  - экономика, магазин, станция украшения по данным, сюжетная цепочка, ориентация — WaffleShopSetup;
 //  - стойка (Counter): CounterController, клиент (CustomerView), панель стойки и магазин (префабы CounterPanel, ShopPanel),
 //    DialogueManager не играет тестовый граф сам, Canvas масштабируется как на кухне;
@@ -41,6 +42,7 @@ public static class WaffleDaySetup
         RenameScenes(log);
         SetupSugarPrefabs(log);
         var recipePath = SetupKitchen(log);
+        WaffleStationSetup.Setup(log);
         WaffleShopSetup.Setup(log);
         WaffleUiSetup.Setup(log);
         SetupCounter(log);
