@@ -161,6 +161,18 @@ public static class KitchenEvents
 - `Application.targetFrameRate = 60` в bootstrap (на Android по умолчанию 30).
 - Тестовые хуки — под `#if UNITY_EDITOR || DEVELOPMENT_BUILD`.
 
+**Как сделано (этап 8):**
+- `Log.Info/Warn` с `[Conditional("UNITY_EDITOR"), Conditional("DEVELOPMENT_BUILD"), Conditional("WAFFLE_LOG")]` — в редакторе и Development Build пишутся, в релизе вырезаны вместе со строками (проверено компиляцией релизных скриптов плеера). Отдельный символ включать не нужно; `WAFFLE_LOG` — если лог нужен в обычной сборке. `Debug.LogError` остался как есть. В editor-скриптах — `Debug.Log` (в сборку не попадают).
+- `CookingSession.IronProduct/PlateProduct` — цикл без LINQ и аллокаций вместо кэша в полях: состояние вафли меняют снаружи (`WaffleProduct.State`), кэш пришлось бы сбрасывать во многих местах.
+- `DayHud` — строки собираются только при изменении (этап 4); `DecorWaffle.Paint` уже делал один `Apply()` за кадр (`LateUpdate` по флагу).
+- `GestureLock.IsActive` — просто счётчик; уничтоженные владельцы чистятся при выгрузке сцены.
+- `Application.targetFrameRate = 60` в `GameBootstrap`.
+- Тестовые хуки (`ClickPanelButtonForTest`, `PanelTextForTest`, `ClickBuyForTest`, `ShowTabForTest`, `PackSlotForTest`, `Press`, `PressBuy`) — под `#if UNITY_EDITOR || DEVELOPMENT_BUILD`.
+- Атласы Sprite Atlas V2 по сценам: `Sprites/Counter`, `Sprites/Kitchen` (+ `Sprites/FX`), `Sprites/UI`; ASTC 6x6 на Android и iOS, без поворота. Арт кладётся в папку своей сцены и попадает в атлас сам. `bowl`, `eggs` переехали в `Sprites/Kitchen`. «Проверить контент» предупреждает о спрайтах вне папок сцен и с PPU ≠ 100. Создаёт `WaffleAtlasSetup`.
+- `.asmdef`: `Waffle.Runtime` (весь `Assets/Scripts`), `Waffle.Editor` (`Day/Editor` + `.asmref` в остальных папках `Editor`), `Waffle.DialogueGraph.Editor` (Graph Toolkit). В `Graph.dialoguegraph` имена сборок узлов переписаны на новую — граф импортируется (9 узлов). Временные скрипты проверки теперь кладутся в папку с asmref (например `Day/Editor`).
+- Чистка: `Square.prefab.orig`; устаревший сахар «порцией» (`PortionIngredient.Sugar`, `SugarPortionGrams`) — у солонки `Salt = 1`, как было сохранено в префабе; неиспользуемое поле в `EggTrayClick`. `platePoint` и `BuildLegacy` убраны на этапе 5, сцены переименованы на этапе 1. Неймспейсы не вводились (по желанию).
+- Проверка: 6 дней логики дают тот же журнал, что на этапе 7; стойка и кухня в Play Mode без ошибок. Осталось на устройстве: Unity Profiler (кадр ≤ 16 мс, нет GC в кадре на кухне).
+
 ### Р9. Структура кода
 - `.asmdef`: `Waffle.Runtime`, `Waffle.Editor` (ссылается на Runtime и Graph Toolkit), `Waffle.DialogueGraph.Editor`.
 - Неймспейсы `Waffle.Day`, `Waffle.Cooking`, `Waffle.Shop`… — по желанию, при переходе на asmdef.
@@ -181,7 +193,7 @@ public static class KitchenEvents
 | 5 | Разделить `WaffleIronBake` и `DecorStation` на логику и вид, пар на частицах | Р6 | Анимации и арт станций | M | ✅ |
 | 6 | `KitchenAction` + `CarryHelper` | Р5 | Перед новыми мини-играми (миксер, начинки) | S | ✅ |
 | 7 | `VisitFactory` + `StoryScheduler` | Р7 | Перед расширением сюжета и типов клиентов | M | ✅ |
-| 8 | Логи, аллокации, атласы, `targetFrameRate`, asmdef, чистка | Р8, Р9 | Перед первой сборкой на телефон | S | ⬜ |
+| 8 | Логи, аллокации, атласы, `targetFrameRate`, asmdef, чистка | Р8, Р9 | Перед первой сборкой на телефон | S | ✅ |
 
 S — до дня, M — 1–2 дня, L — 3+ дня.
 
