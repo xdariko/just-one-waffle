@@ -128,6 +128,13 @@ public static class KitchenEvents
 - Цвета пропечки → `WaffleLook` (ScriptableObject): спрайт или цвет на каждый `BakeResult`. Тот же ассет использует `DecorStation`.
 - **Sorting layers**: `Background`, `Table`, `Stations`, `Items`, `Held` (то, что в пальце), `FX`, `WorldUI`. Магические `sortingOrder` заменить на слой + небольшой порядок внутри слоя.
 
+**Как сделано (этап 5):**
+- `WaffleIronBake` — только таймер, оценка и жесты; `WaffleIronView` — крышка (DOTween), подсветка «можно закрывать» (цикл DOTween вместо `Sin` в `Update`), пар, вафля на вафельнице.
+- Пар — `ParticleSystem` из префаба `Prefabs/FX/Steam` (клуб `Sprites/FX/SoftPuff.png`, слой FX), цвет темнеет к сгоранию через `startColor`. Создаётся в корне сцены: плита — `SortingGroup` слоя Stations, внутри неё пар не встал бы поверх стола. Больше нет `Instantiate`/`Destroy` каждые 0.2 с.
+- `DecorStation` → `DecorStationBuilder` (раскладка, ячейки, места; обычный класс), `DecorSlot` (место: данные, рамка, подпись, «вздрагивание» при приёме вафли), `DecorPainter` (соус и добавки), `DecorStation` (ввод, приём вафли, перенос, упаковка). Перелёт вафли и возврат на место — DOTween вместо корутин. Старый режим без раскладки (`BuildLegacy`) удалён.
+- `LuckPopup` — `UnityEngine.Pool.ObjectPool` + DOTween; пул очищается при выгрузке сцены.
+- Настройку делает `WaffleStationSetup` из «Настроить сцены дня» (существующее не трогает); «Проверить контент» проверяет вид вафельницы и раскладку станции.
+
 ### Р7. DayRunner: вынести генерацию визитов
 - `VisitFactory` (чистый класс): `CreateRegular`, `CreateFallback`, `CreateStory`, `PickLines`, `PhrasingsFor`.
 - `StoryScheduler`: списки `pending` / `scheduled` / `dayEnd`, `Tick`, `Next`.
@@ -160,7 +167,7 @@ public static class KitchenEvents
 | 2 | Sorting layers + `WaffleLook` | Р6 (часть) | До того, как положить первый настоящий спрайт | S | ✅ |
 | 3 | `KitchenEvents` + `AudioService` + `SoundBank` | Р2, Р3 | Звук можно подключать, не трогая мини-игры | M | ✅ |
 | 4 | UI на префабах: `UiTheme`, `CounterPanelView`, `DayHudView`, `ShopView`/`ShopCardView` | Р1 | Главное условие для красивого UI | L | ✅ |
-| 5 | Разделить `WaffleIronBake` и `DecorStation` на логику и вид, пар на частицах | Р6 | Анимации и арт станций | M | ⬜ |
+| 5 | Разделить `WaffleIronBake` и `DecorStation` на логику и вид, пар на частицах | Р6 | Анимации и арт станций | M | ✅ |
 | 6 | `KitchenAction` + `CarryHelper` | Р5 | Перед новыми мини-играми (миксер, начинки) | S | ⬜ |
 | 7 | `VisitFactory` + `StoryScheduler` | Р7 | Перед расширением сюжета и типов клиентов | M | ⬜ |
 | 8 | Логи, аллокации, атласы, `targetFrameRate`, asmdef, чистка | Р8, Р9 | Перед первой сборкой на телефон | S | ⬜ |
