@@ -287,7 +287,7 @@ MonoBehaviour:
         m_Items: []
         m_Title: 
     - rid: 1723540881982619835
-      type: {class: DialogueGraph, ns: , asm: Assembly-CSharp-Editor}
+      type: {class: DialogueGraph, ns: , asm: Waffle.DialogueGraph.Editor}
       data: 
     - rid: 1723540881982619836
       type: {class: UserNodeModelImp, ns: Unity.GraphToolkit.Editor.Implementation, asm: Unity.GraphToolkit.Editor}
@@ -328,7 +328,7 @@ MonoBehaviour:
         m_Node:
           rid: 1723540881982619837
     - rid: 1723540881982619837
-      type: {class: DialogueNode, ns: , asm: Assembly-CSharp-Editor}
+      type: {class: DialogueNode, ns: , asm: Waffle.DialogueGraph.Editor}
       data: 
     - rid: 1723540881982619838
       type: {class: UserNodeModelImp, ns: Unity.GraphToolkit.Editor.Implementation, asm: Unity.GraphToolkit.Editor}
@@ -365,7 +365,7 @@ MonoBehaviour:
         m_Node:
           rid: 1723540881982619839
     - rid: 1723540881982619839
-      type: {class: StartNode, ns: , asm: Assembly-CSharp-Editor}
+      type: {class: StartNode, ns: , asm: Waffle.DialogueGraph.Editor}
       data: 
     - rid: 1723540881982619840
       type: {class: UserNodeModelImp, ns: Unity.GraphToolkit.Editor.Implementation, asm: Unity.GraphToolkit.Editor}
@@ -406,7 +406,7 @@ MonoBehaviour:
         m_Node:
           rid: 1723540881982619841
     - rid: 1723540881982619841
-      type: {class: DialogueNode, ns: , asm: Assembly-CSharp-Editor}
+      type: {class: DialogueNode, ns: , asm: Waffle.DialogueGraph.Editor}
       data: 
     - rid: 1723540881982619842
       type: {class: 'Constant`1[[System.String, mscorlib]]', ns: Unity.GraphToolkit.Editor, asm: Unity.GraphToolkit.Internal.Editor}
@@ -555,7 +555,7 @@ MonoBehaviour:
       data:
         m_Value: choice 2
     - rid: 1723540927396184140
-      type: {class: ChoiceNode, ns: , asm: Assembly-CSharp-Editor}
+      type: {class: ChoiceNode, ns: , asm: Waffle.DialogueGraph.Editor}
       data: 
     - rid: 1723540927396184142
       type: {class: ConstantNodeModelImp, ns: Unity.GraphToolkit.Editor.Implementation, asm: Unity.GraphToolkit.Editor}
@@ -678,7 +678,7 @@ MonoBehaviour:
       data:
         m_Value: i choice 1
     - rid: 1723540927396184149
-      type: {class: DialogueNode, ns: , asm: Assembly-CSharp-Editor}
+      type: {class: DialogueNode, ns: , asm: Waffle.DialogueGraph.Editor}
       data: 
     - rid: 1723540927396184150
       type: {class: ConstantNodeModelImp, ns: Unity.GraphToolkit.Editor.Implementation, asm: Unity.GraphToolkit.Editor}
@@ -829,7 +829,7 @@ MonoBehaviour:
       data:
         m_Value: i choice 2
     - rid: 1723540927396184157
-      type: {class: DialogueNode, ns: , asm: Assembly-CSharp-Editor}
+      type: {class: DialogueNode, ns: , asm: Waffle.DialogueGraph.Editor}
       data: 
     - rid: 1723540927396184158
       type: {class: WireModel, ns: Unity.GraphToolkit.Editor, asm: Unity.GraphToolkit.Internal.Editor}
@@ -910,7 +910,7 @@ MonoBehaviour:
       data:
         m_Value: i choice 3
     - rid: 1723540927396184169
-      type: {class: DialogueNode, ns: , asm: Assembly-CSharp-Editor}
+      type: {class: DialogueNode, ns: , asm: Waffle.DialogueGraph.Editor}
       data: 
     - rid: 1723540927396184170
       type: {class: WireModel, ns: Unity.GraphToolkit.Editor, asm: Unity.GraphToolkit.Internal.Editor}
@@ -1043,7 +1043,7 @@ MonoBehaviour:
         m_Node:
           rid: 1723540927396184174
     - rid: 1723540927396184174
-      type: {class: EndNode, ns: , asm: Assembly-CSharp-Editor}
+      type: {class: EndNode, ns: , asm: Waffle.DialogueGraph.Editor}
       data: 
     - rid: 1723540927396184175
       type: {class: WireModel, ns: Unity.GraphToolkit.Editor, asm: Unity.GraphToolkit.Internal.Editor}
@@ -1188,7 +1188,7 @@ MonoBehaviour:
       data:
         m_Value: 1
     - rid: 1723540946305155145
-      type: {class: CommandNode, ns: , asm: Assembly-CSharp-Editor}
+      type: {class: CommandNode, ns: , asm: Waffle.DialogueGraph.Editor}
       data: 
     - rid: 1723540946305155146
       type: {class: WireModel, ns: Unity.GraphToolkit.Editor, asm: Unity.GraphToolkit.Internal.Editor}
