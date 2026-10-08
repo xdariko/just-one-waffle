@@ -8,9 +8,14 @@ public static class GameBootstrap
 {
     public const string SystemsResource = "Systems";
 
+    // Кадров в секунду: на Android по умолчанию 30 — жесты кухни (венчик, яйцо) ощущаются вязко
+    public const int TargetFrameRate = 60;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void CreateSystems()
     {
+        Application.targetFrameRate = TargetFrameRate;
+
         var prefab = Resources.Load<GameObject>(SystemsResource);
         if (prefab == null)
         {
