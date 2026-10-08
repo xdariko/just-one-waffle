@@ -16,7 +16,8 @@ using UnityEngine;
 //    сюжетный заказ, недоступный в свой день (отложится или возьмёт запасной), запасной заказ дня;
 //  - сюжетные цепочки: флаг "после" кто-то ставит, визит без готовки что-то делает;
 //  - интерфейс: префабы Prefabs/UI на месте, у View заполнены ссылки, HUD дня в Systems;
-//  - станции кухни: у вафельницы есть вид с крышкой и паром, у станции украшения — раскладка.
+//  - станции кухни: у вафельницы есть вид с крышкой и паром, у станции украшения — раскладка;
+//  - арт: спрайты в папках сцен с одним PPU и в атласе, а не в корне Sprites.
 public static class WaffleContentValidator
 {
     public class Result
@@ -71,6 +72,7 @@ public static class WaffleContentValidator
         if (systems != null) ValidateAudio(systems, result);
         ValidateUi(systems, result);
         ValidateStations(result);
+        ValidateSprites(result);
         ValidateSorting(result);
 
         if (settings.regularCustomers.All(c => c == null))
@@ -443,6 +445,26 @@ public static class WaffleContentValidator
         if (decor == null) result.Errors.Add("Нет DecorStation в Prefabs/Kitchen/DecorTable");
         else if (new SerializedObject(decor).FindProperty("layout").objectReferenceValue == null)
             result.Errors.Add($"DecorStation: не задан DecorStationLayout — станция украшения не соберётся ({fix})");
+    }
+
+    // Арт: один PPU (размеры на столе согласованы) и место в папке сцены (иначе спрайт не попадёт в атлас)
+    private static void ValidateSprites(Result result)
+    {
+        foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { WaffleAtlasSetup.SpritesRoot }))
+        {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            if (AssetImporter.GetAtPath(path) is not TextureImporter { textureType: TextureImporterType.Sprite } importer) continue;
+            var folder = path.Substring(WaffleAtlasSetup.SpritesRoot.Length + 1).Split('/')[0];
+            if (!WaffleAtlasSetup.SceneFolders.Contains(folder))
+            {
+                // FX и Generated — служебные (пар, круги-заглушки), у них свой размер
+                if (folder is not ("FX" or "Generated"))
+                    result.Warnings.Add($"{path}: спрайт вне папок сцен ({string.Join(", ", WaffleAtlasSetup.SceneFolders)}) — не попадёт в атлас");
+                continue;
+            }
+            if (!Mathf.Approximately(importer.spritePixelsPerUnit, WaffleAtlasSetup.ArtPixelsPerUnit))
+                result.Warnings.Add($"{path}: Pixels Per Unit {importer.spritePixelsPerUnit}, а у арта игры {WaffleAtlasSetup.ArtPixelsPerUnit} — размер на столе не совпадёт");
+        }
     }
 
     // Слои отрисовки есть и стоят по порядку; спрайты кухни не остались в Default (их не будет видно как надо)

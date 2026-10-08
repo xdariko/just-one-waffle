@@ -15,6 +15,7 @@ using UnityEngine.UI;
 //  - экономика, магазин, станция украшения по данным, сюжетная цепочка, ориентация — WaffleShopSetup;
 //  - стойка (Counter): CounterController, клиент (CustomerView), панель стойки и магазин (префабы CounterPanel, ShopPanel),
 //    DialogueManager не играет тестовый граф сам, Canvas масштабируется как на кухне;
+//  - атласы спрайтов по сценам (Sprites/Counter, Kitchen, UI) — WaffleAtlasSetup;
 //  - Build Settings: стойка первой (с неё начинается день), кухня второй.
 public static class WaffleDaySetup
 {
@@ -48,6 +49,7 @@ public static class WaffleDaySetup
         SetupCounter(log);
         SetupSystems(log, recipePath);
         WaffleSortingSetup.Setup(log);
+        WaffleAtlasSetup.Setup(log);
         SetupBuildSettings(log);
         AssetDatabase.SaveAssets();
         return log.ToString();
