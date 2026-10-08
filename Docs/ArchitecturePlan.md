@@ -145,6 +145,12 @@ public static class KitchenEvents
 - `StoryScheduler`: списки `pending` / `scheduled` / `dayEnd`, `Tick`, `Next`.
 - `DayRunner` остаётся тонкой машиной состояний (фазы, таймер, журнал, события). Так он сократится примерно до 250 строк. Отдельные классы-состояния (State pattern) не нужны: пять фаз с проверками в методах читаются лучше.
 
+**Как сделано (этап 7):**
+- `VisitFactory` (чистый класс): `CreateRegular`, `CreateFallback`, `CreateStory`, реплики заказа и уточнения (`PhrasingsFor`, `PickLines`), реакции (`Reaction`) и прощания (`Farewell`), «предупредить один раз» в лог. Новый день — `BeginDay` (номера визитов с 1).
+- `StoryScheduler` (чистый класс): очереди «сейчас» / «в случайный момент» / «в конце дня», `Plan`, `Tick`, `TryTakeNow`, `FlushScheduled`, `TryTakeDayEnd`, сортировка по priority.
+- `DayRunner`: 632 → ~370 строк — фазы, таймер, журнал смены, сюжетные действия (`RunActions`) и закрытие смены. Сюжетные действия остались здесь: они пишут в журнал и прогресс смены.
+- Проверка: 6 дней логики без сцен с фиксированным seed на старом и новом `DayRunner` дают одинаковый журнал визитов (клиенты, сюжет, заказы, реплики, реакции, оплата, итоги).
+
 ### Р8. Производительность и релизная гигиена (мобильные)
 - `Log.Info/Warn` с `[Conditional("WAFFLE_LOG")]` (символ включён в редакторе, выключен в релизе) вместо `Debug.Log`. `LogError` оставить как есть.
 - `CookingSession`: хранить `IronProduct` / `PlateProduct` в полях, которые обновляются при смене состояния, а не вычислять LINQ на каждый запрос.
@@ -174,7 +180,7 @@ public static class KitchenEvents
 | 4 | UI на префабах: `UiTheme`, `CounterPanelView`, `DayHudView`, `ShopView`/`ShopCardView` | Р1 | Главное условие для красивого UI | L | ✅ |
 | 5 | Разделить `WaffleIronBake` и `DecorStation` на логику и вид, пар на частицах | Р6 | Анимации и арт станций | M | ✅ |
 | 6 | `KitchenAction` + `CarryHelper` | Р5 | Перед новыми мини-играми (миксер, начинки) | S | ✅ |
-| 7 | `VisitFactory` + `StoryScheduler` | Р7 | Перед расширением сюжета и типов клиентов | M | ⬜ |
+| 7 | `VisitFactory` + `StoryScheduler` | Р7 | Перед расширением сюжета и типов клиентов | M | ✅ |
 | 8 | Логи, аллокации, атласы, `targetFrameRate`, asmdef, чистка | Р8, Р9 | Перед первой сборкой на телефон | S | ⬜ |
 
 S — до дня, M — 1–2 дня, L — 3+ дня.
