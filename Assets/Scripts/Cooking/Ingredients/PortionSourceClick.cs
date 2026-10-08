@@ -3,7 +3,7 @@ using UnityEngine;
 
 // Значок сахара/соли: одно нажатие — одна порция в миску.
 // Для отклика значок "пружинит", а в миску падает щепотка крупинок (рисуются в коде, графика не нужна).
-public class PortionSourceClick : MonoBehaviour
+public class PortionSourceClick : KitchenTool
 {
     [SerializeField] private PortionIngredient ingredient = PortionIngredient.Sugar;
 
@@ -37,8 +37,8 @@ public class PortionSourceClick : MonoBehaviour
 
     public void AddPortion()
     {
-        var session = CookingManager.Instance.Current;
-        if (!session.CanUseBowl || WhiskItem.Active != null) return;
+        var session = Session;
+        if (session == null || !session.CanUseBowl || !KitchenAction.CanBegin(KitchenActionKind.Portion)) return;
 
         session.AddPortion(ingredient);
         Debug.Log($"[Portion] {ingredient}: {session.GetPortions(ingredient)}");

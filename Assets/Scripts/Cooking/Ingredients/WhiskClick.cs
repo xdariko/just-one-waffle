@@ -1,7 +1,7 @@
 using UnityEngine;
 
 // Венчик на столе: по нажатию венчик появляется над миской, под миской — шкала перемешивания.
-public class WhiskClick : MonoBehaviour
+public class WhiskClick : KitchenTool
 {
     [Header("Refs")]
     [SerializeField] private WhiskItem whiskPrefab;
@@ -23,12 +23,9 @@ public class WhiskClick : MonoBehaviour
 
     public void SpawnWhisk()
     {
-        // Пока что-то сыпется/льётся — мешать нельзя
-        if (current != null || WhiskItem.Active != null || PourItem.Active != null) return;
-        // Над миской висит яйцо — сначала его
-        if (FindAnyObjectByType<EggSwipeDownItem>() != null) return;
-
-        var session = CookingManager.Instance.Current;
+        // Пока что-то сыпется/льётся или над миской висит яйцо — мешать нельзя
+        var session = Session;
+        if (current != null || session == null || !KitchenAction.CanBegin(KitchenActionKind.Whisk)) return;
         if (!session.CanUseBowl || !session.HasAnyIngredient) return;
 
         current = Instantiate(whiskPrefab, whiskSpawnPoint.position, Quaternion.identity);

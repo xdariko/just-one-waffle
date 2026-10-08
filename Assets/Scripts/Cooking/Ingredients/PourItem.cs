@@ -4,11 +4,9 @@ using UnityEngine;
 // Пакет муки / пакет молока над миской: держим палец — наклоняется и из него сыпется/льётся,
 // отпускаем — выпрямляется, после этого считаем результат.
 // Чем дольше держим, тем сильнее наклон и тем быстрее поток.
+// Пока пакет на экране, он занимает кухню (KitchenAction.Pour): второй пакет и венчик не появятся.
 public class PourItem : MonoBehaviour
 {
-    // Одновременно над миской может быть только один пакет (мука ИЛИ молоко)
-    public static PourItem Active { get; private set; }
-
     // (сколько всего в миске, оценка)
     public event Action<float, PourResult> OnResolved;
 
@@ -78,7 +76,7 @@ public class PourItem : MonoBehaviour
 
     private void Awake()
     {
-        Active = this;
+        KitchenAction.Begin(this, KitchenActionKind.Pour);
         // Спрайт — в дочернем Visual (на нём же можно держать Animator), корень наклоняет код
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         baseScale = transform.localScale;
@@ -212,7 +210,7 @@ public class PourItem : MonoBehaviour
     {
         SetFlowing(false); // уничтожили посреди струи (переход сцены) — звук не должен остаться
         GestureLock.End(this);
-        if (Active == this) Active = null;
+        KitchenAction.End(this);
         if (stream != null) Destroy(stream.gameObject);
     }
 

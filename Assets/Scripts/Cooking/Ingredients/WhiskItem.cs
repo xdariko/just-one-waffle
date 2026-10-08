@@ -9,10 +9,9 @@ using UnityEngine;
 //  - слева в красной (слишком вяло) — прогресса нет;
 //  - справа в красной (слишком резко) — прогресса нет и копится "перемешали" (штраф).
 // Прогресс дошёл до 100% — венчик уходит, считаем результат.
+// Пока венчик в миске, он занимает кухню (KitchenAction.Whisk): ни пакетов, ни яиц.
 public class WhiskItem : MonoBehaviour
 {
-    public static WhiskItem Active { get; private set; }
-
     // (результат, сколько секунд "перемешивали")
     public event Action<MixResult, float> OnResolved;
 
@@ -73,7 +72,7 @@ public class WhiskItem : MonoBehaviour
 
     private void Awake()
     {
-        Active = this;
+        KitchenAction.Begin(this, KitchenActionKind.Whisk);
         cam = Camera.main;
         baseScale = transform.localScale;
         transform.localScale = Vector3.zero;
@@ -208,7 +207,7 @@ public class WhiskItem : MonoBehaviour
     private void OnDestroy()
     {
         StopDragging(); // уничтожили в руке (переход сцены) — звук венчика не должен остаться
-        if (Active == this) Active = null;
+        KitchenAction.End(this);
     }
 
     private float GetStrokeWidth()
@@ -217,12 +216,7 @@ public class WhiskItem : MonoBehaviour
         return Mathf.Max(0.1f, bowlArea.bounds.size.x - bowlEdgePadding * 2f);
     }
 
-    private Vector3 GetMouseWorld()
-    {
-        var p = Input.mousePosition;
-        p.z = -cam.transform.position.z;
-        return cam.ScreenToWorldPoint(p);
-    }
+    private Vector3 GetMouseWorld() => CarryHelper.ScreenToWorld(cam);
 
     // Окно потеряло фокус посреди жеста: OnMouseUp не придёт — венчик отпускаем
     private void OnApplicationFocus(bool hasFocus)

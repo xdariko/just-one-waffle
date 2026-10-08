@@ -4,6 +4,7 @@ using UnityEngine;
 
 // Яйцо над миской: игрок тянет его вниз и бьёт о край миски.
 // Результат зависит от скорости яйца в момент удара о край.
+// Пока яйцо над миской, оно занимает кухню (KitchenAction.Egg): венчик ждёт, второе яйцо не появится.
 public class EggSwipeDownItem : MonoBehaviour
 {
     public event Action<EggCrackResult> OnResolved;
@@ -48,6 +49,7 @@ public class EggSwipeDownItem : MonoBehaviour
 
     private void Awake()
     {
+        KitchenAction.Begin(this, KitchenActionKind.Egg);
         cam = Camera.main;
         // Спрайт — в дочернем Visual (на нём же можно держать Animator), корень двигает код
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
@@ -217,6 +219,7 @@ public class EggSwipeDownItem : MonoBehaviour
     private void OnDestroy()
     {
         GestureLock.End(this);
+        KitchenAction.End(this);
     }
 
     private void Update()
@@ -232,12 +235,7 @@ public class EggSwipeDownItem : MonoBehaviour
         }
     }
 
-    private Vector3 GetMouseWorld()
-    {
-        var p = Input.mousePosition;
-        p.z = -cam.transform.position.z;
-        return cam.ScreenToWorldPoint(p);
-    }
+    private Vector3 GetMouseWorld() => CarryHelper.ScreenToWorld(cam);
 
     // Окно потеряло фокус посреди жеста: OnMouseUp не придёт — яйцо возвращается само
     private void OnApplicationFocus(bool hasFocus)

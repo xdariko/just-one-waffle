@@ -10,7 +10,7 @@ using UnityEngine;
 // Таймер не останавливается сам: не снял вовремя — вафля сгорит.
 // Здесь только логика: таймер, оценка, жесты. Крышка, пар и вафля на вафельнице — WaffleIronView.
 [RequireComponent(typeof(WaffleIronView))]
-public class WaffleIronBake : MonoBehaviour
+public class WaffleIronBake : KitchenTool
 {
     private enum State { Idle, Baking, Done }
 
@@ -56,9 +56,9 @@ public class WaffleIronBake : MonoBehaviour
 
     private void OnMouseDown()
     {
-        if (PourItem.Active != null || CookingManager.Instance == null) return;
+        var session = Session;
+        if (session == null || !KitchenAction.CanBegin(KitchenActionKind.Bake)) return;
 
-        var session = CookingManager.Instance.Current;
         if (state == State.Baking)
         {
             // Тап или перетаскивание — решится в Update по движению пальца
@@ -73,7 +73,7 @@ public class WaffleIronBake : MonoBehaviour
     public bool CanAcceptBatter(out string reason)
     {
         reason = null;
-        var session = CookingManager.Instance != null ? CookingManager.Instance.Current : null;
+        var session = Session;
         if (session == null) reason = "нет заказа";
         else if (state == State.Baking) reason = "Вафельница занята — вафля ещё печётся";
         else if (session.PlateProduct != null) reason = "Сначала унеси готовую вафлю на украшение";
@@ -94,9 +94,8 @@ public class WaffleIronBake : MonoBehaviour
     public bool StartFromBowl(out string reason)
     {
         if (!CanAcceptBatter(out reason)) return false;
-        var manager = CookingManager.Instance;
-        var session = manager.Current;
-        float amount = manager.CurrentRecipe != null ? manager.CurrentRecipe.batter.amount : 150f;
+        var session = Session;
+        float amount = Kitchen.CurrentRecipe != null ? Kitchen.CurrentRecipe.batter.amount : 150f;
         session.SetPoured(PourIngredient.Batter, amount, PourResult.Perfect);
         session.MoveBowlToStove(); // тесто пошло в дело: в миску больше ничего не добавляем
         StartBaking(session);
@@ -107,9 +106,9 @@ public class WaffleIronBake : MonoBehaviour
     // Остановить выпечку и снять вафлю (drag — сразу в палец)
     public PlatedWaffle TakeOutNow(bool drag)
     {
-        if (state != State.Baking || CookingManager.Instance == null) return null;
+        if (state != State.Baking || Session == null) return null;
         pressPending = false;
-        return TakeOut(CookingManager.Instance.Current, drag);
+        return TakeOut(Session, drag);
     }
 
     private void StartBaking(CookingSession session)
@@ -188,8 +187,7 @@ public class WaffleIronBake : MonoBehaviour
         }
 
         // Подсказка: тесто налито, можно закрывать
-        view.SetHint(state != State.Baking && PourItem.Active == null &&
-                     CookingManager.Instance != null && CookingManager.Instance.Current.CanStartBake);
+        view.SetHint(state != State.Baking && KitchenAction.CanBegin(KitchenActionKind.Bake) && Session is { CanStartBake: true });
     }
 
     private BakeResult Evaluate(float v01) => activeZones.Classify(v01) switch
