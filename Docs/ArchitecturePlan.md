@@ -70,6 +70,16 @@
 - Стили — `UiTheme` (ScriptableObject): цвета, шрифты TMP, спрайты кнопок. Цвета из `ShopPanel` (`BoxColor`, `Ink`…) и `CounterController` переносятся туда.
 - `CookingUI.Create*` остаётся только в editor-скрипте, который один раз генерирует префабы-заглушки (как сейчас `WaffleShopSetup`).
 
+**Как сделано (этап 4):**
+- Префабы `Prefabs/UI`: `UiButton` (вложен во все остальные — правка кнопки меняет все), `CounterPanel`, `ShopPanel` + `ShopCard`, `DayHud`. Заглушки собирает `WaffleUiSetup` из «Настроить сцены дня»; **существующие префабы он не трогает**, пересобрать заново — `Tools → Waffle → Пересоздать заглушки UI` (с подтверждением).
+- View: `PanelView` (база окна: Canvas + CanvasGroup, затемнение, появление/скрытие), `CounterPanelView`, `ShopView`, `ShopCardView`, `DayHudView`, `UiButtonView` (стиль, доступность, сжатие при нажатии, щелчок `UiEvents.ButtonClicked`; у «Купить» щелчок выключен — там свой звук покупки).
+- Презентеры: `CounterController` (кнопки по ролям `PanelButton.Shop/StartDay/NextDay`), `ShopPresenter` (бывший `ShopPanel`, обычный класс), `DayHud` (собирает строки только при изменении показанного, а не каждый кадр).
+- `CounterPanel` и `ShopPanel` стоят экземплярами в сцене `Counter`, `DayHud` — в префабе `Systems` (живёт между сценами). `DayRunner` больше не создаёт HUD.
+- `UiTheme` (`ScriptableObjects/UI/UiTheme`): шрифт, цвета, спрайты панели и кнопок, параметры анимаций, оттенки текста `Paint(text, UiTone)` вместо `<color=#...>` в коде.
+- Анимации на DOTween (`SetUpdate(true)` + `SetLink`): окна, кнопки по очереди, карточки магазина, толчок кошелька после покупки, тикет заказа выезжает справа, клиент появляется с отскоком и подпрыгивает при смене настроения, затемнение `SceneLoader`.
+- `CookingUI` оставлен только для шкал мини-игр (`PourGauge`, `ZoneGauge`) и запасной сборки `CustomerView`. Диалог (`DialogueManager`) уже на ссылках из инспектора, его не трогали.
+- «Проверить контент»: префабы UI на месте, у View нет пустых ссылок, HUD есть в `Systems`.
+
 ### Р2. Игровые события → звук и эффекты
 Один статический хаб без ScriptableObject-каналов, потому что проект уже использует статику (`GestureLock`, `ShopCatalog.Active`) и так проще:
 
@@ -94,6 +104,12 @@ public static class KitchenEvents
 - `AudioMixer` с группами Music / SFX / UI, громкость каждой хранится в `PlayerPrefs` (это настройка устройства, а не прогресс, поэтому не в `progress.json`).
 - Импорт: SFX — `Decompress On Load`, музыка — `Streaming`, Vorbis.
 
+**Как сделано (этап 3):**
+- `KitchenEvents` (кухня) и `UiEvents` (кнопки, покупка, магазин). У зацикленных действий пары `Started/Stopped`, `Stopped` приходит и при уничтожении объекта посреди действия.
+- `AudioService` только проигрывает звук: пул SFX, 4 источника для зацикленных звуков (струя, венчик, соус, шипение) с затуханием, кроссфейд музыки. `AudioCues` решает, какой звук на какое событие и какая музыка играет (сцена, фаза дня, открыт ли магазин). Реакция клиента откладывается до загрузки стойки.
+- Отличие от плана: `AudioMixer` не обязателен, потому что ассет микшера нельзя создать скриптом. Громкость каналов считается в коде и хранится в `PlayerPrefs`, а группы микшера можно подключить в инспекторе, если они понадобятся (например, для эффектов на шине).
+- `SoundBank` создаёт **Настроить сцены дня**. Импорт аудио настраивается по папке (`WaffleAudioImport`), «Проверить контент» проверяет `AudioService` в `Systems`, повторы записей и тип загрузки музыки.
+
 ### Р4. Bootstrap и SceneLoader
 - Префаб `Systems` (в `Resources/`), который создаётся до первой сцены через `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]`: `DayRunner`, `CookingManager`, `AudioService`, `SceneLoader`. Любую сцену можно запустить через Play, сервисы есть всегда, порядок `Awake` не важен.
 - `SceneLoader.Go(GameScene.Kitchen)`: затемнение → `LoadSceneAsync` → снятие затемнения. `enum GameScene` вместо строк; имена сцен — в одном месте.
@@ -106,16 +122,34 @@ public static class KitchenEvents
 - `CarryHelper` — **статические функции**, а не слой ввода: `ScreenToWorld(cam)`, `EdgeScroll(scroller, zone, speed)`, корутина `ReturnTo(transform, pos, scale, time)`. Ввод по-прежнему читается внутри `BowlCarry`, `PlatedWaffle` и `DecorStation` через `Input`.
 - Мини-игры получают сессию через `CookingManager.Instance.Current` в одном месте (свойство `Session` в базовом классе `KitchenTool : MonoBehaviour`), а не в каждом методе.
 
+**Как сделано (этап 6):**
+- `KitchenAction` (`CanBegin`, `TryBegin`, `Begin`/`End`, `IsBusy`, `IsRunning`) вместо `PourItem.Active`, `WhiskItem.Active` и `FindAnyObjectByType<EggSwipeDownItem>`. Кто кому мешает — одна таблица `Blocks`; перенесена как была: венчик несовместим ни с чем, пакет — с пакетом, вафельницей и переносом миски, яйцо с пакетом совместимо. Пакет, венчик, яйцо и несомая миска держат действие, пока живут; уничтоженный владелец кухню не занимает. Щепотка и тап по вафельнице — мгновенные действия, только `CanBegin`.
+- `CarryHelper`: `ScreenToWorld`, `EdgeScroll`, `ReturnTo` (DOTween вместо корутины). Использует `BowlCarry`, `PlatedWaffle`, `DecorStation`, а `ScreenToWorld` — ещё венчик и яйцо. Ввод по-прежнему читается внутри скриптов через старый `Input`.
+- `KitchenTool` (`Session`, `Kitchen`) — база для `WaffleIronBake`, `BowlCarry`, `DecorStation`, `PackingStation`, `EggTrayClick`, `PourSourceClick`, `WhiskClick`, `PortionSourceClick`. Без `CookingManager` действие просто не начинается (раньше — NullReferenceException).
+
 ### Р6. Отделить визуал от логики станций
 - `WaffleIronBake` → логика + `WaffleIronView` (крышка, пар, цвет вафли, подсветка). Пар — `ParticleSystem` (поле уже предусмотрено для пакетов), без Instantiate/Destroy.
 - `DecorStation` → `DecorStationBuilder` (раскладка, ячейки, места), `DecorPainter` (соус и добавки по выбранной вафле), `DecorStation` (приём вафли, перенос, упаковка).
 - Цвета пропечки → `WaffleLook` (ScriptableObject): спрайт или цвет на каждый `BakeResult`. Тот же ассет использует `DecorStation`.
 - **Sorting layers**: `Background`, `Table`, `Stations`, `Items`, `Held` (то, что в пальце), `FX`, `WorldUI`. Магические `sortingOrder` заменить на слой + небольшой порядок внутри слоя.
 
+**Как сделано (этап 5):**
+- `WaffleIronBake` — только таймер, оценка и жесты; `WaffleIronView` — крышка (DOTween), подсветка «можно закрывать» (цикл DOTween вместо `Sin` в `Update`), пар, вафля на вафельнице.
+- Пар — `ParticleSystem` из префаба `Prefabs/FX/Steam` (клуб `Sprites/FX/SoftPuff.png`, слой FX), цвет темнеет к сгоранию через `startColor`. Создаётся в корне сцены: плита — `SortingGroup` слоя Stations, внутри неё пар не встал бы поверх стола. Больше нет `Instantiate`/`Destroy` каждые 0.2 с.
+- `DecorStation` → `DecorStationBuilder` (раскладка, ячейки, места; обычный класс), `DecorSlot` (место: данные, рамка, подпись, «вздрагивание» при приёме вафли), `DecorPainter` (соус и добавки), `DecorStation` (ввод, приём вафли, перенос, упаковка). Перелёт вафли и возврат на место — DOTween вместо корутин. Старый режим без раскладки (`BuildLegacy`) удалён.
+- `LuckPopup` — `UnityEngine.Pool.ObjectPool` + DOTween; пул очищается при выгрузке сцены.
+- Настройку делает `WaffleStationSetup` из «Настроить сцены дня» (существующее не трогает); «Проверить контент» проверяет вид вафельницы и раскладку станции.
+
 ### Р7. DayRunner: вынести генерацию визитов
 - `VisitFactory` (чистый класс): `CreateRegular`, `CreateFallback`, `CreateStory`, `PickLines`, `PhrasingsFor`.
 - `StoryScheduler`: списки `pending` / `scheduled` / `dayEnd`, `Tick`, `Next`.
 - `DayRunner` остаётся тонкой машиной состояний (фазы, таймер, журнал, события). Так он сократится примерно до 250 строк. Отдельные классы-состояния (State pattern) не нужны: пять фаз с проверками в методах читаются лучше.
+
+**Как сделано (этап 7):**
+- `VisitFactory` (чистый класс): `CreateRegular`, `CreateFallback`, `CreateStory`, реплики заказа и уточнения (`PhrasingsFor`, `PickLines`), реакции (`Reaction`) и прощания (`Farewell`), «предупредить один раз» в лог. Новый день — `BeginDay` (номера визитов с 1).
+- `StoryScheduler` (чистый класс): очереди «сейчас» / «в случайный момент» / «в конце дня», `Plan`, `Tick`, `TryTakeNow`, `FlushScheduled`, `TryTakeDayEnd`, сортировка по priority.
+- `DayRunner`: 632 → ~370 строк — фазы, таймер, журнал смены, сюжетные действия (`RunActions`) и закрытие смены. Сюжетные действия остались здесь: они пишут в журнал и прогресс смены.
+- Проверка: 6 дней логики без сцен с фиксированным seed на старом и новом `DayRunner` дают одинаковый журнал визитов (клиенты, сюжет, заказы, реплики, реакции, оплата, итоги).
 
 ### Р8. Производительность и релизная гигиена (мобильные)
 - `Log.Info/Warn` с `[Conditional("WAFFLE_LOG")]` (символ включён в редакторе, выключен в релизе) вместо `Debug.Log`. `LogError` оставить как есть.
@@ -126,6 +160,18 @@ public static class KitchenEvents
 - Спрайты: Sprite Atlas v2 по сценам (Counter, Kitchen, UI), одинаковый PPU, сжатие ASTC.
 - `Application.targetFrameRate = 60` в bootstrap (на Android по умолчанию 30).
 - Тестовые хуки — под `#if UNITY_EDITOR || DEVELOPMENT_BUILD`.
+
+**Как сделано (этап 8):**
+- `Log.Info/Warn` с `[Conditional("UNITY_EDITOR"), Conditional("DEVELOPMENT_BUILD"), Conditional("WAFFLE_LOG")]` — в редакторе и Development Build пишутся, в релизе вырезаны вместе со строками (проверено компиляцией релизных скриптов плеера). Отдельный символ включать не нужно; `WAFFLE_LOG` — если лог нужен в обычной сборке. `Debug.LogError` остался как есть. В editor-скриптах — `Debug.Log` (в сборку не попадают).
+- `CookingSession.IronProduct/PlateProduct` — цикл без LINQ и аллокаций вместо кэша в полях: состояние вафли меняют снаружи (`WaffleProduct.State`), кэш пришлось бы сбрасывать во многих местах.
+- `DayHud` — строки собираются только при изменении (этап 4); `DecorWaffle.Paint` уже делал один `Apply()` за кадр (`LateUpdate` по флагу).
+- `GestureLock.IsActive` — просто счётчик; уничтоженные владельцы чистятся при выгрузке сцены.
+- `Application.targetFrameRate = 60` в `GameBootstrap`.
+- Тестовые хуки (`ClickPanelButtonForTest`, `PanelTextForTest`, `ClickBuyForTest`, `ShowTabForTest`, `PackSlotForTest`, `Press`, `PressBuy`) — под `#if UNITY_EDITOR || DEVELOPMENT_BUILD`.
+- Атласы Sprite Atlas V2 по сценам: `Sprites/Counter`, `Sprites/Kitchen` (+ `Sprites/FX`), `Sprites/UI`; ASTC 6x6 на Android и iOS, без поворота. Арт кладётся в папку своей сцены и попадает в атлас сам. `bowl`, `eggs` переехали в `Sprites/Kitchen`. «Проверить контент» предупреждает о спрайтах вне папок сцен и с PPU ≠ 100. Создаёт `WaffleAtlasSetup`.
+- `.asmdef`: `Waffle.Runtime` (весь `Assets/Scripts`), `Waffle.Editor` (`Day/Editor` + `.asmref` в остальных папках `Editor`), `Waffle.DialogueGraph.Editor` (Graph Toolkit). В `Graph.dialoguegraph` имена сборок узлов переписаны на новую — граф импортируется (9 узлов). Временные скрипты проверки теперь кладутся в папку с asmref (например `Day/Editor`).
+- Чистка: `Square.prefab.orig`; устаревший сахар «порцией» (`PortionIngredient.Sugar`, `SugarPortionGrams`) — у солонки `Salt = 1`, как было сохранено в префабе; неиспользуемое поле в `EggTrayClick`. `platePoint` и `BuildLegacy` убраны на этапе 5, сцены переименованы на этапе 1. Неймспейсы не вводились (по желанию).
+- Проверка: 6 дней логики дают тот же журнал, что на этапе 7; стойка и кухня в Play Mode без ошибок. Осталось на устройстве: Unity Profiler (кадр ≤ 16 мс, нет GC в кадре на кухне).
 
 ### Р9. Структура кода
 - `.asmdef`: `Waffle.Runtime`, `Waffle.Editor` (ссылается на Runtime и Graph Toolkit), `Waffle.DialogueGraph.Editor`.
@@ -142,12 +188,12 @@ public static class KitchenEvents
 |---|---|---|---|---|---|
 | 1 | Bootstrap + SceneLoader с затемнением, переименование сцен | Р4 | Нужен для музыки и переходов; убирает ошибку «нет DayRunner» | S | ✅ |
 | 2 | Sorting layers + `WaffleLook` | Р6 (часть) | До того, как положить первый настоящий спрайт | S | ✅ |
-| 3 | `KitchenEvents` + `AudioService` + `SoundBank` | Р2, Р3 | Звук можно подключать, не трогая мини-игры | M | ⬜ |
-| 4 | UI на префабах: `UiTheme`, `CounterPanelView`, `DayHudView`, `ShopView`/`ShopCardView` | Р1 | Главное условие для красивого UI | L | ⬜ |
-| 5 | Разделить `WaffleIronBake` и `DecorStation` на логику и вид, пар на частицах | Р6 | Анимации и арт станций | M | ⬜ |
-| 6 | `KitchenAction` + `CarryHelper` | Р5 | Перед новыми мини-играми (миксер, начинки) | S | ⬜ |
-| 7 | `VisitFactory` + `StoryScheduler` | Р7 | Перед расширением сюжета и типов клиентов | M | ⬜ |
-| 8 | Логи, аллокации, атласы, `targetFrameRate`, asmdef, чистка | Р8, Р9 | Перед первой сборкой на телефон | S | ⬜ |
+| 3 | `KitchenEvents` + `AudioService` + `SoundBank` | Р2, Р3 | Звук можно подключать, не трогая мини-игры | M | ✅ |
+| 4 | UI на префабах: `UiTheme`, `CounterPanelView`, `DayHudView`, `ShopView`/`ShopCardView` | Р1 | Главное условие для красивого UI | L | ✅ |
+| 5 | Разделить `WaffleIronBake` и `DecorStation` на логику и вид, пар на частицах | Р6 | Анимации и арт станций | M | ✅ |
+| 6 | `KitchenAction` + `CarryHelper` | Р5 | Перед новыми мини-играми (миксер, начинки) | S | ✅ |
+| 7 | `VisitFactory` + `StoryScheduler` | Р7 | Перед расширением сюжета и типов клиентов | M | ✅ |
+| 8 | Логи, аллокации, атласы, `targetFrameRate`, asmdef, чистка | Р8, Р9 | Перед первой сборкой на телефон | S | ✅ |
 
 S — до дня, M — 1–2 дня, L — 3+ дня.
 
@@ -169,4 +215,4 @@ S — до дня, M — 1–2 дня, L — 3+ дня.
 **Что внедряем вместо:**
 - **`UnityEngine.Pool.ObjectPool<T>`** (встроенный в Unity, свой класс не пишем) — для `LuckPopup` и других всплывашек (этап 5).
 - **`ParticleSystem` вместо самодельного пара** — он сам переиспользует частицы, отдельный пул не нужен (этап 5).
-- **DOTween** — для этапа 4 (UI) и анимаций станций. Сейчас каждая анимация — своя корутина с `Lerp`, а для «сочного» UI нужны easing, последовательности (`Sequence`) и отмена (`SetLink`/`Kill`). Пакет импортируется на этапе 4.
+- **DOTween** — для этапа 4 (UI) и анимаций станций. Сейчас каждая анимация — своя корутина с `Lerp`, а для «сочного» UI нужны easing, последовательности (`Sequence`) и отмена (`SetLink`/`Kill`). Импортирован на этапе 4 (`Assets/Plugins/Demigiant`), UI уже на нём; корутины станций переводятся на этапе 5.

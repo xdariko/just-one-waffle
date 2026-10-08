@@ -5,7 +5,7 @@ using UnityEngine;
 // камера едет к коробке, вафля перелетает в неё, крышка закрывается —
 // и переходим на стойку (SceneLoader). CookingManager живёт между сценами (префаб Systems),
 // так что результат готовки доступен на стойке.
-public class PackingStation : MonoBehaviour
+public class PackingStation : KitchenTool
 {
     [Header("Refs")]
     [Tooltip("Куда ложится вафля в коробке")]
@@ -94,11 +94,12 @@ public class PackingStation : MonoBehaviour
             }
             SetLid(0f);
         }
+        KitchenEvents.RaiseWafflePacked();
 
-        var manager = CookingManager.Instance;
+        var manager = Kitchen;
         var score = manager.CompleteOrder(product);
-        Debug.Log($"[Packing] вафля упакована. Итог готовки: {manager.Current}");
-        if (score != null) Debug.Log($"[Packing] {score}");
+        Log.Info($"[Packing] вафля упакована. Итог готовки: {manager.Current}");
+        if (score != null) Log.Info($"[Packing] {score}");
 
         yield return new WaitForSeconds(delayBeforeDialogue);
 

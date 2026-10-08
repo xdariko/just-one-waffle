@@ -7,6 +7,6 @@ public class TestCommand : DialogueCommand
 
     public override void Execute(string[] args)
     {
-        Debug.Log("TestCommand executed");
+        Log.Info("TestCommand executed");
     }
 }

@@ -2,9 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 // Стойка (сцена Counter): показывает то, что сейчас происходит в DayRunner.
 //  - BeforeDay: "День N", кошелёк → "Магазин" / "Открыть вафельную";
@@ -15,37 +13,42 @@ using UnityEngine.UI;
 // Сама ничего не решает и не начисляет: все переходы — методы DayRunner, которые проверяют фазу.
 // Итоги — только отчёт: деньги в кошелёк переносит DayRunner.EndDay один раз.
 // Перезагрузка сцены просто перерисовывает текущее состояние (клиент не появляется заново).
+// Вёрстка — в префабах (CounterPanelView, ShopView), здесь только что показать и что делать по кнопке.
 public class CounterController : MonoBehaviour
 {
     [SerializeField] private DialogueManager dialogue;
     [SerializeField] private CustomerView customerView;
+    [Tooltip("Панель начала дня и итогов (префаб Prefabs/UI/CounterPanel)")]
+    [SerializeField] private CounterPanelView panel;
+    [Tooltip("Окно магазина (префаб Prefabs/UI/ShopPanel)")]
+    [SerializeField] private ShopView shopView;
 
     private DayRunner runner;
     private string renderedKey;
+    private ShopPresenter shop;
 
-    private RectTransform panel;
-    private TextMeshProUGUI panelTitle;
-    private TextMeshProUGUI panelBody;
-    private ScrollRect panelScroll;
-    private RectTransform buttonRow;
-    private readonly List<Button> panelButtons = new();
-    private ShopPanel shop;
-
-    public ShopPanel Shop => shop;
+    public ShopPresenter Shop => shop;
+    private UiTheme Theme => UiTheme.OrDefault(panel != null ? panel.Theme : null);
 
     private void Start()
     {
-        BuildPanel();
+        if (panel == null || shopView == null)
+        {
+            Debug.LogError("[Counter] не заданы CounterPanelView или ShopView — запусти Tools → Waffle → Настроить сцены дня", this);
+            return;
+        }
+        panel.HideInstant();
+        panel.ButtonPressed += OnPanelButton;
 
         runner = DayRunner.Instance;
         if (runner == null || dialogue == null)
         {
-            ShowPanel("Нет рабочего дня", "Нет DayRunner (префаб Resources/Systems) или DialogueManager в сцене.\nTools → Waffle → Настроить сцены дня.");
+            panel.Show("Нет рабочего дня", "Нет DayRunner (префаб Resources/Systems) или DialogueManager в сцене.\nTools → Waffle → Настроить сцены дня.");
             Debug.LogError("[Counter] нет DayRunner (Resources/Systems) или DialogueManager — запусти Tools → Waffle → Настроить сцены дня", this);
             return;
         }
 
-        shop = ShopPanel.Create(transform);
+        shop = new ShopPresenter(shopView);
         runner.Changed += Render;
         Render();
     }
@@ -53,6 +56,7 @@ public class CounterController : MonoBehaviour
     private void OnDestroy()
     {
         if (runner != null) runner.Changed -= Render;
+        if (panel != null) panel.ButtonPressed -= OnPanelButton;
     }
 
     private void Render()
@@ -68,14 +72,14 @@ public class CounterController : MonoBehaviour
             case DayPhase.BeforeDay:
                 dialogue.Hide();
                 customerView.Hide();
-                ShowPanel($"День {runner.Day}",
+                panel.Show($"День {runner.Day}",
                     $"Смена длится {FormatTime(runner.Duration)}.\nКлиенты приходят по одному: выслушай заказ, приготовь вафлю и отдай её.\n\n" +
                     $"Кошелёк: <b>{EconomySettings.Money(runner.Progress.Money)}</b>. Заработок смены поступит в кошелёк в конце дня.",
-                    ("Магазин", OpenShop), ("Открыть вафельную", () => runner.StartDay()));
+                    PanelButton.Shop, PanelButton.StartDay);
                 break;
 
             case DayPhase.Ordering:
-                HidePanel();
+                panel.Hide();
                 customerView.Show(visit.Customer, null);
                 if (!visit.IntroDone) PlayIntro(visit);
                 else if (visit.IsNoCooking) runner.CompleteNoCookingVisit(); // подарок и уход — без заказа и кухни
@@ -84,22 +88,35 @@ public class CounterController : MonoBehaviour
 
             case DayPhase.Cooking:
                 // Сюда попадаем, только если сцену стойки открыли посреди готовки
-                HidePanel();
+                panel.Hide();
                 customerView.Show(visit.Customer, null);
                 dialogue.ShowLine(visit.CustomerName, "Я жду свою вафлю!",
                     new (string, Action)[] { ("На кухню", runner.GoToKitchen) });
                 break;
 
             case DayPhase.Reaction:
-                HidePanel();
+                panel.Hide();
                 ShowReaction(visit);
                 break;
 
             case DayPhase.Summary:
                 dialogue.Hide();
                 customerView.Hide();
-                ShowPanel($"Итоги дня {runner.Day}", SummaryText(), ("Магазин", OpenShop), ("Следующий день", () => runner.StartNextDay()));
+                panel.Show($"Итоги дня {runner.Day}", SummaryText(), PanelButton.Shop, PanelButton.NextDay);
                 break;
+        }
+    }
+
+    private void OnPanelButton(PanelButton role)
+    {
+        // Одно нажатие — одно действие; дальше панель перерисует DayRunner.Changed.
+        // Магазин открывается поверх и не меняет фазу: кнопки остаются активными
+        if (role != PanelButton.Shop) panel.SetButtonsInteractable(false);
+        switch (role)
+        {
+            case PanelButton.Shop: OpenShop(); break;
+            case PanelButton.StartDay: runner.StartDay(); break;
+            case PanelButton.NextDay: runner.StartNextDay(); break;
         }
     }
 
@@ -172,20 +189,21 @@ public class CounterController : MonoBehaviour
     }
 
     // "+20 монет, чаевые +5, 10 очк." / "Без оплаты — вы помогли" / "Подарок: +100 монет"
-    private static string MoneyLine(CustomerVisit visit)
+    private string MoneyLine(CustomerVisit visit)
     {
+        var t = Theme;
         var parts = new List<string>();
         if (visit.Payout is { } p)
         {
-            if (!p.PaysMoney) parts.Add("<color=#7a5a20>без оплаты — просили помочь</color>");
+            if (!p.PaysMoney) parts.Add(t.Paint("без оплаты — просили помочь", UiTone.Muted));
             else
             {
-                parts.Add($"<color=#2a7a2a>+{EconomySettings.Money(p.Base)}</color>");
-                if (p.Tip > 0) parts.Add($"чаевые <color=#2a7a2a>+{p.Tip}</color>");
+                parts.Add(t.Paint($"+{EconomySettings.Money(p.Base)}", UiTone.Positive));
+                if (p.Tip > 0) parts.Add($"чаевые {t.Paint($"+{p.Tip}", UiTone.Positive)}");
             }
             if (p.AwardsPoints) parts.Add($"{p.Points} очк.");
         }
-        parts.AddRange(visit.StoryMessages.Select(m => $"<color=#2a5aa0>{m}</color>"));
+        parts.AddRange(visit.StoryMessages.Select(m => t.Paint(m, UiTone.Info)));
         return string.Join(" · ", parts);
     }
 
@@ -200,6 +218,7 @@ public class CounterController : MonoBehaviour
         int neutral = orders.Count(v => v.Verdict?.Mood == CustomerMood.Neutral);
         int unhappy = orders.Count(v => v.Verdict?.Mood == CustomerMood.Unhappy);
 
+        var t = Theme;
         var sb = new StringBuilder();
         sb.AppendLine($"Заработано за смену: <b>{EconomySettings.Money(ledger.TotalMoney)}</b>  " +
                       $"<size=85%>(заказы {ledger.MoneyOf(LedgerKind.OrderPayment)}, чаевые {ledger.MoneyOf(LedgerKind.Tip)}, " +
@@ -221,9 +240,9 @@ public class CounterController : MonoBehaviour
             {
                 var mood = v.Verdict?.Mood switch
                 {
-                    CustomerMood.Happy => "<color=#3a3>доволен</color>",
-                    CustomerMood.Neutral => "<color=#b90>так себе</color>",
-                    _ => "<color=#c33>недоволен</color>"
+                    CustomerMood.Happy => t.Paint("доволен", UiTone.Positive),
+                    CustomerMood.Neutral => t.Paint("так себе", UiTone.Warning),
+                    _ => t.Paint("недоволен", UiTone.Negative)
                 };
                 sb.Append($"{v.Order.Describe()} — {mood}, качество {v.Verdict?.QualityPercent * 100f:F0}%");
                 if (v.Payout is { } p)
@@ -231,7 +250,7 @@ public class CounterController : MonoBehaviour
                 var violations = v.Verdict?.Violations.Select(c => c.Reason).ToList();
                 if (violations is { Count: > 0 }) sb.Append($" <size=80%>({string.Join("; ", violations)})</size>");
             }
-            if (v.StoryMessages.Count > 0) sb.Append($" <color=#2a5aa0>{string.Join("; ", v.StoryMessages)}</color>");
+            if (v.StoryMessages.Count > 0) sb.Append($" {t.Paint(string.Join("; ", v.StoryMessages), UiTone.Info)}");
             sb.AppendLine();
         }
         return sb.ToString();
@@ -243,114 +262,12 @@ public class CounterController : MonoBehaviour
         return s >= 60 ? $"{s / 60} мин {(s % 60 > 0 ? $"{s % 60} с" : "")}".Trim() : $"{s} с";
     }
 
-    // ---------- Панель (начало дня / итоги) ----------
+    // ---------- Прогоны проверки (только редактор и Development Build) ----------
 
-    private void BuildPanel()
-    {
-        var canvas = CookingUI.CreateOverlayCanvas("CounterPanel", transform, 20);
-        var root = (RectTransform)canvas.transform;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    // Нажать кнопку панели так же, как игрок
+    public bool ClickPanelButtonForTest(PanelButton role) => panel != null && panel.Press(role);
 
-        panel = CookingUI.CreateImage("Dim", root, new Color(0f, 0f, 0f, 0.6f));
-        CookingUI.Stretch(panel, 0f, 0f, 0f, 0f);
-        panel.GetComponent<Image>().raycastTarget = true; // под панелью ничего не нажимается
-
-        // Панель занимает безопасную область экрана с полями — на любых пропорциях
-        var safe = SafeAreaFitter.Create(panel);
-        var box = CookingUI.CreateImage("Box", safe, new Color(0.98f, 0.94f, 0.86f, 1f));
-        CookingUI.Stretch(box, 70f, 40f, 70f, 40f);
-
-        panelTitle = CookingUI.CreateLabel("Title", box, 56f, new Color(0.3f, 0.18f, 0.1f));
-        panelTitle.alignment = TextAlignmentOptions.Center;
-        panelTitle.rectTransform.anchorMin = new Vector2(0f, 1f);
-        panelTitle.rectTransform.anchorMax = new Vector2(1f, 1f);
-        panelTitle.rectTransform.offsetMin = new Vector2(40f, -110f);
-        panelTitle.rectTransform.offsetMax = new Vector2(-40f, -20f);
-
-        // Текст с прокруткой: длинные итоги не обрезаются
-        var list = new GameObject("Body", typeof(RectTransform)).GetComponent<RectTransform>();
-        list.SetParent(box, false);
-        CookingUI.Stretch(list, 50f, 150f, 50f, 120f);
-        var viewport = CookingUI.CreateImage("Viewport", list, new Color(0f, 0f, 0f, 0.03f));
-        CookingUI.Stretch(viewport, 0f, 0f, 0f, 0f);
-        viewport.GetComponent<Image>().raycastTarget = true;
-        viewport.gameObject.AddComponent<RectMask2D>();
-
-        panelBody = CookingUI.CreateLabel("Text", viewport, 30f, new Color(0.2f, 0.12f, 0.08f));
-        panelBody.textWrappingMode = TextWrappingModes.Normal;
-        panelBody.alignment = TextAlignmentOptions.TopLeft;
-        var trt = panelBody.rectTransform;
-        trt.anchorMin = new Vector2(0f, 1f);
-        trt.anchorMax = new Vector2(1f, 1f);
-        trt.pivot = new Vector2(0.5f, 1f);
-        trt.offsetMin = new Vector2(16f, 0f);
-        trt.offsetMax = new Vector2(-16f, 0f);
-        panelBody.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        panelScroll = list.gameObject.AddComponent<ScrollRect>();
-        panelScroll.viewport = viewport;
-        panelScroll.content = trt;
-        panelScroll.horizontal = false;
-        panelScroll.movementType = ScrollRect.MovementType.Clamped;
-        panelScroll.scrollSensitivity = 40f;
-
-        buttonRow = new GameObject("Buttons", typeof(RectTransform)).GetComponent<RectTransform>();
-        buttonRow.SetParent(box, false);
-        buttonRow.anchorMin = new Vector2(0f, 0f);
-        buttonRow.anchorMax = new Vector2(1f, 0f);
-        buttonRow.offsetMin = new Vector2(50f, 30f);
-        buttonRow.offsetMax = new Vector2(-50f, 126f);
-        var h = buttonRow.gameObject.AddComponent<HorizontalLayoutGroup>();
-        h.spacing = 30f;
-        h.childAlignment = TextAnchor.MiddleCenter;
-        h.childControlWidth = h.childControlHeight = true;
-        h.childForceExpandWidth = false;
-        h.childForceExpandHeight = true;
-
-        HidePanel();
-    }
-
-    private void ShowPanel(string title, string body, params (string label, Action action)[] buttons)
-    {
-        panel.gameObject.SetActive(true);
-        panelTitle.text = title;
-        panelBody.text = body;
-        panelScroll.verticalNormalizedPosition = 1f;
-
-        foreach (var b in panelButtons) Destroy(b.gameObject);
-        panelButtons.Clear();
-        foreach (var (label, action) in buttons)
-        {
-            var b = CookingUI.CreateButton($"Button_{label}", buttonRow, label, new Vector2(460f, 96f), new Color(0.75f, 0.42f, 0.18f));
-            var le = b.gameObject.AddComponent<LayoutElement>();
-            le.preferredWidth = 460f;
-            le.minWidth = 300f;
-            panelButtons.Add(b);
-            b.onClick.AddListener(() =>
-            {
-                // Одно нажатие — одно действие; дальше панель перерисует DayRunner.Changed
-                if (!b.interactable) return;
-                // Магазин открывается поверх и не меняет фазу: кнопки остаются активными
-                bool opensOverlay = label == "Магазин";
-                if (!opensOverlay)
-                    foreach (var other in panelButtons) other.interactable = false;
-                action?.Invoke();
-            });
-        }
-    }
-
-    private void HidePanel()
-    {
-        if (panel != null) panel.gameObject.SetActive(false);
-    }
-
-    // Для прогонов проверки: нажать кнопку панели по подписи
-    public bool ClickPanelButtonForTest(string label)
-    {
-        var b = panelButtons.FirstOrDefault(x => x != null && x.GetComponentInChildren<TMP_Text>().text == label);
-        if (b == null) return false;
-        b.onClick.Invoke();
-        return true;
-    }
-
-    public string PanelTextForTest => panel != null && panel.gameObject.activeSelf ? $"{panelTitle.text}\n{panelBody.text}" : "";
+    public string PanelTextForTest => panel != null ? panel.Text : "";
+#endif
 }

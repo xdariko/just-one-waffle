@@ -122,7 +122,7 @@ public class GameProgress
                 if (data == null) throw new InvalidDataException("пустой файл");
                 var note = Migrate(data);
                 if (candidate != path) note += $"; основной файл не прочитан, загружена резервная копия {candidate}";
-                Debug.Log($"[Save] загружено {candidate}: день {data.day}, {EconomySettings.Money(data.money)}{(string.IsNullOrEmpty(note) ? "" : $" ({note})")}");
+                Log.Info($"[Save] загружено {candidate}: день {data.day}, {EconomySettings.Money(data.money)}{(string.IsNullOrEmpty(note) ? "" : $" ({note})")}");
                 return new GameProgress(data, note);
             }
             catch (Exception e)
@@ -133,7 +133,7 @@ public class GameProgress
             }
         }
 
-        Debug.Log($"[Save] новая игра ({path})");
+        Log.Info($"[Save] новая игра ({path})");
         return new GameProgress(new SaveData { version = CurrentVersion }, "новая игра");
     }
 
@@ -143,11 +143,11 @@ public class GameProgress
         {
             var keep = path + ".corrupted";
             File.Copy(path, keep, true);
-            Debug.LogWarning($"[Save] повреждённый файл сохранён как {keep}");
+            Log.Warn($"[Save] повреждённый файл сохранён как {keep}");
         }
         catch (Exception e)
         {
-            Debug.LogWarning($"[Save] не удалось сохранить копию повреждённого файла: {e.Message}");
+            Log.Warn($"[Save] не удалось сохранить копию повреждённого файла: {e.Message}");
         }
     }
 
@@ -250,7 +250,7 @@ public class GameProgress
         moneyBefore = Data.money;
         if (day <= Data.lastCommittedDay)
         {
-            Debug.LogWarning($"[Save] смена {day} уже закрыта (последняя закрытая — {Data.lastCommittedDay}), повторно не начисляем");
+            Log.Warn($"[Save] смена {day} уже закрыта (последняя закрытая — {Data.lastCommittedDay}), повторно не начисляем");
             return false;
         }
 
@@ -274,7 +274,7 @@ public class GameProgress
         }
 
         Save();
-        Debug.Log($"[Save] смена {day} закрыта: +{EconomySettings.Money(money)}, {points} очк. Кошелёк: {moneyBefore} → {Data.money}");
+        Log.Info($"[Save] смена {day} закрыта: +{EconomySettings.Money(money)}, {points} очк. Кошелёк: {moneyBefore} → {Data.money}");
         Changed?.Invoke();
         return true;
     }

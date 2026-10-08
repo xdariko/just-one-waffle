@@ -19,10 +19,10 @@ public enum PourIngredient
 }
 
 // Что добавляем порциями (одно нажатие — одна порция)
+// (сахар сыплется удержанием — PourIngredient.Sugar; значение 0 когда-то было сахаром, поэтому соль = 1 — так она сохранена в префабах)
 public enum PortionIngredient
 {
-    Sugar, // устарело: сахар теперь сыпется удержанием (PourIngredient.Sugar); порция = SugarPortionGrams
-    Salt
+    Salt = 1
 }
 
 // Сколько нужно насыпать и насколько можно ошибиться.

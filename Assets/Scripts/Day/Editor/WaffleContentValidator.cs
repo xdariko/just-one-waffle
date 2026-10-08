@@ -14,7 +14,10 @@ using UnityEngine;
 //  - экономика и магазин: id товаров, уровни, цены, ингредиенты, пределы эффектов, стартовый набор;
 //  - доступность: какие заказы есть со стартовым набором, какие не станут доступны никогда,
 //    сюжетный заказ, недоступный в свой день (отложится или возьмёт запасной), запасной заказ дня;
-//  - сюжетные цепочки: флаг "после" кто-то ставит, визит без готовки что-то делает.
+//  - сюжетные цепочки: флаг "после" кто-то ставит, визит без готовки что-то делает;
+//  - интерфейс: префабы Prefabs/UI на месте, у View заполнены ссылки, HUD дня в Systems;
+//  - станции кухни: у вафельницы есть вид с крышкой и паром, у станции украшения — раскладка;
+//  - арт: спрайты в папках сцен с одним PPU и в атласе, а не в корне Sprites.
 public static class WaffleContentValidator
 {
     public class Result
@@ -66,6 +69,10 @@ public static class WaffleContentValidator
             result.Errors.Add($"Нет префаба Resources/{GameBootstrap.SystemsResource} (DayRunner, CookingManager, SceneLoader) — Tools → Waffle → Настроить сцены дня");
         else if (systems.GetComponentInChildren<DayRunner>(true) is not { } prefabRunner || prefabRunner.Settings == null)
             result.Errors.Add($"Префаб Systems: нет DayRunner или у него не задан DaySettings — Tools → Waffle → Настроить сцены дня");
+        if (systems != null) ValidateAudio(systems, result);
+        ValidateUi(systems, result);
+        ValidateStations(result);
+        ValidateSprites(result);
         ValidateSorting(result);
 
         if (settings.regularCustomers.All(c => c == null))
@@ -364,6 +371,101 @@ public static class WaffleContentValidator
         AssetDatabase.FindAssets($"t:{typeof(T).Name}")
             .Select(g => AssetDatabase.LoadAssetAtPath<T>(AssetDatabase.GUIDToAssetPath(g)))
             .Where(a => a != null).ToList();
+
+    // Звук: AudioService с банком в Systems, записи банка не повторяются. Пустые клипы — не ошибка (звуки добавляются по одному)
+    private static void ValidateAudio(GameObject systems, Result result)
+    {
+        var audio = systems.GetComponentInChildren<AudioService>(true);
+        if (audio == null || audio.GetComponent<AudioCues>() == null)
+        {
+            result.Warnings.Add("Префаб Systems: нет AudioService или AudioCues — звука не будет (Tools → Waffle → Настроить сцены дня)");
+            return;
+        }
+        var bank = audio.Bank;
+        if (bank == null)
+        {
+            result.Warnings.Add("AudioService: не задан SoundBank — звука не будет");
+            return;
+        }
+        foreach (var g in bank.sounds.Where(s => s != null).GroupBy(s => s.id).Where(g => g.Count() > 1))
+            result.Warnings.Add($"{bank.name}: звук {g.Key} задан {g.Count()} раза — играет только первый");
+        foreach (var g in bank.music.Where(m => m != null).GroupBy(m => m.id).Where(g => g.Count() > 1))
+            result.Warnings.Add($"{bank.name}: трек {g.Key} задан {g.Count()} раза — играет только первый");
+        foreach (var m in bank.music.Where(m => m?.clip != null && m.clip.loadType != AudioClipLoadType.Streaming))
+            result.Warnings.Add($"{bank.name}: музыка {m.id} ({m.clip.name}) не Streaming — целиком в памяти (положи в Assets/Audio/Music или выставь Load Type)");
+    }
+
+    // Интерфейс: префабы на месте, у View нет пустых ссылок (иначе окно упадёт при показе), HUD дня в Systems
+    private static void ValidateUi(GameObject systems, Result result)
+    {
+        const string fix = "Tools → Waffle → Настроить сцены дня";
+        foreach (var path in new[] { WaffleUiSetup.ButtonPath, WaffleUiSetup.CounterPanelPath, WaffleUiSetup.ShopPanelPath, WaffleUiSetup.ShopCardPath, WaffleUiSetup.DayHudPath })
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null)
+            {
+                result.Errors.Add($"Нет префаба {path} — {fix}");
+                continue;
+            }
+            foreach (var view in prefab.GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                if (view is not (PanelView or UiButtonView or ShopCardView or DayHudView or DayHud)) continue;
+                var so = new SerializedObject(view);
+                var p = so.GetIterator();
+                while (p.NextVisible(true))
+                {
+                    if (p.propertyType != SerializedPropertyType.ObjectReference || p.objectReferenceValue != null) continue;
+                    // Тема необязательна (есть значения по умолчанию), остальное — части окна
+                    if (p.name == "theme") result.Warnings.Add($"{path}: у {view.GetType().Name} не задана UiTheme — цвета по умолчанию");
+                    else result.Errors.Add($"{path}: у {view.GetType().Name} («{view.name}») пустое поле {p.propertyPath}");
+                }
+            }
+        }
+
+        if (systems != null && systems.GetComponentInChildren<DayHud>(true) == null)
+            result.Warnings.Add($"Префаб Systems: нет HUD дня (DayHud) — не видно времени и заказа на кухне ({fix})");
+    }
+
+    // Станции кухни: вид вафельницы (крышка, пар) и раскладка станции украшения
+    private static void ValidateStations(Result result)
+    {
+        const string fix = "Tools → Waffle → Настроить сцены дня";
+        var stove = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Kitchen/Stove.prefab");
+        var view = stove != null ? stove.GetComponentInChildren<WaffleIronView>(true) : null;
+        if (view == null) result.Errors.Add($"Вафельница (Prefabs/Kitchen/Stove): нет WaffleIronView — {fix}");
+        else
+        {
+            var so = new SerializedObject(view);
+            if (so.FindProperty("lid").objectReferenceValue == null) result.Warnings.Add("WaffleIronView: не задана крышка — не будет видно, что вафля печётся");
+            if (so.FindProperty("steamPrefab").objectReferenceValue == null) result.Warnings.Add($"WaffleIronView: не задан пар (Prefabs/FX/Steam) — {fix}");
+        }
+
+        var table = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Kitchen/DecorTable.prefab");
+        var decor = table != null ? table.GetComponentInChildren<DecorStation>(true) : null;
+        if (decor == null) result.Errors.Add("Нет DecorStation в Prefabs/Kitchen/DecorTable");
+        else if (new SerializedObject(decor).FindProperty("layout").objectReferenceValue == null)
+            result.Errors.Add($"DecorStation: не задан DecorStationLayout — станция украшения не соберётся ({fix})");
+    }
+
+    // Арт: один PPU (размеры на столе согласованы) и место в папке сцены (иначе спрайт не попадёт в атлас)
+    private static void ValidateSprites(Result result)
+    {
+        foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { WaffleAtlasSetup.SpritesRoot }))
+        {
+            var path = AssetDatabase.GUIDToAssetPath(guid);
+            if (AssetImporter.GetAtPath(path) is not TextureImporter { textureType: TextureImporterType.Sprite } importer) continue;
+            var folder = path.Substring(WaffleAtlasSetup.SpritesRoot.Length + 1).Split('/')[0];
+            if (!WaffleAtlasSetup.SceneFolders.Contains(folder))
+            {
+                // FX и Generated — служебные (пар, круги-заглушки), у них свой размер
+                if (folder is not ("FX" or "Generated"))
+                    result.Warnings.Add($"{path}: спрайт вне папок сцен ({string.Join(", ", WaffleAtlasSetup.SceneFolders)}) — не попадёт в атлас");
+                continue;
+            }
+            if (!Mathf.Approximately(importer.spritePixelsPerUnit, WaffleAtlasSetup.ArtPixelsPerUnit))
+                result.Warnings.Add($"{path}: Pixels Per Unit {importer.spritePixelsPerUnit}, а у арта игры {WaffleAtlasSetup.ArtPixelsPerUnit} — размер на столе не совпадёт");
+        }
+    }
 
     // Слои отрисовки есть и стоят по порядку; спрайты кухни не остались в Default (их не будет видно как надо)
     private static void ValidateSorting(Result result)

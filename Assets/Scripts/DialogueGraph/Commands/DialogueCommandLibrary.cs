@@ -35,7 +35,7 @@ public class DialogueCommandLibrary : ScriptableObject
             return true;
         }
 
-        Debug.LogWarning($"Command not found: {name}");
+        Log.Warn($"Command not found: {name}");
         return false;
     }
 }

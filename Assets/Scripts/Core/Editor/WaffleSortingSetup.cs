@@ -22,7 +22,7 @@ public static class WaffleSortingSetup
     private const string DecorTablePath = KitchenPrefabs + "/DecorTable.prefab";
     private const string PackingTablePath = KitchenPrefabs + "/PackingTable.prefab";
     private const string StovePath = KitchenPrefabs + "/Stove.prefab";
-    private const string LookPath = "Assets/ScriptableObjects/Cooking/WaffleLook.asset";
+    public const string LookPath = "Assets/ScriptableObjects/Cooking/WaffleLook.asset";
 
     private static readonly string[] Stations =
         { "Bowl", "DecorBin", "EggTray", "FlourSack", "MilkBottle", "SaltShaker", "Stove", "SugarJar", "WhiskHook" };
@@ -198,7 +198,7 @@ public static class WaffleSortingSetup
             log.AppendLine($"✓ Создан {LookPath} — сюда класть картинки вафли (сбоку, сверху, по пропечке)");
         }
 
-        EditPrefab(StovePath, root => AssignLook(root.GetComponentInChildren<WaffleIronBake>(true), look), log, "вафельнице задан WaffleLook");
+        EditPrefab(StovePath, root => AssignLook(root.GetComponentInChildren<WaffleIronView>(true), look), log, "вафельнице задан WaffleLook");
         EditPrefab(DecorTablePath, root => AssignLook(root.GetComponentInChildren<DecorStation>(true), look), log, "станции украшения задан WaffleLook");
     }
 

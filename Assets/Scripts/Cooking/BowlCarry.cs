@@ -1,4 +1,4 @@
-using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -7,7 +7,8 @@ using UnityEngine.EventSystems;
 // (норма рецепта) и вафля сразу начинает печься. Миска возвращается на место для теста — из неё
 // можно испечь ещё вафлю (второе место для украшения, заказы на несколько вафель).
 // Отпустил мимо вафельницы или она занята — миска просто возвращается.
-public class BowlCarry : MonoBehaviour
+// Пока миску несут, она занимает кухню (KitchenAction.CarryBowl).
+public class BowlCarry : KitchenTool
 {
     [Header("Refs")]
     [Tooltip("Вафельница — куда тащим миску. Пусто — найдётся в сцене")]
@@ -63,9 +64,9 @@ public class BowlCarry : MonoBehaviour
     {
         get
         {
-            if (dragging || returning || CookingManager.Instance == null) return false;
-            var session = CookingManager.Instance.Current;
-            return session.IsMixed && !session.IsPacked && PourItem.Active == null && WhiskItem.Active == null;
+            if (dragging || returning) return false;
+            var session = Session;
+            return session is { IsMixed: true, IsPacked: false } && KitchenAction.CanBegin(KitchenActionKind.CarryBowl);
         }
     }
 
@@ -135,6 +136,7 @@ public class BowlCarry : MonoBehaviour
         StopWobble();
         dragging = true;
         GestureLock.Begin(this);
+        KitchenAction.Begin(this, KitchenActionKind.CarryBowl);
         SortLayer.Move(this, SortLayer.Held); // несомая миска — поверх плиты и вафельницы
         grabOffset = transform.position - GetPointerWorld();
         transform.localScale = baseScale * dragScale;
@@ -146,12 +148,7 @@ public class BowlCarry : MonoBehaviour
         transform.position = new Vector3(p.x, p.y, home.z);
 
         // У края экрана прокручиваем стол — так миска доезжает до плиты
-        if (tableScroller != null)
-        {
-            float x01 = Input.mousePosition.x / Mathf.Max(1f, Screen.width);
-            if (x01 > 1f - edgeScrollZone) tableScroller.ScrollBy(edgeScrollSpeed * Time.deltaTime);
-            else if (x01 < edgeScrollZone) tableScroller.ScrollBy(-edgeScrollSpeed * Time.deltaTime);
-        }
+        CarryHelper.EdgeScroll(tableScroller, edgeScrollZone, edgeScrollSpeed);
 
         if (!Input.GetMouseButton(0)) Drop(true);
     }
@@ -161,40 +158,35 @@ public class BowlCarry : MonoBehaviour
     {
         dragging = false;
         GestureLock.End(this);
+        KitchenAction.End(this);
 
         var center = bowlCollider != null ? bowlCollider.bounds.center : transform.position;
         if (canPour && waffleIron != null && waffleIron.IsInDropArea(center))
             TryPourInto(waffleIron);
 
-        StartCoroutine(ReturnHome());
+        ReturnHome();
     }
 
     // Миска над вафельницей: налить тесто и начать выпечку (или подсказать, почему нельзя)
     public bool TryPourInto(WaffleIronBake iron)
     {
         if (iron.StartFromBowl(out var reason)) return true;
-        Debug.Log($"[Bowl] вафельница не принимает тесто: {reason}");
+        Log.Info($"[Bowl] вафельница не принимает тесто: {reason}");
         LuckPopup.Show(reason, iron.transform.position + Vector3.up * 1.5f);
+        KitchenEvents.RaiseActionRefused(iron.transform.position);
         return false;
     }
 
     // Миска возвращается на место для теста (камера остаётся у плиты — там печётся вафля)
-    private IEnumerator ReturnHome()
+    private void ReturnHome()
     {
         returning = true;
-        var from = transform.position;
-        var fromScale = transform.localScale;
-        for (float t = 0f; t < returnTime; t += Time.deltaTime)
+        CarryHelper.ReturnTo(transform, home, baseScale, returnTime).OnComplete(() =>
         {
-            float k = Mathf.SmoothStep(0f, 1f, t / returnTime);
-            transform.position = Vector3.Lerp(from, home, k);
-            transform.localScale = Vector3.Lerp(fromScale, baseScale, k);
-            yield return null;
-        }
-        transform.SetPositionAndRotation(home, Quaternion.identity);
-        transform.localScale = baseScale;
-        SortLayer.Move(this, SortLayer.Stations);
-        returning = false;
+            transform.rotation = Quaternion.identity;
+            SortLayer.Move(this, SortLayer.Stations);
+            returning = false;
+        });
     }
 
     private void OnApplicationFocus(bool hasFocus)
@@ -205,6 +197,7 @@ public class BowlCarry : MonoBehaviour
     private void OnDestroy()
     {
         GestureLock.End(this);
+        KitchenAction.End(this);
     }
 
     // ---------- Ввод ----------
@@ -220,12 +213,5 @@ public class BowlCarry : MonoBehaviour
         return b.Contains(new Vector3(world.x, world.y, b.center.z));
     }
 
-    private Vector3 GetPointerWorld()
-    {
-        var p = Input.mousePosition;
-        p.z = -cam.transform.position.z;
-        var w = cam.ScreenToWorldPoint(p);
-        w.z = 0f;
-        return w;
-    }
+    private Vector3 GetPointerWorld() => CarryHelper.ScreenToWorld(cam);
 }

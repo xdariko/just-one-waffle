@@ -20,9 +20,16 @@ public class CookingSession
     public int MaxProducts { get; set; } = 1;
     public IReadOnlyList<WaffleProduct> Products => products;
 
-    // Вафля в вафельнице (налито тесто или печётся)
-    public WaffleProduct IronProduct => products.FirstOrDefault(p => p.State is WaffleProductState.InIron or WaffleProductState.Baking);
-    public WaffleProduct PlateProduct => products.FirstOrDefault(p => p.State == WaffleProductState.OnPlate);
+    // Вафля в вафельнице (налито тесто или печётся). Опрашивается каждый кадр (вафельница, миска) — без LINQ и аллокаций
+    public WaffleProduct IronProduct => FirstIn(WaffleProductState.InIron, WaffleProductState.Baking);
+    public WaffleProduct PlateProduct => FirstIn(WaffleProductState.OnPlate, WaffleProductState.OnPlate);
+
+    private WaffleProduct FirstIn(WaffleProductState a, WaffleProductState b)
+    {
+        for (int i = 0; i < products.Count; i++)
+            if (products[i].State == a || products[i].State == b) return products[i];
+        return null;
+    }
     public WaffleProduct Delivered { get; private set; }
     public WaffleProduct Focus => Delivered ?? IronProduct ?? (products.Count > 0 ? products[^1] : null);
 
@@ -30,9 +37,6 @@ public class CookingSession
     {
         OrderKey = orderKey;
     }
-
-    // Старый значок-порция сахара (PortionSourceClick) добавляет столько граммов за нажатие
-    public const float SugarPortionGrams = 12.5f;
 
     public int EggsAdded { get; private set; }
     public int PerfectEggs { get; private set; }
@@ -131,7 +135,7 @@ public class CookingSession
                 var product = IronProduct ?? StartProduct();
                 if (product == null)
                 {
-                    Debug.LogWarning("[Cooking] некуда наливать тесто: все места для вафель заняты");
+                    Log.Warn("[Cooking] некуда наливать тесто: все места для вафель заняты");
                     break;
                 }
                 product.BatterAmount = total;
@@ -148,14 +152,12 @@ public class CookingSession
     {
         switch (ingredient)
         {
-            case PortionIngredient.Sugar: SugarAmount += SugarPortionGrams; break;
             case PortionIngredient.Salt: SaltPortions++; break;
         }
     }
 
     public int GetPortions(PortionIngredient ingredient) => ingredient switch
     {
-        PortionIngredient.Sugar => Mathf.RoundToInt(SugarAmount / SugarPortionGrams),
         PortionIngredient.Salt => SaltPortions,
         _ => 0
     };
@@ -215,7 +217,7 @@ public class CookingSession
         foreach (var other in products.Where(p => p != product && p.State != WaffleProductState.Discarded))
         {
             other.State = WaffleProductState.Discarded;
-            Debug.Log($"[Cooking] {other.Name} не понадобилась — выброшена");
+            Log.Info($"[Cooking] {other.Name} не понадобилась — выброшена");
         }
         IsPacked = true;
         return true;

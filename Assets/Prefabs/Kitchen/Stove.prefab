@@ -509,6 +509,7 @@ GameObject:
   - component: {fileID: 154295177902961326}
   - component: {fileID: 3587699638865807321}
   - component: {fileID: 4985940376484635396}
+  - component: {fileID: 8583384558895647883}
   m_Layer: 0
   m_Name: WaffleIron
   m_TagString: Untagged
@@ -594,9 +595,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WaffleIronBake
   gauge: {fileID: 0}
-  lid: {fileID: 1375787214242717322}
-  platePoint: {fileID: 5877281024979183653}
-  wafflePrefab: {fileID: 0}
   decorStation: {fileID: 0}
   packingStation: {fileID: 0}
   dropPadding: 1.2
@@ -607,15 +605,29 @@ MonoBehaviour:
     greenMin: 0.425
     greenMax: 0.575
     yellowMax: 0.675
+--- !u!114 &8583384558895647883
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1952277426339489880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92906380c63b47c45a2e947f08a253a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaffleIronView
+  lid: {fileID: 1375787214242717322}
   lidOpenLift: 0.35
   lidOpenAngle: 18
   lidAnimTime: 0.2
   lidHintColor: {r: 1, g: 0.85, b: 0.4, a: 1}
-  steamInterval: 0.2
-  steamRise: 1.2
-  steamLife: 0.9
-  steamSize: 0.14
+  lidHintPeriod: 0.5
+  steamPrefab: {fileID: 3330747235617079490, guid: 977dfd02866075b4fa40f819a840c53d, type: 3}
+  steamColor: {r: 1, g: 1, b: 1, a: 0.8}
+  smokeColor: {r: 0.15, g: 0.15, b: 0.15, a: 0.9}
   look: {fileID: 11400000, guid: 3b347cdbe3be9ed438bab8a4c4c8992a, type: 2}
+  wafflePrefab: {fileID: 0}
 --- !u!1 &2353892171259598330
 GameObject:
   m_ObjectHideFlags: 0

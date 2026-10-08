@@ -1,15 +1,22 @@
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 // Клиент у стойки. Если у CustomerProfile есть спрайты — показывает их (3 мордочки: доволен/нейтрален/недоволен),
 // иначе — цветную заглушку с подписью настроения. Части собираются кодом, если не заданы.
+// Новый клиент появляется с отскоком, смена настроения — подпрыгиванием (DOTween).
 public class CustomerView : MonoBehaviour
 {
     [SerializeField] private Image body;
     [SerializeField] private TextMeshProUGUI face;
     [SerializeField] private TextMeshProUGUI nameLabel;
     [SerializeField] private Vector2 size = new(420f, 560f);
+    [SerializeField] private float appearTime = 0.4f;
+
+    private CustomerProfile shownCustomer;
+    private CustomerMood? shownMood;
+    private Tween anim;
 
     private void Awake()
     {
@@ -50,7 +57,12 @@ public class CustomerView : MonoBehaviour
     public void Show(CustomerProfile customer, CustomerMood? mood)
     {
         BuildParts();
+        bool appears = !gameObject.activeSelf || customer != shownCustomer;
+        bool moodChanged = !appears && mood != shownMood;
+        shownCustomer = customer;
+        shownMood = mood;
         gameObject.SetActive(true);
+        Animate(appears, moodChanged);
 
         var sprite = customer != null ? customer.SpriteFor(mood) : null;
         body.sprite = sprite;
@@ -70,6 +82,26 @@ public class CustomerView : MonoBehaviour
 
     public void Hide()
     {
+        anim?.Kill();
+        body.transform.localScale = Vector3.one;
+        shownCustomer = null;
         gameObject.SetActive(false);
+    }
+
+    private void Animate(bool appears, bool moodChanged)
+    {
+        var t = body.transform;
+        if (appears)
+        {
+            anim?.Kill();
+            t.localScale = new Vector3(0.85f, 0.6f, 1f);
+            anim = t.DOScale(1f, appearTime).SetEase(Ease.OutBack).SetLink(gameObject);
+        }
+        else if (moodChanged)
+        {
+            anim?.Kill();
+            t.localScale = Vector3.one;
+            anim = t.DOPunchScale(new Vector3(0.06f, 0.12f, 0f), 0.45f, 5).SetLink(gameObject);
+        }
     }
 }

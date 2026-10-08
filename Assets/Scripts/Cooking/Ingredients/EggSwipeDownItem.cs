@@ -4,6 +4,7 @@ using UnityEngine;
 
 // Яйцо над миской: игрок тянет его вниз и бьёт о край миски.
 // Результат зависит от скорости яйца в момент удара о край.
+// Пока яйцо над миской, оно занимает кухню (KitchenAction.Egg): венчик ждёт, второе яйцо не появится.
 public class EggSwipeDownItem : MonoBehaviour
 {
     public event Action<EggCrackResult> OnResolved;
@@ -48,6 +49,7 @@ public class EggSwipeDownItem : MonoBehaviour
 
     private void Awake()
     {
+        KitchenAction.Begin(this, KitchenActionKind.Egg);
         cam = Camera.main;
         // Спрайт — в дочернем Visual (на нём же можно держать Animator), корень двигает код
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
@@ -113,10 +115,13 @@ public class EggSwipeDownItem : MonoBehaviour
 
     private void Impact(float speed)
     {
-        Debug.Log($"[Egg] удар: скорость {speed:F1} (стук < {crackSpeed}, трещина < {cleanMinSpeed}, чисто <= {cleanMaxSpeed}, дальше — раздавили)");
+        Log.Info($"[Egg] удар: скорость {speed:F1} (стук < {crackSpeed}, трещина < {cleanMinSpeed}, чисто <= {cleanMaxSpeed}, дальше — раздавили)");
 
         if (speed < crackSpeed)
+        {
+            KitchenEvents.RaiseEggKnocked(transform.position);
             return;
+        }
 
         if (speed < cleanMinSpeed)
         {
@@ -125,6 +130,8 @@ public class EggSwipeDownItem : MonoBehaviour
 
             if (crackStage >= cracksToBreak)
                 Break(EggCrackResult.Good);
+            else
+                KitchenEvents.RaiseEggKnocked(transform.position);
             return;
         }
 
@@ -139,8 +146,9 @@ public class EggSwipeDownItem : MonoBehaviour
         float luck = GameStats.Get(StatId.EggShellSaveChance);
         if (luck > 0f && UnityEngine.Random.value < luck)
         {
-            Debug.Log($"[Egg] удача ({luck * 100f:F0}%): скорлупу поймали");
+            Log.Info($"[Egg] удача ({luck * 100f:F0}%): скорлупу поймали");
             LuckPopup.Show("Повезло! Скорлупу поймали", transform.position + Vector3.up * 0.8f);
+            KitchenEvents.RaiseLuckTriggered(transform.position);
             Break(EggCrackResult.Good);
             return;
         }
@@ -157,7 +165,8 @@ public class EggSwipeDownItem : MonoBehaviour
         if (effect != null)
             Instantiate(effect, transform.position, Quaternion.identity);
 
-        Debug.Log($"[Egg] результат: {result}");
+        Log.Info($"[Egg] результат: {result}");
+        KitchenEvents.RaiseEggCracked(result, transform.position);
         OnResolved?.Invoke(result);
         Destroy(gameObject);
     }
@@ -210,6 +219,7 @@ public class EggSwipeDownItem : MonoBehaviour
     private void OnDestroy()
     {
         GestureLock.End(this);
+        KitchenAction.End(this);
     }
 
     private void Update()
@@ -225,12 +235,7 @@ public class EggSwipeDownItem : MonoBehaviour
         }
     }
 
-    private Vector3 GetMouseWorld()
-    {
-        var p = Input.mousePosition;
-        p.z = -cam.transform.position.z;
-        return cam.ScreenToWorldPoint(p);
-    }
+    private Vector3 GetMouseWorld() => CarryHelper.ScreenToWorld(cam);
 
     // Окно потеряло фокус посреди жеста: OnMouseUp не придёт — яйцо возвращается само
     private void OnApplicationFocus(bool hasFocus)

@@ -9,10 +9,9 @@ using UnityEngine;
 //  - слева в красной (слишком вяло) — прогресса нет;
 //  - справа в красной (слишком резко) — прогресса нет и копится "перемешали" (штраф).
 // Прогресс дошёл до 100% — венчик уходит, считаем результат.
+// Пока венчик в миске, он занимает кухню (KitchenAction.Whisk): ни пакетов, ни яиц.
 public class WhiskItem : MonoBehaviour
 {
-    public static WhiskItem Active { get; private set; }
-
     // (результат, сколько секунд "перемешивали")
     public event Action<MixResult, float> OnResolved;
 
@@ -73,7 +72,7 @@ public class WhiskItem : MonoBehaviour
 
     private void Awake()
     {
-        Active = this;
+        KitchenAction.Begin(this, KitchenActionKind.Whisk);
         cam = Camera.main;
         baseScale = transform.localScale;
         transform.localScale = Vector3.zero;
@@ -93,7 +92,7 @@ public class WhiskItem : MonoBehaviour
         perfectMaxOvermix += grace;
         goodMaxOvermix += grace;
         if (widen > 0f || grace > 0f)
-            Debug.Log($"[Whisk] улучшение: зелёная зона {zones.greenMin:F2}–{zones.greenMax:F2}, допуск перемешивания +{grace:F1} с");
+            Log.Info($"[Whisk] улучшение: зелёная зона {zones.greenMin:F2}–{zones.greenMax:F2}, допуск перемешивания +{grace:F1} с");
 
         if (gauge != null) gauge.Show(zones, "Перемешивание 0%", showProgress: true);
     }
@@ -103,6 +102,7 @@ public class WhiskItem : MonoBehaviour
         if (finished) return;
         dragging = true;
         GestureLock.Begin(this);
+        KitchenEvents.RaiseWhiskStarted();
         dragOffset = (Vector2)(transform.position - GetMouseWorld());
     }
 
@@ -127,6 +127,7 @@ public class WhiskItem : MonoBehaviour
 
     private void StopDragging()
     {
+        if (dragging) KitchenEvents.RaiseWhiskStopped();
         dragging = false;
         GestureLock.End(this);
     }
@@ -195,17 +196,18 @@ public class WhiskItem : MonoBehaviour
             : overmixSeconds <= goodMaxOvermix ? MixResult.Good
             : MixResult.Bad;
 
-        Debug.Log($"[Whisk] перемешано, перемешивали {overmixSeconds:F1} с → {result}");
+        Log.Info($"[Whisk] перемешано, перемешивали {overmixSeconds:F1} с → {result}");
 
         if (gauge != null) gauge.Hide();
+        KitchenEvents.RaiseMixDone(result);
         OnResolved?.Invoke(result, overmixSeconds);
         Destroy(gameObject);
     }
 
     private void OnDestroy()
     {
-        GestureLock.End(this);
-        if (Active == this) Active = null;
+        StopDragging(); // уничтожили в руке (переход сцены) — звук венчика не должен остаться
+        KitchenAction.End(this);
     }
 
     private float GetStrokeWidth()
@@ -214,12 +216,7 @@ public class WhiskItem : MonoBehaviour
         return Mathf.Max(0.1f, bowlArea.bounds.size.x - bowlEdgePadding * 2f);
     }
 
-    private Vector3 GetMouseWorld()
-    {
-        var p = Input.mousePosition;
-        p.z = -cam.transform.position.z;
-        return cam.ScreenToWorldPoint(p);
-    }
+    private Vector3 GetMouseWorld() => CarryHelper.ScreenToWorld(cam);
 
     // Окно потеряло фокус посреди жеста: OnMouseUp не придёт — венчик отпускаем
     private void OnApplicationFocus(bool hasFocus)

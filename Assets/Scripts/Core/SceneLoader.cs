@@ -1,4 +1,5 @@
 using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -40,7 +41,7 @@ public class SceneLoader : MonoBehaviour
     {
         if (IsLoading)
         {
-            Debug.LogWarning($"[Scene] переход в {scene} пропущен: уже идёт другой переход");
+            Log.Warn($"[Scene] переход в {scene} пропущен: уже идёт другой переход");
             return false;
         }
         StartCoroutine(LoadRoutine(GameScenes.Name(scene)));
@@ -73,13 +74,9 @@ public class SceneLoader : MonoBehaviour
     private IEnumerator FadeTo(float target, float time)
     {
         if (fade == null) yield break;
-        float from = fade.alpha;
+        DOTween.Kill(fade);
         // Не зависит от Time.timeScale: пауза не должна замораживать переход
-        for (float t = 0f; t < time; t += Time.unscaledDeltaTime)
-        {
-            SetFade(Mathf.Lerp(from, target, t / time));
-            yield return null;
-        }
+        yield return fade.DOFade(target, time).SetEase(Ease.InOutQuad).SetUpdate(true).SetLink(gameObject).WaitForCompletion();
         SetFade(target);
     }
 

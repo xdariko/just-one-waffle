@@ -1,3 +1,4 @@
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -51,12 +52,7 @@ public class PlatedWaffle : MonoBehaviour
             return;
         }
 
-        if (returning)
-        {
-            transform.position = Vector3.MoveTowards(transform.position, rest, returnSpeed * Time.deltaTime);
-            if ((transform.position - rest).sqrMagnitude < 0.0001f) returning = false;
-            return;
-        }
+        if (returning) return;
 
         float k = 1f + Mathf.Sin(Time.time * pulseSpeed) * pulseScale;
         transform.localScale = new Vector3(baseScale.x * k, baseScale.y * k, baseScale.z);
@@ -70,6 +66,7 @@ public class PlatedWaffle : MonoBehaviour
         if (sent || cam == null) return;
         dragging = true;
         returning = false;
+        DOTween.Kill(transform);
         transform.localScale = baseScale;
         GestureLock.Begin(this);
         SortLayer.Move(this, SortLayer.Held); // в пальце — поверх всего на столе
@@ -83,12 +80,7 @@ public class PlatedWaffle : MonoBehaviour
         transform.position = PointerWorld() + grabOffset;
 
         // У края экрана прокручиваем стол — так вафля доезжает до станции украшения
-        if (scroller != null)
-        {
-            float x01 = Input.mousePosition.x / Mathf.Max(1f, Screen.width);
-            if (x01 > 1f - edgeScrollZone) scroller.ScrollBy(edgeScrollSpeed * Time.deltaTime);
-            else if (x01 < edgeScrollZone) scroller.ScrollBy(-edgeScrollSpeed * Time.deltaTime);
-        }
+        CarryHelper.EdgeScroll(scroller, edgeScrollZone, edgeScrollSpeed);
 
         if (!Input.GetMouseButton(0)) Release(true);
     }
@@ -115,7 +107,10 @@ public class PlatedWaffle : MonoBehaviour
                 return;
             }
         }
+        // Мимо — обратно на вафельницу
         returning = true;
+        float time = Mathf.Clamp(Vector3.Distance(transform.position, rest) / Mathf.Max(0.01f, returnSpeed), 0.1f, 0.5f);
+        CarryHelper.ReturnTo(transform, rest, baseScale, time).OnComplete(() => returning = false);
     }
 
     private void OnApplicationFocus(bool hasFocus)
@@ -135,12 +130,5 @@ public class PlatedWaffle : MonoBehaviour
         return tapArea != null ? tapArea.OverlapPoint(w) : Vector2.Distance(w, transform.position) < 1f;
     }
 
-    private Vector3 PointerWorld()
-    {
-        var p = Input.mousePosition;
-        p.z = -cam.transform.position.z;
-        var w = cam.ScreenToWorldPoint(p);
-        w.z = 0f;
-        return w;
-    }
+    private Vector3 PointerWorld() => CarryHelper.ScreenToWorld(cam);
 }

@@ -4,11 +4,9 @@ using UnityEngine;
 // Пакет муки / пакет молока над миской: держим палец — наклоняется и из него сыпется/льётся,
 // отпускаем — выпрямляется, после этого считаем результат.
 // Чем дольше держим, тем сильнее наклон и тем быстрее поток.
+// Пока пакет на экране, он занимает кухню (KitchenAction.Pour): второй пакет и венчик не появятся.
 public class PourItem : MonoBehaviour
 {
-    // Одновременно над миской может быть только один пакет (мука ИЛИ молоко)
-    public static PourItem Active { get; private set; }
-
     // (сколько всего в миске, оценка)
     public event Action<float, PourResult> OnResolved;
 
@@ -63,6 +61,8 @@ public class PourItem : MonoBehaviour
 
     // Пакет слева от миски — наклоняется вправо, справа — влево. Определяется в Initialize
     private bool tiltToRight;
+    private PourIngredient ingredient;
+    private bool flowing;
     private bool holding;
     private bool hasPoured;
     private bool resolved;
@@ -76,7 +76,7 @@ public class PourItem : MonoBehaviour
 
     private void Awake()
     {
-        Active = this;
+        KitchenAction.Begin(this, KitchenActionKind.Pour);
         // Спрайт — в дочернем Visual (на нём же можно держать Animator), корень наклоняет код
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         baseScale = transform.localScale;
@@ -90,8 +90,9 @@ public class PourItem : MonoBehaviour
     }
 
     // alreadyInBowl — сколько уже насыпали раньше (можно досыпать повторным нажатием на мешок)
-    public void Initialize(Collider2D bowl, PourGauge pourGauge, PourTarget pourTarget, float gaugeMax, float alreadyInBowl = 0f)
+    public void Initialize(PourIngredient what, Collider2D bowl, PourGauge pourGauge, PourTarget pourTarget, float gaugeMax, float alreadyInBowl = 0f)
     {
+        ingredient = what;
         bowlArea = bowl;
         gauge = pourGauge;
         target = pourTarget;
@@ -157,6 +158,7 @@ public class PourItem : MonoBehaviour
             hasPoured = true;
             if (gauge != null) gauge.SetAmount(poured);
         }
+        SetFlowing(flow > 0f);
 
         UpdateStreamVisual(flow);
 
@@ -184,19 +186,31 @@ public class PourItem : MonoBehaviour
     {
         resolved = true;
         var result = target.Evaluate(poured);
-        Debug.Log($"[Pour] {displayName}: {poured:F0} {unit} (цель {target.amount:F0} ±{target.greenTolerance:F0}/±{target.yellowTolerance:F0}) → {result}");
+        Log.Info($"[Pour] {displayName}: {poured:F0} {unit} (цель {target.amount:F0} ±{target.greenTolerance:F0}/±{target.yellowTolerance:F0}) → {result}");
 
         UpdateStreamVisual(0f);
         if (gauge != null) gauge.Hide();
 
+        SetFlowing(false);
+        KitchenEvents.RaisePourDone(ingredient, result);
         OnResolved?.Invoke(poured, result);
         Destroy(gameObject);
     }
 
+    // Поток пошёл / остановился — для звука струи
+    private void SetFlowing(bool value)
+    {
+        if (flowing == value) return;
+        flowing = value;
+        if (value) KitchenEvents.RaisePourStarted(ingredient);
+        else KitchenEvents.RaisePourStopped(ingredient);
+    }
+
     private void OnDestroy()
     {
+        SetFlowing(false); // уничтожили посреди струи (переход сцены) — звук не должен остаться
         GestureLock.End(this);
-        if (Active == this) Active = null;
+        KitchenAction.End(this);
         if (stream != null) Destroy(stream.gameObject);
     }
 

@@ -1,11 +1,11 @@
 using System.Collections;
 using UnityEngine;
 
-// Значок сахара/соли: одно нажатие — одна порция в миску.
+// Солонка: одно нажатие — одна порция соли в миску (сахар сыплется пакетом — PourSourceClick).
 // Для отклика значок "пружинит", а в миску падает щепотка крупинок (рисуются в коде, графика не нужна).
-public class PortionSourceClick : MonoBehaviour
+public class PortionSourceClick : KitchenTool
 {
-    [SerializeField] private PortionIngredient ingredient = PortionIngredient.Sugar;
+    [SerializeField] private PortionIngredient ingredient = PortionIngredient.Salt;
 
     [Header("Refs")]
     [SerializeField] private Collider2D bowlHitArea;
@@ -37,11 +37,11 @@ public class PortionSourceClick : MonoBehaviour
 
     public void AddPortion()
     {
-        var session = CookingManager.Instance.Current;
-        if (!session.CanUseBowl || WhiskItem.Active != null) return;
+        var session = Session;
+        if (session == null || !session.CanUseBowl || !KitchenAction.CanBegin(KitchenActionKind.Portion)) return;
 
         session.AddPortion(ingredient);
-        Debug.Log($"[Portion] {ingredient}: {session.GetPortions(ingredient)}");
+        Log.Info($"[Portion] {ingredient}: {session.GetPortions(ingredient)}");
 
         if (punchRoutine != null) StopCoroutine(punchRoutine);
         punchRoutine = StartCoroutine(Punch());

@@ -205,6 +205,7 @@ public class DialogueManager : MonoBehaviour
         {
             // Защита от двойного нажатия: после первого клика все кнопки этой реплики выключаются
             if (!button.interactable) return;
+            UiEvents.RaiseButtonClicked();
             foreach (var b in buttons)
                 if (b != null) b.interactable = false;
             onClick?.Invoke();
@@ -226,7 +227,7 @@ public class DialogueManager : MonoBehaviour
     {
         if (commandLibrary == null || !commandLibrary.Execute(command))
         {
-            Debug.LogWarning($"Failed to execute command: {command}");
+            Log.Warn($"Failed to execute command: {command}");
         }
     }
 }

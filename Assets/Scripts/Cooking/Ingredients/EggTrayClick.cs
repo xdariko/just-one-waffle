@@ -1,6 +1,6 @@
-﻿using UnityEngine;
+using UnityEngine;
 
-public class EggTrayClick : MonoBehaviour
+public class EggTrayClick : KitchenTool
 {
     [Header("Refs")]
     [SerializeField] private EggSwipeDownItem eggPrefab;
@@ -8,12 +8,6 @@ public class EggTrayClick : MonoBehaviour
     [SerializeField] private Collider2D bowlHitArea;
 
     private EggSwipeDownItem currentEgg;
-    private Camera cam;
-
-    private void Awake()
-    {
-        cam = Camera.main;
-    }
 
     private void OnMouseDown()
     {
@@ -22,15 +16,16 @@ public class EggTrayClick : MonoBehaviour
 
     public void SpawnEgg()
     {
-        if (currentEgg != null) return;
-        if (!CookingManager.Instance.Current.CanUseBowl || WhiskItem.Active != null) return;
+        var session = Session;
+        if (currentEgg != null || session == null) return;
+        if (!session.CanUseBowl || !KitchenAction.CanBegin(KitchenActionKind.Egg)) return;
 
         currentEgg = Instantiate(eggPrefab, eggSpawnPoint.position, Quaternion.identity);
         currentEgg.Initialize(bowlHitArea);
 
         currentEgg.OnResolved += result =>
         {
-            CookingManager.Instance.Current.AddEgg(result);
+            session.AddEgg(result);
             currentEgg = null;
         };
     }

@@ -3,7 +3,7 @@ using UnityEngine.Serialization;
 
 // Мешок муки / бутылка молока / половник: по нажатию над целью (миска или вафельница) появляется пакет,
 // рядом — шкала, сколько нужно насыпать/налить.
-public class PourSourceClick : MonoBehaviour
+public class PourSourceClick : KitchenTool
 {
     [SerializeField] private PourIngredient ingredient = PourIngredient.Flour;
 
@@ -36,19 +36,19 @@ public class PourSourceClick : MonoBehaviour
     public void Spawn()
     {
         // Уже что-то сыпется/льётся (этот или другой ингредиент) или мешаем венчиком
-        if (current != null || PourItem.Active != null || WhiskItem.Active != null) return;
+        var session = Session;
+        if (current != null || session == null || !KitchenAction.CanBegin(KitchenActionKind.Pour)) return;
 
         // Мука/молоко — только пока миска на столе, тесто — только когда она перемешана и у плиты
-        var session = CookingManager.Instance.Current;
         if (!session.CanPour(ingredient)) return;
 
         current = Instantiate(pourPrefab, spawnPoint.position, Quaternion.identity);
-        var recipe = CookingManager.Instance.CurrentRecipe;
+        var recipe = Kitchen.CurrentRecipe;
         // Улучшение "Мерная посуда" расширяет зоны (то же расширение использует оценка — RecipeScoring)
         var pourTarget = GameStats.WidenPour(recipe != null ? recipe.GetPourTarget(ingredient) : target);
         // Шкала должна вмещать жёлтую зону рецепта с запасом
         float max = Mathf.Max(gaugeMax, pourTarget.YellowMax * 1.3f);
-        current.Initialize(bowlHitArea, gauge, pourTarget, max, session.GetPoured(ingredient));
+        current.Initialize(ingredient, bowlHitArea, gauge, pourTarget, max, session.GetPoured(ingredient));
 
         current.OnResolved += (total, result) =>
         {
