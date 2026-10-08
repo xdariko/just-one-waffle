@@ -13,7 +13,7 @@ using UnityEngine.EventSystems;
 //  - сними выбор (нажми выбранную ячейку ещё раз), зажми вафлю и тащи к коробке: у края экрана стол сам
 //    прокручивается. Отпустил над коробкой — вафля упаковывается (если она для текущего заказа), мимо — возвращается.
 // Здесь — приём вафли, выбор ячейки, перенос и упаковка; ввод — старый Input, как во всех мини-играх кухни.
-public class DecorStation : MonoBehaviour
+public class DecorStation : KitchenTool
 {
     [Header("Refs")]
     [Tooltip("Центр рабочей области (двигается раскладкой)")]
@@ -93,7 +93,7 @@ public class DecorStation : MonoBehaviour
     private void Start()
     {
         // Сколько вафель можно испечь из миски = сколько мест построено
-        var session = CookingManager.Instance != null ? CookingManager.Instance.Current : null;
+        var session = Session;
         if (session != null && session.Products.Count == 0) session.MaxProducts = slots.Count;
     }
 
@@ -302,12 +302,7 @@ public class DecorStation : MonoBehaviour
         waffle.transform.position = world;
 
         // У края экрана прокручиваем стол — так можно донести вафлю до упаковки
-        if (tableScroller != null)
-        {
-            float x01 = Input.mousePosition.x / Mathf.Max(1f, Screen.width);
-            if (x01 > 1f - edgeScrollZone) tableScroller.ScrollBy(edgeScrollSpeed * Time.deltaTime);
-            else if (x01 < edgeScrollZone) tableScroller.ScrollBy(-edgeScrollSpeed * Time.deltaTime);
-        }
+        CarryHelper.EdgeScroll(tableScroller, edgeScrollZone, edgeScrollSpeed);
 
         if (!Input.GetMouseButton(0)) EndDrag(true);
     }
@@ -366,7 +361,7 @@ public class DecorStation : MonoBehaviour
     // Донесли до коробки: проверяем, что вафля для текущего заказа, фиксируем украшение и отдаём упаковке
     private bool TryPack(DecorSlot slot)
     {
-        var manager = CookingManager.Instance;
+        var manager = Kitchen;
         if (manager == null) return false;
         var product = slot.Product;
         if (manager.Current.IsPacked)
@@ -404,14 +399,7 @@ public class DecorStation : MonoBehaviour
     // Для прогонов проверки: отдать вафлю с места без жеста
     public bool PackSlotForTest(int slot) => slot >= 0 && slot < slots.Count && slots[slot].Waffle != null && TryPack(slots[slot]);
 
-    private Vector3 GetPointerWorld()
-    {
-        var p = Input.mousePosition;
-        p.z = -cam.transform.position.z;
-        var w = cam.ScreenToWorldPoint(p);
-        w.z = 0f;
-        return w;
-    }
+    private Vector3 GetPointerWorld() => CarryHelper.ScreenToWorld(cam);
 
     private static bool IsPointerOverUI() =>
         EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
