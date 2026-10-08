@@ -8,12 +8,6 @@ public class EggTrayClick : KitchenTool
     [SerializeField] private Collider2D bowlHitArea;
 
     private EggSwipeDownItem currentEgg;
-    private Camera cam;
-
-    private void Awake()
-    {
-        cam = Camera.main;
-    }
 
     private void OnMouseDown()
     {
