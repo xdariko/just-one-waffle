@@ -38,6 +38,7 @@ public static class WaffleUiSetup
         Build(PausePanelPath, "PausePanel", BuildPausePanel, rebuild, log);
         EnsurePatienceBar(log);
         EnsurePauseButton(log);
+        EnsureTutorialHint(log);
         RemovePauseCalmToggle(log);
     }
 
@@ -348,7 +349,65 @@ public static class WaffleUiSetup
         Set(view, ("bar", bar), ("status", status), ("ticket", ticket), ("ticketText", ticketText));
         AddPatienceBar(view, ticket);
         AddPauseButton(view, root, bar);
+        AddTutorialHint(view, safe);
         Set(root.AddComponent<DayHud>(), ("view", view));
+    }
+
+    // Обучение: подсказка слева под полоской (рядом с тикетом заказа) с кнопкой "Пропустить"
+    // и маркер-ромб, который DayHudView ставит над нужным предметом кухни
+    private static void AddTutorialHint(DayHudView view, RectTransform safe)
+    {
+        var hint = ImageRect("Hint", safe, theme.ticket, theme.panelSprite);
+        hint.anchorMin = hint.anchorMax = hint.pivot = new Vector2(0f, 1f);
+        hint.anchoredPosition = new Vector2(20f, -76f);
+        hint.sizeDelta = new Vector2(1300f, 116f);
+        var text = Label("Text", hint, 26f, theme.ink);
+        text.textWrappingMode = TextWrappingModes.Normal;
+        text.alignment = TextAlignmentOptions.TopLeft;
+        Stretch(text.rectTransform, 16f, 10f, 226f, 10f);
+
+        var skip = ButtonInstance("Skip", hint, "Пропустить");
+        var srt = (RectTransform)skip.transform;
+        srt.anchorMin = srt.anchorMax = srt.pivot = new Vector2(1f, 0.5f);
+        srt.sizeDelta = new Vector2(196f, 60f);
+        srt.anchoredPosition = new Vector2(-14f, 0f);
+        skip.GetComponentInChildren<TMP_Text>().fontSize = 24f;
+
+        var marker = ImageRect("Marker", safe, theme.info, null);
+        marker.anchorMin = marker.anchorMax = marker.pivot = new Vector2(0.5f, 0.5f);
+        marker.sizeDelta = new Vector2(46f, 46f);
+        marker.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        var core = ImageRect("Core", marker, Color.white, null);
+        Stretch(core, 12f, 12f, 12f, 12f);
+
+        Set(view, ("hint", hint), ("hintText", text), ("hintSkip", skip), ("marker", marker));
+    }
+
+    // Префаб HUD собран до появления обучения — добавить только подсказку и маркер
+    private static void EnsureTutorialHint(StringBuilder log)
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(DayHudPath);
+        var existing = prefab != null ? prefab.GetComponentInChildren<DayHudView>(true) : null;
+        if (existing == null || new SerializedObject(existing).FindProperty("hint").objectReferenceValue != null) return;
+
+        var root = PrefabUtility.LoadPrefabContents(DayHudPath);
+        try
+        {
+            var view = root.GetComponentInChildren<DayHudView>(true);
+            var bar = new SerializedObject(view).FindProperty("bar").objectReferenceValue as RectTransform;
+            if (bar == null || bar.parent == null)
+            {
+                log.AppendLine($"✗ {DayHudPath}: у DayHudView не задан bar — подсказка обучения не добавлена");
+                return;
+            }
+            AddTutorialHint(view, (RectTransform)bar.parent);
+            PrefabUtility.SaveAsPrefabAsset(root, DayHudPath, out bool saved);
+            log.AppendLine(saved ? $"✓ {DayHudPath}: добавлены подсказка и маркер обучения" : $"✗ Не удалось сохранить {DayHudPath}");
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
     }
 
     // Справа в полоске — кнопка паузы; текст статуса под неё не заходит

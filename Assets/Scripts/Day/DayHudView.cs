@@ -19,7 +19,17 @@ public class DayHudView : MonoBehaviour
     [Header("Пауза (кнопка в полоске — единственное, что в HUD ловит клики)")]
     [SerializeField] private UiButtonView pauseButton;
 
+    [Header("Обучение: подсказка под полоской и маркер над предметом кухни")]
+    [SerializeField] private RectTransform hint;
+    [SerializeField] private TMP_Text hintText;
+    [SerializeField] private UiButtonView hintSkip;
+    [SerializeField] private RectTransform marker;
+
     public event System.Action PauseClicked;
+    public event System.Action SkipHintClicked;
+
+    public string HintText => hint != null && hint.gameObject.activeSelf ? hintText.text : "";
+    public bool MarkerShown => marker != null && marker.gameObject.activeSelf;
 
     private Vector2 ticketHome;
     private Tween ticketTween;
@@ -32,6 +42,42 @@ public class DayHudView : MonoBehaviour
         bar.gameObject.SetActive(false);
         ticket.gameObject.SetActive(false);
         if (pauseButton != null) pauseButton.Button.onClick.AddListener(() => PauseClicked?.Invoke());
+        if (hintSkip != null) hintSkip.Button.onClick.AddListener(() => SkipHintClicked?.Invoke());
+        if (hint != null) hint.gameObject.SetActive(false);
+        if (marker != null) marker.gameObject.SetActive(false);
+    }
+
+    // Подсказка обучения; пусто — спрятать. Новый текст — подсказка вздрагивает, чтобы её заметили
+    public void SetHint(string text)
+    {
+        if (hint == null) return;
+        bool visible = !string.IsNullOrEmpty(text);
+        if (hint.gameObject.activeSelf != visible) hint.gameObject.SetActive(visible);
+        if (!visible) return;
+        hintText.text = text;
+        hint.DOKill();
+        hint.localScale = Vector3.one;
+        hint.DOPunchScale(Vector3.one * 0.04f, 0.3f, 6).SetUpdate(true).SetLink(gameObject);
+    }
+
+    // Маркер над предметом кухни: screenPoint — точка на экране (null — спрятать).
+    // Предмет за краем экрана (стол прокручен) — маркер прижимается к краю и показывает, куда листать
+    public void SetMarker(Vector2? screenPoint)
+    {
+        if (marker == null) return;
+        bool visible = screenPoint != null;
+        if (marker.gameObject.activeSelf != visible) marker.gameObject.SetActive(visible);
+        if (!visible) return;
+
+        var parent = (RectTransform)marker.parent;
+        const float margin = 70f;
+        var p = screenPoint.Value;
+        p.x = Mathf.Clamp(p.x, margin, Screen.width - margin);
+        p.y = Mathf.Clamp(p.y, margin, Screen.height - margin * 2f);
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, p, null, out var local)) return;
+        // Покачивается над предметом, не зависит от паузы
+        float bob = Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4f)) * 18f;
+        marker.anchoredPosition = local + new Vector2(0f, 46f + bob);
     }
 
     public void SetStatus(string text)

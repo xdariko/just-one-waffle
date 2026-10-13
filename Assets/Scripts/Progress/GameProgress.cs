@@ -71,6 +71,9 @@ public class SaveData
     public List<RecipeEntry> recipeBook = new();
     // Довольных клиентов подряд на конец последней закрытой смены
     public int happyStreak;
+
+    // Обучение первого дня пройдено или пропущено — больше не показывается
+    public bool tutorialDone;
 }
 
 // Изменения сюжета за смену. Попадают в сохранение вместе с деньгами — в CommitShift.
@@ -94,7 +97,7 @@ public class StoryStage
 // Перед записью проверяется, что JSON читается обратно.
 public class GameProgress
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     private const string FileName = "progress.json";
 
     private static GameProgress current;
@@ -198,6 +201,11 @@ public class GameProgress
             // в EnsureInitialized (флаг startingMoneyGranted ещё не стоит)
             notes.Add($"сохранение версии {data.version} обновлено до {CurrentVersion}");
         }
+        if (data.version < 2 && (data.lastCommittedDay > 0 || data.day > 1))
+        {
+            // v1 — до появления обучения: тот, кто уже отработал смену, в нём не нуждается
+            data.tutorialDone = true;
+        }
         if (data.version > CurrentVersion)
             notes.Add($"сохранение более новой версии ({data.version}) — неизвестные поля будут потеряны при записи");
 
@@ -269,6 +277,15 @@ public class GameProgress
     {
         Data.money -= price;
         Data.calmTokens++;
+        Save();
+        Changed?.Invoke();
+    }
+
+    // Обучение закончено (пройдено или пропущено) — запоминаем сразу, не дожидаясь конца смены
+    public void SetTutorialDone()
+    {
+        if (Data.tutorialDone) return;
+        Data.tutorialDone = true;
         Save();
         Changed?.Invoke();
     }

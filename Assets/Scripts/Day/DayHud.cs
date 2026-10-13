@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 // Что показывает HUD дня (DayHudView): день, оставшееся время, сколько обслужили, кошелёк,
 // а на кухне — что заказал клиент (его же словами, без подсказок о требованиях) и сколько у него осталось терпения.
@@ -17,12 +18,98 @@ public class DayHud : MonoBehaviour
 
     private void Awake()
     {
-        if (view != null) view.PauseClicked += OpenPause;
+        if (view == null) return;
+        view.PauseClicked += OpenPause;
+        view.SkipHintClicked += SkipTutorial;
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void OnDestroy()
     {
-        if (view != null) view.PauseClicked -= OpenPause;
+        if (view == null) return;
+        view.PauseClicked -= OpenPause;
+        view.SkipHintClicked -= SkipTutorial;
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private static void SkipTutorial()
+    {
+        if (DayRunner.Instance != null) DayRunner.Instance.SkipTutorial();
+    }
+
+    // ---------- Обучение: подсказка и маркер над нужным предметом кухни ----------
+
+    private string shownHint;
+    private TutorialTarget targetKind;
+    private Transform target;
+    private bool kitchen;
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        kitchen = scene.name == GameScenes.Name(GameScene.Kitchen);
+        targetKind = TutorialTarget.None;
+        target = null;
+    }
+
+    private void UpdateTutorial(DayRunner day)
+    {
+        var cooking = CookingManager.Instance;
+        var hint = Tutorial.Current(day, kitchen, cooking != null ? cooking.Current : null, cooking != null ? cooking.CurrentRecipe : null);
+        if (hint.Text != shownHint)
+        {
+            shownHint = hint.Text;
+            view.SetHint(hint.Text);
+        }
+
+        if (hint.Target != targetKind || (hint.Target != TutorialTarget.None && target == null))
+        {
+            targetKind = hint.Target;
+            target = FindTarget(targetKind);
+        }
+        var cam = Camera.main;
+        if (target == null || cam == null) view.SetMarker(null);
+        else view.SetMarker((Vector2)cam.WorldToScreenPoint(TopOf(target)));
+    }
+
+    // Предмет кухни, на который показывает подсказка. Сцена стойки — целей нет
+    private static Transform FindTarget(TutorialTarget kind)
+    {
+        Transform Of<T>() where T : Component
+        {
+            var found = FindAnyObjectByType<T>();
+            return found != null ? found.transform : null;
+        }
+
+        Transform Pour(PourIngredient ingredient)
+        {
+            foreach (var source in FindObjectsByType<PourSourceClick>(FindObjectsSortMode.None))
+                if (source.Ingredient == ingredient) return source.transform;
+            return null;
+        }
+
+        return kind switch
+        {
+            TutorialTarget.EggTray => Of<EggTrayClick>(),
+            TutorialTarget.Flour => Pour(PourIngredient.Flour),
+            TutorialTarget.Milk => Pour(PourIngredient.Milk),
+            TutorialTarget.Sugar => Pour(PourIngredient.Sugar),
+            TutorialTarget.Salt => Of<PortionSourceClick>(),
+            TutorialTarget.Whisk => Of<WhiskClick>(),
+            TutorialTarget.Bowl => Of<BowlCarry>(),
+            TutorialTarget.Iron => Of<WaffleIronBake>(),
+            TutorialTarget.DecorStation => Of<DecorStation>(),
+            TutorialTarget.Packing => Of<PackingStation>(),
+            _ => null
+        };
+    }
+
+    // Точка над предметом: верх его коллайдера (или сам предмет, если коллайдера нет)
+    private static Vector3 TopOf(Transform t)
+    {
+        var collider = t.GetComponentInChildren<Collider2D>();
+        if (collider == null) return t.position;
+        var b = collider.bounds;
+        return new Vector3(b.center.x, b.max.y, t.position.z);
     }
 
     private static void OpenPause()
@@ -34,9 +121,10 @@ public class DayHud : MonoBehaviour
     {
         var day = DayRunner.Instance;
         if (day == null || view == null) return;
+        UpdateTutorial(day);
 
         // В спокойный день таймера нет — вместо секунд следим за номером клиента
-        int clock = day.CalmDay ? day.RegularsToday : Mathf.CeilToInt(day.TimeLeft);
+        int clock = day.TutorialActive ? -1 : day.CalmDay ? day.RegularsToday : Mathf.CeilToInt(day.TimeLeft);
         var status = (day.Day, day.Phase, clock, day.TimeUp, day.Served.Count, day.Progress.Money, day.Ledger.TotalMoney);
         if (status != shownStatus)
         {
@@ -73,6 +161,8 @@ public class DayHud : MonoBehaviour
         // Заработок смены копится и попадёт в кошелёк в конце дня
         var money = $"Кошелёк {day.Progress.Money}   ·   за смену +{day.Ledger.TotalMoney}";
         if (day.Goals.Count > 0) money += $"   ·   Цели: {day.GoalsDone}/{day.Goals.Count}";
+        if (day.TutorialActive)
+            return $"День {day.Day}   ·   Обучение: время не идёт   ·   Обслужено: {day.Served.Count}   ·   {money}";
         // Спокойный день: вместо таймера — сколько обычных клиентов уже пришло
         if (day.CalmDay)
             return day.TimeUp

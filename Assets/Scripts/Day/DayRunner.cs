@@ -49,6 +49,12 @@ public class DayRunner : MonoBehaviour
     public float Clock { get; private set; }
     public float Duration => settings != null ? settings.dayDurationSeconds : 0f;
     public float TimeLeft => Mathf.Max(0f, Duration - Clock);
+    // Обучение: первые Tutorial.Orders заказов первого дня новой игры. Пока оно идёт, время смены стоит,
+    // клиенты не торопят; целей дня в такой день нет. Подсказки показывает DayHud (Tutorial.Current)
+    public bool TutorialPending => Day == 1 && !Progress.Data.tutorialDone;
+    public int TutorialOrdersLeft { get; private set; }
+    public bool TutorialActive => TutorialOrdersLeft > 0;
+
     // Спокойный день — бонус на одну смену за жетон (покупается в магазине, выдаётся за уровень репутации):
     // таймера и терпения нет, "время вышло" наступает, когда пришло CalmCustomers обычных клиентов.
     // CalmRequested — игрок выбрал его на экране "День N"; CalmDay — идущая смена спокойная.
@@ -152,6 +158,7 @@ public class DayRunner : MonoBehaviour
     {
         goals.Clear();
         announcedGoals.Clear();
+        if (TutorialPending) return; // в день обучения игроку хватает и кухни
         int seed = unchecked(Day * 73856093 ^ (int)Progress.Data.totalEarned * 19349663);
         goals.AddRange(DayGoals.Pick(settings, Day, ReputationLevel, Availability, seed, CalmRequested));
         if (goals.Count > 0) Log.Info($"[Day] цели дня {Day}: {string.Join("; ", goals.Select(g => g.Title))}");
@@ -182,6 +189,8 @@ public class DayRunner : MonoBehaviour
     {
         if (Phase is not (DayPhase.Ordering or DayPhase.Cooking or DayPhase.Reaction) || dt <= 0f) return;
 
+        if (TutorialActive) return; // обучение: время смены стоит, клиент не ждёт
+
         bool wasUp = TimeUp;
         Clock += dt;
         if (Phase == DayPhase.Cooking && Current != null) Current.Waited += dt;
@@ -210,6 +219,7 @@ public class DayRunner : MonoBehaviour
         ClearDayState();
         CalmDay = CalmRequested && Progress.CalmTokens > 0;
         CalmRequested = false;
+        TutorialOrdersLeft = TutorialPending ? Tutorial.Orders : 0;
         // Что можно приготовить сегодня: покупки между сменами действуют с этого дня
         Availability = OrderAvailability.FromProgress(Progress, settings.Database, settings.rules);
         visits.BeginDay(settings, Day, Availability, ReputationLevel);
@@ -370,9 +380,28 @@ public class DayRunner : MonoBehaviour
     public bool FinishVisit()
     {
         if (Phase != DayPhase.Reaction) return false;
+        // Учебный заказ закончился вместе с реакцией клиента; после последнего обучение завершено
+        if (TutorialActive && Current != null && !Current.IsNoCooking && --TutorialOrdersLeft == 0) EndTutorial();
         Current = null;
         NextCustomer();
         return true;
+    }
+
+    // Игрок нажал "Пропустить" в подсказке: дальше обычная смена
+    public void SkipTutorial()
+    {
+        if (!TutorialActive) return;
+        TutorialOrdersLeft = 0;
+        EndTutorial();
+        Changed?.Invoke();
+    }
+
+    private void EndTutorial()
+    {
+        Progress.SetTutorialDone();
+        // Клиент, который уже у стойки или ждёт на кухне, начинает ждать как обычный — с полным запасом терпения
+        if (Current != null && Phase is DayPhase.Ordering or DayPhase.Cooking) SetPatience(Current);
+        Log.Info("[Day] обучение закончено: время смены пошло");
     }
 
     public bool StartNextDay()
@@ -400,6 +429,7 @@ public class DayRunner : MonoBehaviour
         Ledger = new ShiftLedger(Day);
         stories.Clear();
         announcedGoals.Clear();
+        TutorialOrdersLeft = 0;
         noRegulars = false;
         RegularsToday = 0;
     }
@@ -448,12 +478,18 @@ public class DayRunner : MonoBehaviour
     private void SetCurrent(CustomerVisit visit)
     {
         Current = visit;
-        // Торопят только те, кто платит: у бесплатной просьбы чаевых нет, терять нечего
-        bool tips = !visit.IsNoCooking && (visit.Story == null || visit.Story.paysForOrder);
-        visit.PatienceSeconds = tips && !CalmDay && Economy != null ? Economy.PatienceOf(visit.Customer) : 0f;
+        SetPatience(visit);
         Phase = DayPhase.Ordering;
         Log.Info($"[Day] пришёл клиент {visit}");
         Changed?.Invoke();
+    }
+
+    // Торопят только те, кто платит: у бесплатной просьбы чаевых нет, терять нечего.
+    // В спокойный день и на учебных заказах не торопит никто
+    private void SetPatience(CustomerVisit visit)
+    {
+        bool tips = !visit.IsNoCooking && (visit.Story == null || visit.Story.paysForOrder);
+        visit.PatienceSeconds = tips && !CalmDay && !TutorialActive && Economy != null ? Economy.PatienceOf(visit.Customer) : 0f;
     }
 
     private void EndDay()

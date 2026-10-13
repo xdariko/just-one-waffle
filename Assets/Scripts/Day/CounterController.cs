@@ -87,6 +87,18 @@ public class CounterController : MonoBehaviour
             case DayPhase.BeforeDay:
                 dialogue.Hide();
                 customerView.Hide();
+                if (runner.TutorialPending)
+                {
+                    // Новая игра: без репутации и целей — сначала кухня
+                    panel.Show("Добро пожаловать!",
+                        "Это твоя вафельная. Клиенты приходят по одному: выслушай заказ, приготовь вафлю на кухне и отдай её.\n\n" +
+                        $"Первые {Tutorial.Orders} заказа — учебные: время смены не идёт, никто не торопит, а подсказки сверху экрана " +
+                        "показывают, что делать. Их можно пропустить кнопкой в подсказке.\n\n" +
+                        $"Кошелёк: <b>{EconomySettings.Money(runner.Progress.Money)}</b>. Заработок смены поступит в кошелёк в конце дня, " +
+                        "а между сменами работает магазин.",
+                        BeforeDayButtons());
+                    break;
+                }
                 panel.Show($"День {runner.Day}",
                     (runner.CalmRequested
                         ? $"{Theme.Paint("Спокойный день", UiTone.Info)}: таймера нет, смена — {runner.CalmCustomers} посетителей, и никто не торопит. " +
