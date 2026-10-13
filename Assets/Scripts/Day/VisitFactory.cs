@@ -6,6 +6,7 @@ using UnityEngine;
 // подбирает реплики заказа, уточнения, реакции и прощания. Чистый класс без сцены: решает только "что",
 // а "когда" — DayRunner (фазы) и StoryScheduler (сюжетные очереди).
 //  - заказ выбирается только выполнимый сегодня (OrderAvailability: открытые ингредиенты и оборудование);
+//  - заказы и обычные клиенты с fromReputation выше текущего уровня репутации пока не приходят;
 //  - реплика и уточнение берутся из одного OrderPhrasing — они согласованы между собой и с заказом;
 //  - сюжетный визит, заказ которого сейчас не приготовить, берёт fallbackOrder или откладывается (null).
 public class VisitFactory
@@ -14,15 +15,20 @@ public class VisitFactory
     private DaySettings settings;
     private OrderAvailability availability;
     private int day;
+    private int reputation = 1; // уровень репутации на начало дня
     private int visitCounter;
     private CustomerProfile lastRegular; // между днями тоже: один и тот же клиент не приходит дважды подряд
 
+    // Множитель веса заказа при случайном выборе (цели дня подталкивают нужные заказы). Пусто — веса как в данных
+    public System.Func<WaffleOrder, float> WeightBoost { get; set; }
+
     // Новый день: номера визитов с 1, повторяющиеся предупреждения снова пишутся в лог
-    public void BeginDay(DaySettings daySettings, int dayNumber, OrderAvailability today)
+    public void BeginDay(DaySettings daySettings, int dayNumber, OrderAvailability today, int reputationLevel = 1)
     {
         settings = daySettings;
         day = dayNumber;
         availability = today;
+        reputation = reputationLevel;
         visitCounter = 0;
         loggedErrors.Clear();
     }
@@ -37,7 +43,7 @@ public class VisitFactory
 
         foreach (var t in settings.orders.Where(t => t != null).Distinct())
         {
-            if (t.fromDay > day || t.weight <= 0f) continue;
+            if (t.fromDay > day || t.fromReputation > reputation || t.weight <= 0f) continue;
             if (WaffleOrder.Create(t, db, out var error) == null)
             {
                 LogOnce($"[Day] заказ {t.id} пропущен: {error}");
@@ -63,12 +69,14 @@ public class VisitFactory
         }
         if (options.Count == 0) return null;
 
-        float total = options.Sum(o => o.template.weight);
+        float Weight(WaffleOrder order) => order.Template.weight * Mathf.Max(0f, WeightBoost?.Invoke(order) ?? 1f);
+
+        float total = options.Sum(o => Weight(o.order));
         float roll = Random.value * total;
         var pick = options[^1];
         foreach (var o in options)
         {
-            roll -= o.template.weight;
+            roll -= Weight(o.order);
             if (roll <= 0f) { pick = o; break; }
         }
 
@@ -98,7 +106,9 @@ public class VisitFactory
 
     private CustomerProfile PickRegularCustomer()
     {
-        var customers = settings.regularCustomers.Where(c => c != null).ToList();
+        var all = settings.regularCustomers.Where(c => c != null).ToList();
+        var customers = all.Where(c => c.fromReputation <= reputation).ToList();
+        if (customers.Count == 0) customers = all; // все закрыты репутацией — ошибка данных, но клиент всё равно приходит
         if (customers.Count > 1) customers.Remove(lastRegular);
         var customer = customers.Count > 0 ? customers[Random.Range(0, customers.Count)] : null;
         lastRegular = customer;
@@ -185,6 +195,33 @@ public class VisitFactory
         };
     }
 
+    // Замечания после реплики-реакции: про самый заметный дефект вафли (или что придраться не к чему) и про ожидание.
+    // Про вафлю — только если заказ выполнен: при нарушении клиент и так говорит, что не то. Пусто — сказать нечего
+    public string Remarks(CustomerVisit visit)
+    {
+        var parts = new List<string>();
+        var verdict = visit.Verdict;
+        if (verdict != null && verdict.Compliant && verdict.Quality != null)
+        {
+            var remark = verdict.Quality.Defects
+                .Select(d => settings.defectRemarks.FirstOrDefault(r => r != null && r.defect == d && NonEmpty(r.lines).Count > 0))
+                .FirstOrDefault(r => r != null);
+            var lines = remark != null ? NonEmpty(remark.lines)
+                : verdict.Quality.Defects.Count == 0 && verdict.QualityPercent >= 0.999f ? NonEmpty(settings.perfectLines)
+                : new List<string>();
+            if (lines.Count > 0) parts.Add(Pick(lines));
+        }
+
+        if (visit.HasPatience)
+        {
+            var lines = visit.Patience <= 0f ? NonEmpty(settings.outOfPatienceLines)
+                : visit.Payout is { TipLost: > 0 } ? NonEmpty(settings.waitedLines)
+                : new List<string>();
+            if (lines.Count > 0) parts.Add(Pick(lines));
+        }
+        return string.Join(" ", parts);
+    }
+
     // Прощание после визита без готовки
     public static string Farewell(StoryVisit story)
     {
@@ -192,9 +229,11 @@ public class VisitFactory
         return farewell.Count > 0 ? Pick(farewell) : "До свидания!";
     }
 
-    // Реплики заказа, которые можно произнести сегодня: названное в них открыто, вариант выполним
+    // Реплики заказа, которые можно произнести сегодня: названное в них открыто, вариант выполним,
+    // репутации хватает (загадочные формулировки появляются позже)
     private List<OrderPhrasing> PhrasingsFor(OrderTemplate t, WaffleOrder order) =>
         settings.phrasings.Where(p => p != null && p.order == t && NonEmpty(p.requests).Count > 0
+                                      && p.fromReputation <= reputation
                                       && (availability == null || availability.CanSay(p))
                                       && (p.variant == null || order.Candidates.Contains(p.variant))).ToList();
 

@@ -23,6 +23,21 @@ public class SaveData
         public int day; // в какой день поставлен (от него считается "через N дней")
     }
 
+    [Serializable]
+    public class Counter
+    {
+        public string key; // имя CareerStat
+        public long value;
+    }
+
+    [Serializable]
+    public class RecipeEntry
+    {
+        public string key;   // Career.RecipeKey
+        public int cooked;   // сколько раз приготовлен по заказу без нарушений
+        public float best;   // лучшее качество (0..1)
+    }
+
     public int version;
 
     public int money;
@@ -36,6 +51,8 @@ public class SaveData
     public List<ItemLevel> items = new();
     // Открытые ингредиенты: ключи CraftIngredient (id с сайта) в порядке открытия — по нему стоят ячейки
     public List<string> unlockedIngredients = new();
+    // Жетоны спокойного дня: покупаются в магазине и выдаются за уровень репутации, один тратится на смену
+    public int calmTokens;
 
     // Сюжет
     public List<StoryFlag> storyFlags = new();
@@ -43,10 +60,17 @@ public class SaveData
     // Выданные сюжетные награды ("story:<visit>:<действие>") — второй раз не выдаются
     public List<string> grantedRewards = new();
 
-    // Статистика
+    // Статистика. totalPoints — она же репутация кафе (уровни — EconomySettings.reputationLevels)
     public long totalPoints;
     public int bestDayPoints;
     public long totalEarned;
+
+    // Карьера: счётчики (CareerStat), выданные достижения (id из AchievementCatalog), книга рецептов
+    public List<Counter> career = new();
+    public List<string> achievements = new();
+    public List<RecipeEntry> recipeBook = new();
+    // Довольных клиентов подряд на конец последней закрытой смены
+    public int happyStreak;
 }
 
 // Изменения сюжета за смену. Попадают в сохранение вместе с деньгами — в CommitShift.
@@ -100,6 +124,9 @@ public class GameProgress
 
     public int Money => Data.money;
     public int Day => Data.day;
+    // Очки репутации: все очки за обслуживание за закрытые смены. Растут только в CommitShift
+    public long Reputation => Data.totalPoints;
+    public int CalmTokens => Data.calmTokens;
 
     // ---------- Загрузка ----------
 
@@ -161,6 +188,9 @@ public class GameProgress
         data.storyFlags ??= new List<SaveData.StoryFlag>();
         data.storyDone ??= new List<string>();
         data.grantedRewards ??= new List<string>();
+        data.career ??= new List<SaveData.Counter>();
+        data.achievements ??= new List<string>();
+        data.recipeBook ??= new List<SaveData.RecipeEntry>();
 
         if (data.version < 1)
         {
@@ -234,6 +264,51 @@ public class GameProgress
         Changed?.Invoke();
     }
 
+    // Покупка жетона спокойного дня (расходуемый товар: уровня у него нет, только количество)
+    internal void ApplyTokenPurchase(int price)
+    {
+        Data.money -= price;
+        Data.calmTokens++;
+        Save();
+        Changed?.Invoke();
+    }
+
+    // ---------- Карьера ----------
+
+    public long Stat(CareerStat stat)
+    {
+        var name = stat.ToString();
+        return Data.career.FirstOrDefault(c => c.key == name)?.value ?? 0;
+    }
+
+    public bool IsAchieved(string achievementId) => Data.achievements.Contains(achievementId);
+
+    public SaveData.RecipeEntry Recipe(string key) => Data.recipeBook.FirstOrDefault(r => r.key == key);
+    public float RecipeBest(string key) => Recipe(key)?.best ?? 0f;
+
+    private void ApplyRecord(ShiftRecord record)
+    {
+        foreach (var (stat, delta) in record.Stats)
+        {
+            var name = stat.ToString();
+            var counter = Data.career.FirstOrDefault(c => c.key == name);
+            if (counter == null) Data.career.Add(counter = new SaveData.Counter { key = name });
+            counter.value = stat == CareerStat.BestHappyStreak ? Math.Max(counter.value, delta) : counter.value + delta;
+        }
+        Data.happyStreak = record.HappyStreak;
+
+        foreach (var (key, (best, cooked)) in record.Recipes)
+        {
+            var entry = Recipe(key);
+            if (entry == null) Data.recipeBook.Add(entry = new SaveData.RecipeEntry { key = key });
+            entry.cooked += cooked;
+            entry.best = Math.Max(entry.best, best);
+        }
+
+        foreach (var id in record.Achievements)
+            if (!Data.achievements.Contains(id)) Data.achievements.Add(id);
+    }
+
     // ---------- Сюжет ----------
 
     public bool HasFlag(string flag) => Data.storyFlags.Any(f => f.flag == flag);
@@ -245,7 +320,9 @@ public class GameProgress
 
     // Переносит заработок смены в кошелёк и фиксирует сюжет. Для одного дня — ровно один раз:
     // повторный вызов (двойное нажатие, повторный показ итогов, загрузка) ничего не начисляет.
-    public bool CommitShift(int day, ShiftLedger ledger, StoryStage story, out int moneyBefore)
+    // calmTokens — изменение запаса жетонов спокойного дня за смену (получены за уровень, потрачен на эту смену).
+    // record — что смена добавляет к карьере: счётчики, книга рецептов, выданные достижения.
+    public bool CommitShift(int day, ShiftLedger ledger, StoryStage story, out int moneyBefore, int calmTokens = 0, ShiftRecord record = null)
     {
         moneyBefore = Data.money;
         if (day <= Data.lastCommittedDay)
@@ -260,6 +337,8 @@ public class GameProgress
         Data.totalEarned += Math.Max(0, money);
         Data.totalPoints += points;
         Data.bestDayPoints = Math.Max(Data.bestDayPoints, points);
+        Data.calmTokens = Math.Max(0, Data.calmTokens + calmTokens);
+        if (record != null) ApplyRecord(record);
         Data.lastCommittedDay = day;
         if (Data.day < day) Data.day = day;
 
@@ -326,9 +405,11 @@ public class GameProgress
     }
 
     public string Describe() =>
-        $"день {Data.day} (закрыт {Data.lastCommittedDay}), {EconomySettings.Money(Data.money)}, " +
+        $"день {Data.day} (закрыт {Data.lastCommittedDay}), {EconomySettings.Money(Data.money)}, репутация {Data.totalPoints}, жетонов спокойного дня {Data.calmTokens}, " +
         $"улучшения: {(Data.items.Count == 0 ? "нет" : string.Join(", ", Data.items.Select(i => $"{i.id}={i.level}")))}, " +
         $"ингредиенты: {string.Join(",", Data.unlockedIngredients)}, " +
         $"флаги: {(Data.storyFlags.Count == 0 ? "нет" : string.Join(", ", Data.storyFlags.Select(f => $"{f.flag}@{f.day}")))}, " +
-        $"визиты: {string.Join(",", Data.storyDone)}, награды: {string.Join(",", Data.grantedRewards)}";
+        $"визиты: {string.Join(",", Data.storyDone)}, награды: {string.Join(",", Data.grantedRewards)}, " +
+        $"карьера: {string.Join(", ", Data.career.Select(c => $"{c.key}={c.value}"))}, достижения: {string.Join(",", Data.achievements)}, " +
+        $"рецепты: {string.Join(", ", Data.recipeBook.Select(r => $"{r.key}×{r.cooked} {r.best:P0}"))}";
 }

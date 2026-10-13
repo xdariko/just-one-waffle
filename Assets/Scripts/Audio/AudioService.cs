@@ -125,6 +125,8 @@ public class AudioService : MonoBehaviour
         src.pitch = 1f + Random.Range(-sound.pitchJitter, sound.pitchJitter);
         src.volume = sound.volume * ChannelVolume(sound.channel);
         src.outputAudioMixerGroup = GroupOf(sound.channel);
+        // На паузе (AudioListener.pause) кухня молчит, а щелчки кнопок окна паузы слышны
+        src.ignoreListenerPause = sound.channel == AudioChannel.Ui;
         src.Play();
         voice.Sound = sound;
         voice.StartedAt = now;

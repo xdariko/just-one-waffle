@@ -71,6 +71,8 @@ public class StoryVisit : ScriptableObject
     [Min(1)] public int dayOffset = 2;
     [Tooltip("Однократный: приходит в первый подходящий день и больше никогда.\nВыключено — приходит каждый подходящий день")]
     public bool once = true;
+    [Tooltip("Нужный уровень репутации (1 — без условия). Пока его нет, визит ждёт")]
+    [Min(1)] public int minReputation = 1;
     public VisitTiming timing = VisitTiming.DayStart;
     [Tooltip("RandomMoment: окно в долях длительности дня")]
     [Range(0f, 1f)] public float randomFrom = 0.3f;
@@ -103,6 +105,8 @@ public class StoryVisit : ScriptableObject
     public bool paysForOrder = true;
     [Tooltip("Очки за обслуживание")]
     public bool awardsPoints = true;
+    [Tooltip("Во сколько раз больше очков (репутации) даёт этот заказ. Критик: его оценка весит больше обычной")]
+    [Min(0f)] public float pointsMultiplier = 1f;
 
     [Header("Итог заказа")]
     [Tooltip("Успех: требования выполнены и клиент не ниже этого настроения")]

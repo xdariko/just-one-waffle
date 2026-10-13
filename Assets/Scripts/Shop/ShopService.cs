@@ -4,7 +4,7 @@ public enum PurchaseStatus
 {
     Available,      // можно купить
     NotEnoughMoney,
-    Locked,         // не выполнено условие (день, другой товар)
+    Locked,         // не выполнено условие (день, репутация, другой товар)
     MaxLevel,       // куплено полностью
     ShopClosed,     // магазин работает только между сменами
     Invalid         // ошибка данных (нет уровней, нет ингредиента, ингредиент пропал из экспорта)
@@ -63,6 +63,19 @@ public static class ShopService
             return Check(item, progress, day, shopOpen, 0, 1, price, effectNow, effectNext);
         }
 
+        if (item.type == ShopItemType.CalmToken)
+        {
+            // Расходуемый товар: "уровень" — сколько жетонов в запасе, предел — maxStock
+            int have = progress.CalmTokens;
+            int max = Mathf.Max(1, item.maxStock);
+            string stock = $"в запасе {have}";
+            if (item.levels.Count == 0)
+                return new ShopItemState(item, have, max, 0, PurchaseStatus.Invalid, "Ошибка каталога: нет цены", stock, "");
+            if (have >= max)
+                return new ShopItemState(item, have, max, 0, PurchaseStatus.MaxLevel, $"Больше {max} в запасе не держим", stock, "");
+            return Check(item, progress, day, shopOpen, have, max, item.levels[0].price, stock, $"в запасе {have + 1}");
+        }
+
         int level = Mathf.Clamp(progress.LevelOf(item.id), 0, item.MaxLevel);
         string now = level > 0 ? item.Level(level).effect : "Нет";
         if (item.MaxLevel == 0)
@@ -79,6 +92,13 @@ public static class ShopService
     {
         if (day < item.minDay)
             return new ShopItemState(item, level, max, price, PurchaseStatus.Locked, $"Откроется на день {item.minDay}", now, next);
+
+        var eco = EconomySettings.Active;
+        // У жетона уровень один, а level — количество в запасе: порог репутации от него не зависит
+        int needReputation = item.ReputationFor(item.type == ShopItemType.CalmToken ? 1 : level + 1);
+        if (eco != null && eco.ReputationLevelFor(progress.Reputation) < needReputation)
+            return new ShopItemState(item, level, max, price, PurchaseStatus.Locked,
+                $"Нужна репутация: ур. {needReputation} «{eco.ReputationTitle(needReputation)}»", now, next);
 
         if (!string.IsNullOrEmpty(item.requiresItem) && progress.LevelOf(item.requiresItem) < item.requiresLevel)
         {
@@ -118,7 +138,12 @@ public static class ShopService
         }
 
         int moneyBefore = progress.Money;
-        if (item.type == ShopItemType.IngredientUnlock)
+        if (item.type == ShopItemType.CalmToken)
+        {
+            progress.ApplyTokenPurchase(state.Price);
+            message = $"«{item.displayName}» — в запасе {progress.CalmTokens}";
+        }
+        else if (item.type == ShopItemType.IngredientUnlock)
         {
             progress.ApplyPurchase(state.Price, null, 0, item.ingredient.Key);
             message = $"Открыт ингредиент «{item.displayName}»";

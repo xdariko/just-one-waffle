@@ -9,7 +9,8 @@ using UnityEngine.UI;
 // недостающее создаёт заглушками (прямоугольники и текст по теме), существующие префабы НЕ трогает — их правят руками
 // (спрайты, шрифты, вёрстка). Пересобрать заглушки заново: Tools → Waffle → Пересоздать заглушки UI.
 //  - UiButton: кнопка (вложена в остальные префабы — правка кнопки меняет все);
-//  - CounterPanel: панель стойки (начало дня, итоги); ShopPanel + ShopCard: магазин; DayHud: полоска и тикет заказа.
+//  - CounterPanel: панель стойки (начало дня, итоги); ShopPanel + ShopCard: магазин; DayHud: полоска и тикет заказа;
+//  - PausePanel: пауза и настройки (громкость).
 // Размеры — под CanvasScaler 1920×1080 (как кухня).
 public static class WaffleUiSetup
 {
@@ -20,6 +21,7 @@ public static class WaffleUiSetup
     public const string ShopPanelPath = Folder + "/ShopPanel.prefab";
     public const string ShopCardPath = Folder + "/ShopCard.prefab";
     public const string DayHudPath = Folder + "/DayHud.prefab";
+    public const string PausePanelPath = Folder + "/PausePanel.prefab";
 
     private static readonly Vector2 Reference = new(1920f, 1080f);
 
@@ -33,6 +35,10 @@ public static class WaffleUiSetup
         Build(CounterPanelPath, "CounterPanel", BuildCounterPanel, rebuild, log);
         Build(ShopPanelPath, "ShopPanel", BuildShopPanel, rebuild, log);
         Build(DayHudPath, "DayHud", BuildDayHud, rebuild, log);
+        Build(PausePanelPath, "PausePanel", BuildPausePanel, rebuild, log);
+        EnsurePatienceBar(log);
+        EnsurePauseButton(log);
+        RemovePauseCalmToggle(log);
     }
 
     [MenuItem("Tools/Waffle/Пересоздать заглушки UI", priority = 30)]
@@ -93,6 +99,20 @@ public static class WaffleUiSetup
         }
         PrefabUtility.InstantiatePrefab(prefab, systemsRoot.transform);
         log.AppendLine("✓ Systems: HUD дня (DayHud)");
+    }
+
+    // Окно паузы и настроек — тоже в Systems: открывается и на стойке, и на кухне
+    public static void AddPause(GameObject systemsRoot, StringBuilder log)
+    {
+        if (systemsRoot.GetComponentInChildren<PauseMenu>(true) != null) return;
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PausePanelPath);
+        if (prefab == null)
+        {
+            log.AppendLine($"✗ Нет префаба {PausePanelPath} — паузы и настроек не будет");
+            return;
+        }
+        PrefabUtility.InstantiatePrefab(prefab, systemsRoot.transform);
+        log.AppendLine("✓ Systems: окно паузы и настроек (PausePanel)");
     }
 
     // ---------- Сборка префабов ----------
@@ -312,7 +332,7 @@ public static class WaffleUiSetup
         var status = Label("Status", bar, 30f, theme.hudText);
         status.alignment = TextAlignmentOptions.MidlineLeft;
         status.overflowMode = TextOverflowModes.Ellipsis;
-        Stretch(status.rectTransform, 24f, 0f, 24f, 0f);
+        Stretch(status.rectTransform, 24f, 0f, PauseButtonInset, 0f);
 
         var ticket = ImageRect("Ticket", safe, theme.ticket, theme.panelSprite);
         ticket.anchorMin = ticket.anchorMax = new Vector2(1f, 1f);
@@ -322,11 +342,190 @@ public static class WaffleUiSetup
         var ticketText = Label("Text", ticket, 26f, theme.ink);
         ticketText.textWrappingMode = TextWrappingModes.Normal;
         ticketText.alignment = TextAlignmentOptions.TopLeft;
-        Stretch(ticketText.rectTransform, 16f, 10f, 16f, 10f);
+        Stretch(ticketText.rectTransform, 16f, PatienceTextInset, 16f, 10f);
 
         var view = root.AddComponent<DayHudView>();
         Set(view, ("bar", bar), ("status", status), ("ticket", ticket), ("ticketText", ticketText));
+        AddPatienceBar(view, ticket);
+        AddPauseButton(view, root, bar);
         Set(root.AddComponent<DayHud>(), ("view", view));
+    }
+
+    // Справа в полоске — кнопка паузы; текст статуса под неё не заходит
+    private const float PauseButtonInset = 210f;
+
+    // Кнопка паузы в полоске HUD. Canvas HUD получает GraphicRaycaster: кроме кнопки, клики по-прежнему ничто не ловит
+    private static void AddPauseButton(DayHudView view, GameObject root, RectTransform bar)
+    {
+        if (root.GetComponent<GraphicRaycaster>() == null) root.AddComponent<GraphicRaycaster>();
+        var button = ButtonInstance("Pause", bar, "Пауза");
+        var rt = (RectTransform)button.transform;
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1f, 0.5f);
+        rt.sizeDelta = new Vector2(170f, 52f);
+        rt.anchoredPosition = new Vector2(-16f, 0f);
+        button.GetComponentInChildren<TMP_Text>().fontSize = 26f;
+        Set(view, ("pauseButton", button));
+    }
+
+    // Префаб HUD собран до появления паузы — добавить только кнопку и подвинуть текст статуса
+    private static void EnsurePauseButton(StringBuilder log)
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(DayHudPath);
+        var existing = prefab != null ? prefab.GetComponentInChildren<DayHudView>(true) : null;
+        if (existing == null || new SerializedObject(existing).FindProperty("pauseButton").objectReferenceValue != null) return;
+
+        var root = PrefabUtility.LoadPrefabContents(DayHudPath);
+        try
+        {
+            var view = root.GetComponentInChildren<DayHudView>(true);
+            var so = new SerializedObject(view);
+            var bar = so.FindProperty("bar").objectReferenceValue as RectTransform;
+            if (bar == null)
+            {
+                log.AppendLine($"✗ {DayHudPath}: у DayHudView не задан bar — кнопка паузы не добавлена");
+                return;
+            }
+            if (so.FindProperty("status").objectReferenceValue is TMP_Text status && status.transform.parent == bar
+                && status.rectTransform.anchorMax.x == 1f && -status.rectTransform.offsetMax.x < PauseButtonInset)
+                status.rectTransform.offsetMax = new Vector2(-PauseButtonInset, status.rectTransform.offsetMax.y);
+            AddPauseButton(view, view.gameObject, bar);
+            PrefabUtility.SaveAsPrefabAsset(root, DayHudPath, out bool saved);
+            log.AppendLine(saved ? $"✓ {DayHudPath}: добавлена кнопка паузы" : $"✗ Не удалось сохранить {DayHudPath}");
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
+    }
+
+    private static void BuildPausePanel(GameObject root)
+    {
+        // Поверх HUD (50) и магазина (40); под затемнением SceneLoader
+        var rt = OverlayCanvas(root, 60, true);
+        var safe = SafeArea(rt);
+        var box = ImageRect("Box", safe, theme.panel, theme.panelSprite);
+        box.GetComponent<Image>().raycastTarget = true;
+        box.anchorMin = box.anchorMax = box.pivot = new Vector2(0.5f, 0.5f);
+        box.sizeDelta = new Vector2(1180f, PauseBoxHeight);
+
+        var title = Label("Title", box, 56f, theme.ink);
+        title.alignment = TextAlignmentOptions.Center;
+        Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(40f, -104f), new Vector2(-40f, -20f));
+
+        // Что сейчас в смене: время, заказ, цели дня
+        var body = Label("Body", box, 28f, theme.ink);
+        body.textWrappingMode = TextWrappingModes.Normal;
+        body.alignment = TextAlignmentOptions.TopLeft;
+        body.overflowMode = TextOverflowModes.Ellipsis;
+        Place(body.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(50f, -430f), new Vector2(-50f, -112f));
+
+        // Строка громкости: подпись слева, кнопки "Тише" и "Громче" справа
+        (TextMeshProUGUI label, UiButtonView minus, UiButtonView plus) VolumeRow(string name, float top)
+        {
+            var label = Label($"{name}Label", box, 34f, theme.ink);
+            label.alignment = TextAlignmentOptions.MidlineLeft;
+            Place(label.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(50f, top - 84f), new Vector2(-420f, top));
+            UiButtonView Step(string id, string text, float right)
+            {
+                var b = ButtonInstance($"{name}{id}", box, text);
+                var brt = (RectTransform)b.transform;
+                brt.anchorMin = brt.anchorMax = brt.pivot = new Vector2(1f, 1f);
+                brt.sizeDelta = new Vector2(170f, 76f);
+                brt.anchoredPosition = new Vector2(-right, top - 4f);
+                b.GetComponentInChildren<TMP_Text>().fontSize = 28f;
+                return b;
+            }
+            return (label, Step("Minus", "Тише", 236f), Step("Plus", "Громче", 50f));
+        }
+
+        var (musicLabel, musicMinus, musicPlus) = VolumeRow("Music", -446f);
+        var (soundLabel, soundMinus, soundPlus) = VolumeRow("Sound", -540f);
+
+        var close = ButtonInstance("Close", box, "Продолжить");
+        var crt = (RectTransform)close.transform;
+        crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(0.5f, 0f);
+        crt.sizeDelta = new Vector2(460f, 96f);
+        crt.anchoredPosition = new Vector2(0f, 26f);
+
+        var view = root.AddComponent<PauseView>();
+        Set(view, ("theme", theme), ("box", box), ("title", title), ("body", body),
+            ("musicLabel", musicLabel), ("musicMinus", musicMinus), ("musicPlus", musicPlus),
+            ("soundLabel", soundLabel), ("soundMinus", soundMinus), ("soundPlus", soundPlus),
+            ("closeButton", close));
+        Set(root.AddComponent<PauseMenu>(), ("view", view));
+    }
+
+    // Высота окна паузы: заголовок, сводка смены, две строки громкости, кнопка закрытия
+    private const float PauseBoxHeight = 780f;
+
+    // В окне паузы был переключатель спокойного режима; теперь спокойный день — жетон на экране "День N".
+    // Убрать кнопку и подпись из уже собранного префаба, остальное не трогать
+    private static void RemovePauseCalmToggle(StringBuilder log)
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PausePanelPath);
+        if (prefab == null || (prefab.transform.Find("SafeArea/Box/Calm") == null && prefab.transform.Find("SafeArea/Box/CalmNote") == null)) return;
+
+        var root = PrefabUtility.LoadPrefabContents(PausePanelPath);
+        try
+        {
+            var box = root.transform.Find("SafeArea/Box") as RectTransform;
+            foreach (var name in new[] { "Calm", "CalmNote" })
+            {
+                var child = box.Find(name);
+                if (child != null) Object.DestroyImmediate(child.gameObject);
+            }
+            if (box.sizeDelta.y > PauseBoxHeight) box.sizeDelta = new Vector2(box.sizeDelta.x, PauseBoxHeight);
+            PrefabUtility.SaveAsPrefabAsset(root, PausePanelPath, out bool saved);
+            log.AppendLine(saved ? $"✓ {PausePanelPath}: убран переключатель спокойного режима" : $"✗ Не удалось сохранить {PausePanelPath}");
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
+    }
+
+    private const float PatienceTextInset = 34f;
+
+    // Полоска терпения по нижнему краю тикета: подложка и заливка (DayHudView двигает её правый край)
+    private static void AddPatienceBar(DayHudView view, RectTransform ticket)
+    {
+        var track = ImageRect("Patience", ticket, new Color(theme.ink.r, theme.ink.g, theme.ink.b, 0.18f), null);
+        Place(track, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(16f, 12f), new Vector2(-16f, 26f));
+        var fill = ImageRect("Fill", track, theme.positive, null);
+        Stretch(fill, 0f, 0f, 0f, 0f);
+        Set(view, ("theme", theme), ("patienceBar", track), ("patienceFill", fill.GetComponent<Image>()));
+    }
+
+    // Префаб HUD собран до появления терпения (и, возможно, уже поправлен руками) — добавить только полоску
+    private static void EnsurePatienceBar(StringBuilder log)
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(DayHudPath);
+        var existing = prefab != null ? prefab.GetComponentInChildren<DayHudView>(true) : null;
+        if (existing == null || new SerializedObject(existing).FindProperty("patienceBar").objectReferenceValue != null) return;
+
+        var root = PrefabUtility.LoadPrefabContents(DayHudPath);
+        try
+        {
+            var view = root.GetComponentInChildren<DayHudView>(true);
+            var so = new SerializedObject(view);
+            var ticket = so.FindProperty("ticket").objectReferenceValue as RectTransform;
+            if (ticket == null)
+            {
+                log.AppendLine($"✗ {DayHudPath}: у DayHudView не задан ticket — полоска терпения не добавлена");
+                return;
+            }
+            // Текст заказа не должен наезжать на полоску
+            if (so.FindProperty("ticketText").objectReferenceValue is TMP_Text text && text.transform.parent == ticket
+                && text.rectTransform.anchorMin.y == 0f && text.rectTransform.offsetMin.y < PatienceTextInset)
+                text.rectTransform.offsetMin = new Vector2(text.rectTransform.offsetMin.x, PatienceTextInset);
+            AddPatienceBar(view, ticket);
+            PrefabUtility.SaveAsPrefabAsset(root, DayHudPath, out bool saved);
+            log.AppendLine(saved ? $"✓ {DayHudPath}: добавлена полоска терпения клиента" : $"✗ Не удалось сохранить {DayHudPath}");
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
     }
 
     // ---------- Кирпичики ----------

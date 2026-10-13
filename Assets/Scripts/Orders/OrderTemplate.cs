@@ -57,4 +57,6 @@ public class OrderTemplate : ScriptableObject
     [Min(0f)] public float weight = 1f;
     [Tooltip("С какого дня заказ может выпасть обычному клиенту")]
     [Min(1)] public int fromDay = 1;
+    [Tooltip("С какого уровня репутации заказ может выпасть обычному клиенту (1 — сразу)")]
+    [Min(1)] public int fromReputation = 1;
 }

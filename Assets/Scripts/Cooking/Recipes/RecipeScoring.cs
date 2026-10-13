@@ -58,6 +58,35 @@ public class WaffleScore
     }
 }
 
+// Дефекты вафли с постоянным текстом: по ним клиент подбирает замечание (DaySettings.defectRemarks).
+// Дефекты про конкретный соус или добавку ("нет соуса ...") собираются по месту и сюда не входят.
+public static class WaffleDefects
+{
+    public const string Shell = "скорлупа в тесте";
+    public const string LittleFlour = "мало муки";
+    public const string MuchFlour = "много муки";
+    public const string ThickBatter = "густое тесто";
+    public const string ThinBatter = "жидкое тесто";
+    public const string LittleSugar = "мало сахара";
+    public const string MuchSugar = "много сахара";
+    public const string UnwantedSugar = "в рецепте нет сахара";
+    public const string Lumps = "комки";
+    public const string Overmixed = "тесто перемешано, вафля резиновая";
+    public const string SmallWaffle = "маленькая вафля";
+    public const string Overflow = "тесто вытекло";
+    public const string Raw = "сырая";
+    public const string Burnt = "сгорела";
+    public const string Pale = "бледная";
+    public const string Overbaked = "пережарена";
+    public const string ExtraDecor = "положили то, что не просили";
+
+    public static readonly string[] All =
+    {
+        Shell, LittleFlour, MuchFlour, ThickBatter, ThinBatter, LittleSugar, MuchSugar, UnwantedSugar, Lumps, Overmixed,
+        SmallWaffle, Overflow, Raw, Burnt, Pale, Overbaked, ExtraDecor
+    };
+}
+
 // Сравнение того, что приготовили (CookingSession), с заказом (WaffleRecipe).
 // Каждый критерий — как зоны на шкалах в doc.md: зелёная +3, жёлтая +1, красная 0.
 // Оценки считаются заново по "сырым" значениям сессии (граммы, секунды, покрытие),
@@ -92,12 +121,12 @@ public static class RecipeScoring
             int shells = s.ShellPiecesInBowl;
             int pts = shells == 0 ? Green : shells == 1 ? Yellow : Red;
             score.Lines.Add(new WaffleScore.Line("Скорлупа", pts, Green, shells == 0 ? "нет" : $"{shells} раз(а) попала в тесто"));
-            if (shells > 0) score.Defects.Add("скорлупа в тесте");
+            if (shells > 0) score.Defects.Add(WaffleDefects.Shell);
         }
-        Pour(score, "Мука", s.FlourAmount, r.flour, "г", "мало муки", "много муки");
-        Pour(score, "Молоко", s.MilkAmount, r.milk, "мл", "густое тесто", "жидкое тесто");
-        Pour(score, "Сахар", s.SugarAmount, r.sugar, "г", "мало сахара", "много сахара");
-        if (r.sugar.amount <= 0f && s.SugarAmount > SugarNoise) score.Defects.Add("в рецепте нет сахара");
+        Pour(score, "Мука", s.FlourAmount, r.flour, "г", WaffleDefects.LittleFlour, WaffleDefects.MuchFlour);
+        Pour(score, "Молоко", s.MilkAmount, r.milk, "мл", WaffleDefects.ThickBatter, WaffleDefects.ThinBatter);
+        Pour(score, "Сахар", s.SugarAmount, r.sugar, "г", WaffleDefects.LittleSugar, WaffleDefects.MuchSugar);
+        if (r.sugar.amount <= 0f && s.SugarAmount > SugarNoise) score.Defects.Add(WaffleDefects.UnwantedSugar);
         Count(score, "Соль", s.SaltPortions, r.saltPortions, "порц.");
 
         {
@@ -109,12 +138,12 @@ public static class RecipeScoring
             };
             string details = s.MixResult == null ? "не перемешано" : $"{s.MixResult}, перемешивали {s.OvermixSeconds:F1} с";
             score.Lines.Add(new WaffleScore.Line("Перемешивание", pts, Green, details));
-            if (s.MixResult == null) score.Defects.Add("комки");
-            else if (s.MixResult == MixResult.Bad) score.Defects.Add("тесто перемешано, вафля резиновая");
+            if (s.MixResult == null) score.Defects.Add(WaffleDefects.Lumps);
+            else if (s.MixResult == MixResult.Bad) score.Defects.Add(WaffleDefects.Overmixed);
         }
 
         // ---------- Выпечка ----------
-        Pour(score, "Тесто в вафельнице", s.BatterAmount, r.batter, "мл", "маленькая вафля", "тесто вытекло");
+        Pour(score, "Тесто в вафельнице", s.BatterAmount, r.batter, "мл", WaffleDefects.SmallWaffle, WaffleDefects.Overflow);
         {
             int pts = Red;
             string details = "не пекли";
@@ -124,10 +153,10 @@ public static class RecipeScoring
                 pts = diff == 0 ? Green : diff == 1 ? Yellow : Red;
                 details = $"{baked} ({s.BakeSeconds:F1} с), хотели {r.preferredDoneness}";
 
-                if (baked == BakeResult.Raw) score.Defects.Add("сырая");
-                else if (baked == BakeResult.Burnt) score.Defects.Add("сгорела");
-                else if (diff > 0 && baked < r.preferredDoneness) score.Defects.Add("бледная");
-                else if (diff > 0) score.Defects.Add("пережарена");
+                if (baked == BakeResult.Raw) score.Defects.Add(WaffleDefects.Raw);
+                else if (baked == BakeResult.Burnt) score.Defects.Add(WaffleDefects.Burnt);
+                else if (diff > 0 && baked < r.preferredDoneness) score.Defects.Add(WaffleDefects.Pale);
+                else if (diff > 0) score.Defects.Add(WaffleDefects.Overbaked);
             }
             score.Lines.Add(new WaffleScore.Line("Пропечка", pts, Green, details));
         }
@@ -189,7 +218,7 @@ public static class RecipeScoring
             int pts = extras.Count == 0 ? Green : extras.Count == 1 ? Yellow : Red;
             score.Lines.Add(new WaffleScore.Line("Лишнее украшение", pts, Green,
                 extras.Count == 0 ? "нет" : string.Join(", ", extras)));
-            if (extras.Count > 0) score.Defects.Add("положили то, что не просили");
+            if (extras.Count > 0) score.Defects.Add(WaffleDefects.ExtraDecor);
         }
 
         return score;
