@@ -18,6 +18,8 @@ MonoBehaviour:
   happy: {fileID: 0}
   unhappy: {fileID: 0}
   tint: {r: 0.6, g: 0.5, b: 0.75, a: 1}
+  patience: 1
+  fromReputation: 1
   happyLines:
   - "\u0425\u043C. \u0414\u043E\u0441\u0442\u043E\u0439\u043D\u043E. \u0422\u0430\u043A
     \u0438 \u0437\u0430\u043F\u0438\u0448\u0443."

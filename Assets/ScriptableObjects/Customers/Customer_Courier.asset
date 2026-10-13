@@ -18,6 +18,8 @@ MonoBehaviour:
   happy: {fileID: 0}
   unhappy: {fileID: 0}
   tint: {r: 0.95, g: 0.85, b: 0.5, a: 1}
+  patience: 0.8
+  fromReputation: 1
   happyLines: []
   neutralLines: []
   unhappyLines: []

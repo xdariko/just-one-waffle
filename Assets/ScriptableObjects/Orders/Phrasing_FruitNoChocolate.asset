@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 12fbeac70af070841ace59aa88665c4e, type: 3}
+  m_Name: Phrasing_FruitNoChocolate
+  m_EditorClassIdentifier: Waffle.Runtime::OrderPhrasing
+  order: {fileID: 11400000, guid: 42bc304c42e01e7479f33c06781ce526, type: 2}
+  requests:
+  - "\u0421 \u0444\u0440\u0443\u043A\u0442\u0430\u043C\u0438, \u043F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430.
+    \u0422\u043E\u043B\u044C\u043A\u043E \u0431\u0435\u0437 \u0448\u043E\u043A\u043E\u043B\u0430\u0434\u0430
+    \u2014 \u0443 \u043C\u0435\u043D\u044F \u0430\u043B\u043B\u0435\u0440\u0433\u0438\u044F."
+  - "\u0427\u0442\u043E-\u043D\u0438\u0431\u0443\u0434\u044C \u0444\u0440\u0443\u043A\u0442\u043E\u0432\u043E\u0435.
+    \u0428\u043E\u043A\u043E\u043B\u0430\u0434 \u043C\u043D\u0435 \u043D\u0435\u043B\u044C\u0437\u044F!"
+  clarifications:
+  - "\u041B\u044E\u0431\u044B\u0435 \u0444\u0440\u0443\u043A\u0442\u044B \u0438\u043B\u0438
+    \u044F\u0433\u043E\u0434\u044B. \u0410 \u0448\u043E\u043A\u043E\u043B\u0430\u0434\u0430
+    \u2014 \u043D\u0438 \u043A\u0430\u043F\u043B\u0438, \u043D\u0438 \u043A\u0440\u043E\u0448\u043A\u0438."
+  requiresIngredients: []
+  variant: {fileID: 0}
+  fromReputation: 1

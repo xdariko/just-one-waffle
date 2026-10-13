@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 862b8944dac73af42ac08d279afca5a6, type: 3}
+  m_Name: Visit_Critic_Return
+  m_EditorClassIdentifier: Waffle.Runtime::StoryVisit
+  id: critic_return
+  character: {fileID: 11400000, guid: d439f3e9242895f4bb109eb8a23a2045, type: 2}
+  kind: 0
+  schedule: 0
+  day: 1
+  afterFlag: 
+  dayOffset: 2
+  once: 1
+  minReputation: 3
+  timing: 1
+  randomFrom: 0.2
+  randomTo: 0.6
+  priority: 8
+  introLines:
+  - "\u0421\u043D\u043E\u0432\u0430 \u044F. \u041E \u0432\u0430\u0448\u0435\u043C
+    \u043A\u0430\u0444\u0435 \u0437\u0430\u0433\u043E\u0432\u043E\u0440\u0438\u043B
+    \u0432\u0435\u0441\u044C \u0440\u0430\u0439\u043E\u043D."
+  - "\u041F\u043E\u0441\u043C\u043E\u0442\u0440\u0438\u043C, \u0437\u0430\u0441\u043B\u0443\u0436\u0435\u043D\u043D\u043E
+    \u043B\u0438. \u0423\u0434\u0438\u0432\u0438\u0442\u0435 \u043C\u0435\u043D\u044F."
+  introGraph: {fileID: 0}
+  order: {fileID: 0}
+  orderPool:
+  - {fileID: 11400000, guid: 3a794c0c45141754c84350e1316d388f, type: 2}
+  - {fileID: 11400000, guid: 79a20caf4c3a6a44791681695b655ebe, type: 2}
+  - {fileID: 11400000, guid: 1a0b3f77692f30545a26a1c841630ad7, type: 2}
+  - {fileID: 11400000, guid: c495f5e33cc13394dabb6cd5b3e273ed, type: 2}
+  fallbackOrder: {fileID: 11400000, guid: 799d305bab09aee45a60125db71b74a8, type: 2}
+  requestLines: []
+  clarificationLines: []
+  fallbackRequestLines: []
+  paysForOrder: 1
+  awardsPoints: 1
+  pointsMultiplier: 3
+  successMinMood: 1
+  onSuccess: []
+  onFailure: []
+  actions: []
+  farewellLines: []
+  happyLines: []
+  neutralLines: []
+  unhappyLines: []
