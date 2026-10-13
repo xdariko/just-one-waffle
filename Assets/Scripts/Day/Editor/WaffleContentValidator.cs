@@ -544,7 +544,7 @@ public static class WaffleContentValidator
     private static void ValidateUi(GameObject systems, Result result)
     {
         const string fix = "Tools → Waffle → Настроить сцены дня";
-        foreach (var path in new[] { WaffleUiSetup.ButtonPath, WaffleUiSetup.CounterPanelPath, WaffleUiSetup.ShopPanelPath, WaffleUiSetup.ShopCardPath, WaffleUiSetup.DayHudPath, WaffleUiSetup.PausePanelPath })
+        foreach (var path in new[] { WaffleUiSetup.ButtonPath, WaffleUiSetup.CounterPanelPath, WaffleUiSetup.ShopPanelPath, WaffleUiSetup.ShopCardPath, WaffleUiSetup.DayHudPath, WaffleUiSetup.PausePanelPath, WaffleUiSetup.MainMenuPath })
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (prefab == null)
@@ -554,7 +554,7 @@ public static class WaffleContentValidator
             }
             foreach (var view in prefab.GetComponentsInChildren<MonoBehaviour>(true))
             {
-                if (view is not (PanelView or UiButtonView or ShopCardView or DayHudView or DayHud or PauseMenu)) continue;
+                if (view is not (PanelView or UiButtonView or ShopCardView or DayHudView or DayHud or PauseMenu or MainMenuView)) continue;
                 var so = new SerializedObject(view);
                 var p = so.GetIterator();
                 while (p.NextVisible(true))

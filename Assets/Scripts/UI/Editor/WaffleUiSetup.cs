@@ -10,7 +10,7 @@ using UnityEngine.UI;
 // (спрайты, шрифты, вёрстка). Пересобрать заглушки заново: Tools → Waffle → Пересоздать заглушки UI.
 //  - UiButton: кнопка (вложена в остальные префабы — правка кнопки меняет все);
 //  - CounterPanel: панель стойки (начало дня, итоги); ShopPanel + ShopCard: магазин; DayHud: полоска и тикет заказа;
-//  - PausePanel: пауза и настройки (громкость).
+//  - PausePanel: пауза и настройки (громкость, выход в меню); MainMenu: главное меню (сцена MainMenu).
 // Размеры — под CanvasScaler 1920×1080 (как кухня).
 public static class WaffleUiSetup
 {
@@ -22,6 +22,7 @@ public static class WaffleUiSetup
     public const string ShopCardPath = Folder + "/ShopCard.prefab";
     public const string DayHudPath = Folder + "/DayHud.prefab";
     public const string PausePanelPath = Folder + "/PausePanel.prefab";
+    public const string MainMenuPath = Folder + "/MainMenu.prefab";
 
     private static readonly Vector2 Reference = new(1920f, 1080f);
 
@@ -36,10 +37,12 @@ public static class WaffleUiSetup
         Build(ShopPanelPath, "ShopPanel", BuildShopPanel, rebuild, log);
         Build(DayHudPath, "DayHud", BuildDayHud, rebuild, log);
         Build(PausePanelPath, "PausePanel", BuildPausePanel, rebuild, log);
+        Build(MainMenuPath, "MainMenu", BuildMainMenu, rebuild, log);
         EnsurePatienceBar(log);
         EnsurePauseButton(log);
         EnsureTutorialHint(log);
         RemovePauseCalmToggle(log);
+        EnsurePauseMenuButton(log);
     }
 
     [MenuItem("Tools/Waffle/Пересоздать заглушки UI", priority = 30)]
@@ -501,17 +504,113 @@ public static class WaffleUiSetup
         var (soundLabel, soundMinus, soundPlus) = VolumeRow("Sound", -540f);
 
         var close = ButtonInstance("Close", box, "Продолжить");
-        var crt = (RectTransform)close.transform;
-        crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(0.5f, 0f);
-        crt.sizeDelta = new Vector2(460f, 96f);
-        crt.anchoredPosition = new Vector2(0f, 26f);
+        PlacePauseBottomButton(close, 1);
+        var menu = ButtonInstance("Menu", box, "В главное меню");
+        PlacePauseBottomButton(menu, -1);
 
         var view = root.AddComponent<PauseView>();
         Set(view, ("theme", theme), ("box", box), ("title", title), ("body", body),
             ("musicLabel", musicLabel), ("musicMinus", musicMinus), ("musicPlus", musicPlus),
             ("soundLabel", soundLabel), ("soundMinus", soundMinus), ("soundPlus", soundPlus),
-            ("closeButton", close));
+            ("closeButton", close), ("menuButton", menu));
         Set(root.AddComponent<PauseMenu>(), ("view", view));
+    }
+
+    // Две кнопки внизу окна паузы: слева (side = −1) выход в меню, справа (side = +1) "Продолжить"
+    private static void PlacePauseBottomButton(UiButtonView button, int side)
+    {
+        var rt = (RectTransform)button.transform;
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0f);
+        rt.sizeDelta = new Vector2(500f, 96f);
+        rt.anchoredPosition = new Vector2(side * 265f, 26f);
+    }
+
+    // Префаб окна паузы собран до появления главного меню — добавить кнопку выхода и подвинуть "Продолжить"
+    private static void EnsurePauseMenuButton(StringBuilder log)
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PausePanelPath);
+        var existing = prefab != null ? prefab.GetComponentInChildren<PauseView>(true) : null;
+        if (existing == null || new SerializedObject(existing).FindProperty("menuButton").objectReferenceValue != null) return;
+
+        var root = PrefabUtility.LoadPrefabContents(PausePanelPath);
+        try
+        {
+            var view = root.GetComponentInChildren<PauseView>(true);
+            var close = new SerializedObject(view).FindProperty("closeButton").objectReferenceValue as UiButtonView;
+            if (close == null)
+            {
+                log.AppendLine($"✗ {PausePanelPath}: у PauseView не задана closeButton — кнопка меню не добавлена");
+                return;
+            }
+            PlacePauseBottomButton(close, 1);
+            var menu = ButtonInstance("Menu", (RectTransform)close.transform.parent, "В главное меню");
+            PlacePauseBottomButton(menu, -1);
+            Set(view, ("menuButton", menu));
+            PrefabUtility.SaveAsPrefabAsset(root, PausePanelPath, out bool saved);
+            log.AppendLine(saved ? $"✓ {PausePanelPath}: добавлена кнопка «В главное меню»" : $"✗ Не удалось сохранить {PausePanelPath}");
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
+    }
+
+    // Главное меню: фон на весь экран, название, сводка сохранения, колонка кнопок, ряд ссылок автора, версия.
+    // Заглушка под будущий арт: фон и логотип меняются в префабе, код берёт только подписи и кнопки
+    private static void BuildMainMenu(GameObject root)
+    {
+        var rt = OverlayCanvas(root, 5, false);
+        root.AddComponent<GraphicRaycaster>();
+        var background = ImageRect("Background", rt, theme.panel, null);
+        Stretch(background, 0f, 0f, 0f, 0f);
+        var safe = SafeArea(rt);
+
+        var title = Label("Title", safe, 120f, theme.ink);
+        title.text = "<b>Just One Waffle</b>";
+        title.alignment = TextAlignmentOptions.Center;
+        Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(40f, -300f), new Vector2(-40f, -110f));
+
+        var progress = Label("Progress", safe, 34f, theme.muted);
+        progress.alignment = TextAlignmentOptions.Center;
+        progress.textWrappingMode = TextWrappingModes.Normal;
+        Place(progress.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(200f, -390f), new Vector2(-200f, -310f));
+
+        // Колонка кнопок по центру: спрятанная кнопка места не занимает
+        var column = Rect("Buttons", safe);
+        column.anchorMin = column.anchorMax = new Vector2(0.5f, 1f);
+        column.pivot = new Vector2(0.5f, 1f);
+        column.anchoredPosition = new Vector2(0f, -420f);
+        column.sizeDelta = new Vector2(620f, 460f);
+        var v = column.gameObject.AddComponent<VerticalLayoutGroup>();
+        v.spacing = 20f;
+        v.childAlignment = TextAnchor.UpperCenter;
+        v.childControlWidth = true;
+        v.childForceExpandWidth = true;
+        v.childControlHeight = false;
+        v.childForceExpandHeight = false;
+
+        var cont = ButtonInstance("Continue", column, "Продолжить");
+        var newGame = ButtonInstance("NewGame", column, "Новая игра");
+        var settings = ButtonInstance("Settings", column, "Настройки");
+        var quit = ButtonInstance("Quit", column, "Выход");
+
+        var links = Rect("Links", safe);
+        Place(links, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(60f, 40f), new Vector2(-60f, 116f));
+        var h = links.gameObject.AddComponent<HorizontalLayoutGroup>();
+        h.spacing = 20f;
+        h.childAlignment = TextAnchor.MiddleCenter;
+        h.childControlWidth = h.childControlHeight = true;
+        h.childForceExpandWidth = false;
+        h.childForceExpandHeight = true;
+
+        var version = Label("Version", safe, 24f, theme.muted);
+        version.alignment = TextAlignmentOptions.BottomRight;
+        Place(version.rectTransform, new Vector2(0.6f, 0f), new Vector2(1f, 0f), new Vector2(0f, 10f), new Vector2(-24f, 40f));
+
+        var view = root.AddComponent<MainMenuView>();
+        Set(view, ("title", title), ("progress", progress), ("continueButton", cont), ("newGameButton", newGame),
+            ("settingsButton", settings), ("quitButton", quit), ("linksRow", links), ("version", version),
+            ("buttonPrefab", AssetDatabase.LoadAssetAtPath<UiButtonView>(ButtonPath)));
     }
 
     // Высота окна паузы: заголовок, сводка смены, две строки громкости, кнопка закрытия
