@@ -7,6 +7,9 @@ public class PourSourceClick : KitchenTool
 {
     [SerializeField] private PourIngredient ingredient = PourIngredient.Flour;
 
+    // Что это за источник (обучение показывает на нужный)
+    public PourIngredient Ingredient => ingredient;
+
     [Header("Refs")]
     [FormerlySerializedAs("flourPrefab")]
     [SerializeField] private PourItem pourPrefab;

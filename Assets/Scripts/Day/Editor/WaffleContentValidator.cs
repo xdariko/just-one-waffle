@@ -12,6 +12,9 @@ using UnityEngine;
 //  - сюжетные визиты: id уникальны, персонаж и заказ заданы, окно момента корректно;
 //  - ингредиенты базы: соус/добавка с ассетом украшения, вид не None у используемых в рецептах;
 //  - экономика и магазин: id товаров, уровни, цены, ингредиенты, пределы эффектов, стартовый набор;
+//  - достижения: id уникальны, цель достижима (уровней, рецептов, товаров и флагов хватает);
+//  - цели дня: id уникальны, свойство для цели задано и достижимо, есть бонус;
+//  - репутация: пороги уровней растут, товары, заказы, клиенты и визиты не требуют уровня, которого нет;
 //  - доступность: какие заказы есть со стартовым набором, какие не станут доступны никогда,
 //    сюжетный заказ, недоступный в свой день (отложится или возьмёт запасной), запасной заказ дня;
 //  - сюжетные цепочки: флаг "после" кто-то ставит, визит без готовки что-то делает;
@@ -181,7 +184,16 @@ public static class WaffleContentValidator
                 result.Warnings.Add($"{where}: у заказа {order.id} нет реплик — клиент назовёт требования напрямую");
         }
 
+        foreach (var r in settings.defectRemarks.Where(r => r != null))
+        {
+            if (!WaffleDefects.All.Contains(r.defect))
+                result.Warnings.Add($"{S(settings)}: замечание к дефекту \"{r.defect}\" — такого дефекта нет (см. WaffleDefects), реплика не прозвучит");
+            if (r.lines.All(string.IsNullOrWhiteSpace)) result.Warnings.Add($"{S(settings)}: замечание к дефекту \"{r.defect}\" без реплик");
+        }
+
         ValidateEconomy(settings, result);
+        ValidateGoals(settings, result);
+        ValidateAchievements(settings, result);
         ValidateAvailability(settings, result);
         ValidateStoryChains(settings, result);
 
@@ -205,6 +217,7 @@ public static class WaffleContentValidator
         else
         {
             if (eco.tipMaxRate < eco.tipMinRate) result.Errors.Add($"{S(eco)}: tipMaxRate меньше tipMinRate");
+            ValidateReputation(settings, eco, result);
             if (eco.violationPay > eco.lowQualityPay || eco.lowQualityPay > eco.neutralPay || eco.neutralPay > eco.happyPay)
                 result.Warnings.Add($"{S(eco)}: оплата за худший результат выше, чем за лучший (happy ≥ neutral ≥ lowQuality ≥ violation)");
         }
@@ -251,6 +264,13 @@ public static class WaffleContentValidator
                     result.Warnings.Add($"{w}: \"{ing.DisplayName}\" — вид {ing.kind}: станции для него пока нет, ячейка не появится (задел на будущее)");
                 }
             }
+            else if (item.type == ShopItemType.CalmToken)
+            {
+                // Расходуемый жетон: один уровень (цена), статов не меняет
+                if (item.levels.Count > 1) result.Warnings.Add($"{w}: у жетона используется только первый уровень (цена)");
+                if (shop.items.Count(i => i != null && i.type == ShopItemType.CalmToken) > 1)
+                    result.Warnings.Add($"{w}: жетон спокойного дня продаётся несколькими товарами — запас у них общий");
+            }
             else
             {
                 for (int i = 0; i < item.levels.Count; i++)
@@ -270,6 +290,131 @@ public static class WaffleContentValidator
         }
         foreach (var l in shop.stats.Where(l => l != null && l.min > l.max))
             result.Errors.Add($"{where}: предел {l.stat}: min больше max");
+    }
+
+    // Репутация: уровни идут по возрастанию, и всё, что на них завязано, достижимо
+    private static void ValidateReputation(DaySettings settings, EconomySettings eco, Result result)
+    {
+        string S(UnityEngine.Object o) => o == null ? "(пусто)" : o.name;
+        var levels = eco.reputationLevels;
+        if (levels.Count == 0 || levels.Any(l => l == null))
+        {
+            result.Errors.Add($"{S(eco)}: уровни репутации не заданы или в списке пустой слот — всё, что требует репутации, не откроется");
+            return;
+        }
+        if (levels[0].points != 0) result.Warnings.Add($"{S(eco)}: первый уровень репутации — стартовый, его порог ({levels[0].points}) не используется");
+        if (levels[0].reward > 0) result.Warnings.Add($"{S(eco)}: премия первого уровня репутации не выдаётся — он есть с начала игры");
+        for (int i = 1; i < levels.Count; i++)
+        {
+            if (levels[i].points <= (i == 1 ? 0 : levels[i - 1].points))
+                result.Errors.Add($"{S(eco)}: порог уровня репутации {i + 1} ({levels[i].points}) не выше предыдущего — уровни возьмутся разом");
+            if (string.IsNullOrWhiteSpace(levels[i].title)) result.Warnings.Add($"{S(eco)}: у уровня репутации {i + 1} нет названия");
+        }
+
+        int max = eco.MaxReputation;
+        string Never(int need) => $"нужна репутация {need}, а уровней всего {max} — не откроется никогда";
+        if (settings.shop != null)
+            foreach (var item in settings.shop.items.Where(i => i != null))
+                for (int n = 1; n <= item.MaxLevel; n++)
+                    if (item.ReputationFor(n) > max)
+                    {
+                        result.Errors.Add($"Магазин, товар {item.id}, уровень {n}: {Never(item.ReputationFor(n))}");
+                        break;
+                    }
+        foreach (var o in settings.orders.Where(o => o != null && o.fromReputation > max).Distinct())
+            result.Errors.Add($"Заказ {S(o)} ({o.id}): {Never(o.fromReputation)}");
+        foreach (var v in settings.storyVisits.Where(v => v != null && v.minReputation > max))
+            result.Errors.Add($"Сюжетный визит {S(v)}: {Never(v.minReputation)}");
+        foreach (var p in settings.phrasings.Where(p => p != null && p.order != null))
+        {
+            if (p.fromReputation > max) result.Errors.Add($"Реплики {S(p)}: {Never(p.fromReputation)}");
+            // Заказ выпал, а все его реплики ещё закрыты репутацией — клиент не сможет его произнести
+            int earliest = settings.phrasings.Where(o => o != null && o.order == p.order).Min(o => o.fromReputation);
+            if (p.fromReputation == earliest && earliest > p.order.fromReputation && p.order.match == OrderMatch.Requirements)
+                result.Warnings.Add($"Реплики {S(p)}: заказ {p.order.id} выпадает с репутации {p.order.fromReputation}, " +
+                                    $"а первая реплика — с {earliest}: до этого заказ не выпадет");
+        }
+
+        var regulars = settings.regularCustomers.Where(c => c != null).Distinct().ToList();
+        foreach (var c in regulars.Where(c => c.fromReputation > max))
+            result.Errors.Add($"Клиент {S(c)}: {Never(c.fromReputation)}");
+        if (regulars.Count > 0 && regulars.All(c => c.fromReputation > 1))
+            result.Warnings.Add($"{S(settings)}: все обычные клиенты требуют репутации выше стартовой — в начале игры условие не действует, приходят все");
+    }
+
+    // Достижения: id уникальны, цель достижима при нынешнем контенте
+    private static void ValidateAchievements(DaySettings settings, Result result)
+    {
+        string S(UnityEngine.Object o) => o == null ? "(пусто)" : o.name;
+        var catalog = settings.achievements;
+        if (catalog == null)
+        {
+            result.Warnings.Add($"{S(settings)}: не заданы достижения (AchievementCatalog) — Tools → Waffle → Настроить сцены дня");
+            return;
+        }
+
+        var flags = settings.storyVisits.Where(v => v != null).SelectMany(v => v.onSuccess.Concat(v.onFailure).Concat(v.actions))
+            .Where(a => a != null && a.type == StoryActionType.SetFlag).Select(a => a.flag).ToHashSet();
+        int maxReputation = settings.economy != null ? settings.economy.MaxReputation : 1;
+        int recipes = settings.Database != null ? settings.Database.ActiveRecipes.Count() : 0;
+        int ingredients = settings.shop != null ? settings.shop.items.Count(i => i != null && i.type == ShopItemType.IngredientUnlock) : 0;
+        int purchases = settings.shop != null
+            ? settings.shop.items.Where(i => i != null && i.type is ShopItemType.Upgrade or ShopItemType.Equipment).Sum(i => i.levels.Count) : 0;
+
+        var ids = new HashSet<string>();
+        foreach (var a in catalog.achievements)
+        {
+            if (a == null) continue;
+            var where = $"Достижение {a.id}";
+            if (string.IsNullOrWhiteSpace(a.id)) { result.Errors.Add($"{S(catalog)}: достижение без id"); continue; }
+            if (!ids.Add(a.id)) result.Errors.Add($"{where}: id повторяется — выдастся только одно");
+            if (string.IsNullOrWhiteSpace(a.title)) result.Warnings.Add($"{where}: нет названия");
+
+            int limit = a.metric switch
+            {
+                AchievementMetric.ReputationLevel => maxReputation,
+                AchievementMetric.Recipes => recipes,
+                AchievementMetric.Ingredients => ingredients,
+                AchievementMetric.Purchases => purchases,
+                _ => int.MaxValue
+            };
+            if (a.Target > limit) result.Errors.Add($"{where}: нужно {a.Target}, а в игре всего {limit} — не получить никогда");
+            if (a.metric == AchievementMetric.StoryFlag)
+            {
+                if (string.IsNullOrWhiteSpace(a.flag)) result.Errors.Add($"{where}: метрика StoryFlag без имени флага");
+                else if (!flags.Contains(a.flag)) result.Errors.Add($"{where}: флаг \"{a.flag}\" не ставит ни один сюжетный визит");
+            }
+        }
+    }
+
+    // Цели дня: id уникальны, цель выполнима и что-то даёт
+    private static void ValidateGoals(DaySettings settings, Result result)
+    {
+        string S(UnityEngine.Object o) => o == null ? "(пусто)" : o.name;
+        if (settings.goalsPerDay <= 0) return;
+        var goals = settings.goals.Where(g => g != null).ToList();
+        if (goals.Select(g => g.type).Distinct().Count() < settings.goalsPerDay)
+            result.Warnings.Add($"{S(settings)}: целей дня нужно {settings.goalsPerDay}, а разных типов в списке {goals.Select(g => g.type).Distinct().Count()} — " +
+                                "целей будет меньше (Tools → Waffle → Настроить сцены дня добавит стартовый набор)");
+
+        var ids = new HashSet<string>();
+        int maxReputation = settings.economy != null ? settings.economy.MaxReputation : 1;
+        foreach (var g in goals)
+        {
+            var where = $"Цель дня {g.id}";
+            if (string.IsNullOrWhiteSpace(g.id)) result.Errors.Add($"{S(settings)}: цель дня без id");
+            else if (!ids.Add(g.id)) result.Errors.Add($"{where}: id повторяется — бонус запишется в журнал смены один раз на обе");
+            if (g.rewardMoney <= 0 && g.rewardPoints <= 0) result.Warnings.Add($"{where}: нет бонуса");
+            if (g.fromReputation > maxReputation) result.Errors.Add($"{where}: нужна репутация {g.fromReputation}, а уровней всего {maxReputation} — не выпадет никогда");
+            if (g.type == DayGoalType.WithTag)
+            {
+                if (g.tag == null) result.Errors.Add($"{where}: тип WithTag без свойства (tag) — цель не выпадет");
+                else if (!CanProduce(g.tag, settings.Database, settings.rules))
+                    result.Errors.Add($"{where}: свойство \"{g.tag.DisplayName}\" не даёт ни один ингредиент кухни и ни одна выпечка");
+            }
+            if (g.type == DayGoalType.NoLongWaits && settings.economy != null && settings.economy.patienceSeconds <= 0f)
+                result.Warnings.Add($"{where}: терпение клиентов выключено (patienceSeconds = 0) — цель не выпадет");
+        }
     }
 
     // ---------- Доступность заказов ----------
@@ -296,7 +441,7 @@ public static class WaffleContentValidator
             if (WaffleOrder.Create(o, settings.Database, out _) == null) continue; // ошибка уже в списке
             if (WaffleOrder.Create(o, settings.Database, out var why, start) != null)
             {
-                if (o.fromDay <= 1) dayOne.Add(o.id);
+                if (o.fromDay <= 1 && o.fromReputation <= 1) dayOne.Add(o.id);
             }
             else if (WaffleOrder.Create(o, settings.Database, out var never, full) == null)
                 result.Errors.Add($"Заказ {S(o)} ({o.id}) не станет доступен никогда: {never} — этого нет ни в стартовом наборе, ни в магазине");
@@ -399,7 +544,7 @@ public static class WaffleContentValidator
     private static void ValidateUi(GameObject systems, Result result)
     {
         const string fix = "Tools → Waffle → Настроить сцены дня";
-        foreach (var path in new[] { WaffleUiSetup.ButtonPath, WaffleUiSetup.CounterPanelPath, WaffleUiSetup.ShopPanelPath, WaffleUiSetup.ShopCardPath, WaffleUiSetup.DayHudPath })
+        foreach (var path in new[] { WaffleUiSetup.ButtonPath, WaffleUiSetup.CounterPanelPath, WaffleUiSetup.ShopPanelPath, WaffleUiSetup.ShopCardPath, WaffleUiSetup.DayHudPath, WaffleUiSetup.PausePanelPath })
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (prefab == null)
@@ -409,7 +554,7 @@ public static class WaffleContentValidator
             }
             foreach (var view in prefab.GetComponentsInChildren<MonoBehaviour>(true))
             {
-                if (view is not (PanelView or UiButtonView or ShopCardView or DayHudView or DayHud)) continue;
+                if (view is not (PanelView or UiButtonView or ShopCardView or DayHudView or DayHud or PauseMenu)) continue;
                 var so = new SerializedObject(view);
                 var p = so.GetIterator();
                 while (p.NextVisible(true))
@@ -424,6 +569,8 @@ public static class WaffleContentValidator
 
         if (systems != null && systems.GetComponentInChildren<DayHud>(true) == null)
             result.Warnings.Add($"Префаб Systems: нет HUD дня (DayHud) — не видно времени и заказа на кухне ({fix})");
+        if (systems != null && systems.GetComponentInChildren<PauseMenu>(true) == null)
+            result.Warnings.Add($"Префаб Systems: нет окна паузы (PausePanel) — паузы и настроек не будет ({fix})");
     }
 
     // Станции кухни: вид вафельницы (крышка, пар) и раскладка станции украшения

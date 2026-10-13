@@ -22,7 +22,31 @@ MonoBehaviour:
   tipFromQuality: 0.8
   tipMinRate: 0.1
   tipMaxRate: 0.4
+  patienceSeconds: 80
+  fullTipFromPatience: 0.5
+  outOfPatienceTip: 0
   happyPoints: 10
   neutralPoints: 5
   lowQualityPoints: 2
   violationPoints: 0
+  reputationLevels:
+  - title: "\u041D\u043E\u0432\u0430\u044F \u0432\u0430\u0444\u0435\u043B\u044C\u043D\u0430\u044F"
+    points: 0
+    reward: 0
+    calmTokens: 0
+  - title: "\u0417\u043D\u0430\u043A\u043E\u043C\u043E\u0435 \u043C\u0435\u0441\u0442\u043E"
+    points: 60
+    reward: 30
+    calmTokens: 1
+  - title: "\u041B\u044E\u0431\u0438\u043C\u043E\u0435 \u043A\u0430\u0444\u0435 \u0440\u0430\u0439\u043E\u043D\u0430"
+    points: 150
+    reward: 60
+    calmTokens: 1
+  - title: "\u0412\u0430\u0444\u0435\u043B\u044C\u043D\u0430\u044F \u0441 \u0438\u043C\u0435\u043D\u0435\u043C"
+    points: 300
+    reward: 100
+    calmTokens: 1
+  - title: "\u0413\u043E\u0440\u043E\u0434\u0441\u043A\u0430\u044F \u043B\u0435\u0433\u0435\u043D\u0434\u0430"
+    points: 500
+    reward: 150
+    calmTokens: 1

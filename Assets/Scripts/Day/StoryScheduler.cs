@@ -26,13 +26,14 @@ public class StoryScheduler
         dayEnd.Clear();
     }
 
-    // Расставить визиты, которые подходят к этому дню. isDone — once-визит уже состоялся (раньше или сегодня)
-    public void Plan(IEnumerable<StoryVisit> visits, int day, float duration, Func<string, int> flagDay, Func<string, bool> isDone)
+    // Расставить визиты, которые подходят к этому дню. isDone — once-визит уже состоялся (раньше или сегодня).
+    // reputation — уровень репутации на начало дня: визит с minReputation выше ждёт следующих дней
+    public void Plan(IEnumerable<StoryVisit> visits, int day, float duration, int reputation, Func<string, int> flagDay, Func<string, bool> isDone)
     {
         Clear();
         foreach (var v in visits.Where(v => v != null).Distinct())
         {
-            if (!v.AppliesTo(day, flagDay) || (v.once && isDone(v.id))) continue;
+            if (!v.AppliesTo(day, flagDay) || v.minReputation > reputation || (v.once && isDone(v.id))) continue;
             switch (v.timing)
             {
                 case VisitTiming.DayStart:

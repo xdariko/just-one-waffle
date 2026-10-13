@@ -318,6 +318,7 @@ public static class WaffleDaySetup
         }
 
         WaffleUiSetup.AddHud(root, log);
+        WaffleUiSetup.AddPause(root, log);
 
         PrefabUtility.SaveAsPrefabAsset(root, SystemsPath, out bool saved);
         if (exists) PrefabUtility.UnloadPrefabContents(root);

@@ -14,8 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StoryVisit
   id: critic_day1
   character: {fileID: 11400000, guid: d439f3e9242895f4bb109eb8a23a2045, type: 2}
+  kind: 0
+  schedule: 0
   day: 1
+  afterFlag: 
+  dayOffset: 2
   once: 1
+  minReputation: 1
   timing: 0
   randomFrom: 0.3
   randomTo: 0.7
@@ -30,6 +35,7 @@ MonoBehaviour:
   introGraph: {fileID: 0}
   order: {fileID: 11400000, guid: 799d305bab09aee45a60125db71b74a8, type: 2}
   orderPool: []
+  fallbackOrder: {fileID: 0}
   requestLines:
   - "\u041F\u0440\u043E\u0441\u0442\u0443\u044E \u0432\u0430\u0444\u043B\u044E, \u043F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430.
     \u041C\u044F\u0433\u043A\u0443\u044E, \u0437\u043E\u043B\u043E\u0442\u0438\u0441\u0442\u0443\u044E."
@@ -37,6 +43,15 @@ MonoBehaviour:
   - "\u041D\u0438\u0447\u0435\u0433\u043E \u043B\u0438\u0448\u043D\u0435\u0433\u043E:
     \u0442\u0435\u0441\u0442\u043E, \u043D\u0435\u043C\u043D\u043E\u0433\u043E \u0441\u0430\u0445\u0430\u0440\u0430.
     \u0418 \u043D\u0435 \u043F\u0435\u0440\u0435\u0436\u0430\u0440\u044C\u0442\u0435."
+  fallbackRequestLines: []
+  paysForOrder: 1
+  awardsPoints: 1
+  pointsMultiplier: 3
+  successMinMood: 1
+  onSuccess: []
+  onFailure: []
+  actions: []
+  farewellLines: []
   happyLines: []
   neutralLines: []
   unhappyLines: []

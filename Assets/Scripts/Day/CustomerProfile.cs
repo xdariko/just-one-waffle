@@ -16,6 +16,12 @@ public class CustomerProfile : ScriptableObject
     [Tooltip("Цвет заглушки или тонировка спрайта")]
     public Color tint = Color.white;
 
+    [Header("Характер")]
+    [Tooltip("Множитель терпения (EconomySettings.patienceSeconds): 1 — обычный, 0.7 — торопится, 1.5 — никуда не спешит")]
+    [Min(0.1f)] public float patience = 1f;
+    [Tooltip("Обычный клиент: с какого уровня репутации начинает заходить (1 — сразу). На сюжетные визиты не влияет")]
+    [Min(1)] public int fromReputation = 1;
+
     [Header("Свои реакции (пусто — общие из DaySettings)")]
     [TextArea(1, 2)] public List<string> happyLines = new();
     [TextArea(1, 2)] public List<string> neutralLines = new();

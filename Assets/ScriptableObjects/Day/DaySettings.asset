@@ -15,12 +15,17 @@ MonoBehaviour:
   rules: {fileID: 11400000, guid: a903a7b1860f9fc4f96fd6cc1210a008, type: 2}
   economy: {fileID: 11400000, guid: 19c57a4c8d015d940bc583d2690151f5, type: 2}
   shop: {fileID: 11400000, guid: da345ce37f78dee4e8179301db40d576, type: 2}
+  achievements: {fileID: 11400000, guid: 25abf13ca9b8d364cae26f78e2eb9a08, type: 2}
   dayDurationSeconds: 240
+  calmCustomers: 5
   regularCustomers:
   - {fileID: 11400000, guid: f5a7f9f8f621b984baf3fb30bf9734bc, type: 2}
   - {fileID: 11400000, guid: d12c54c6d8005ff419ad768bd9339827, type: 2}
   - {fileID: 11400000, guid: af9ecd99b76c77d43ba36c7f9b216848, type: 2}
   - {fileID: 11400000, guid: 89580860765d94848a7d2adc47688758, type: 2}
+  - {fileID: 11400000, guid: d8cc4b4d246ca7a4db658bbe6eba8d11, type: 2}
+  - {fileID: 11400000, guid: f15a77a7ea2f679439b8630b932d01b9, type: 2}
+  - {fileID: 11400000, guid: 4d4f3d40e0cb49b419bbe64aa47d03d5, type: 2}
   orders:
   - {fileID: 11400000, guid: abb41a54e6d8056449d96e76273c0bef, type: 2}
   - {fileID: 11400000, guid: 076469106757bdd4281ceae1b32de6c2, type: 2}
@@ -32,6 +37,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b4aebb68ebdeda74bb4053a28956a606, type: 2}
   - {fileID: 11400000, guid: c495f5e33cc13394dabb6cd5b3e273ed, type: 2}
   - {fileID: 11400000, guid: bf10f836ac74cac4bbd032a0293cf636, type: 2}
+  - {fileID: 11400000, guid: 42bc304c42e01e7479f33c06781ce526, type: 2}
   phrasings:
   - {fileID: 11400000, guid: ea2303965ed081f4ba6a5b1dcede1414, type: 2}
   - {fileID: 11400000, guid: a9cf4c585b64593488e1539b5418324a, type: 2}
@@ -43,15 +49,127 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 888b7562bbae10544a2d3afd423f837d, type: 2}
   - {fileID: 11400000, guid: d8f7200893217bd4aa621e6ffce1819a, type: 2}
   - {fileID: 11400000, guid: b3b76456f402fb94f8da41c9f8fecd20, type: 2}
+  - {fileID: 11400000, guid: 978604ef4dcab0e42a0cdb1bac17661c, type: 2}
+  - {fileID: 11400000, guid: 208438dfdb2f9344cbe82de88bb09048, type: 2}
+  - {fileID: 11400000, guid: 8da2d3e69598fb944920427861688639, type: 2}
+  - {fileID: 11400000, guid: d939009bf474b7248802a045569a3a43, type: 2}
+  - {fileID: 11400000, guid: 112c5c9fcff472340826c2dfd927e0d1, type: 2}
+  - {fileID: 11400000, guid: 648dff3ea87a0d747b6f0269796dc309, type: 2}
+  - {fileID: 11400000, guid: 70a2c941ba27b054fa5d3b8b962f7adb, type: 2}
+  - {fileID: 11400000, guid: 68f91a963cb69f042a049ec759220b39, type: 2}
   fallbackOrder: {fileID: 11400000, guid: 799d305bab09aee45a60125db71b74a8, type: 2}
   exactRecipeFallback: "\u041C\u043D\u0435, \u043F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430,
     \u0432\u0430\u0444\u043B\u044E \xAB{recipe}\xBB."
+  goalsPerDay: 2
+  goalOrderBoost: 2
+  goals:
+  - id: serve_3
+    type: 0
+    count: 3
+    tag: {fileID: 0}
+    quality: 0.9
+    title: 
+    rewardMoney: 15
+    rewardPoints: 5
+    weight: 1
+    fromDay: 1
+    fromReputation: 1
+  - id: happy_3
+    type: 1
+    count: 3
+    tag: {fileID: 0}
+    quality: 0.9
+    title: 
+    rewardMoney: 20
+    rewardPoints: 10
+    weight: 1
+    fromDay: 1
+    fromReputation: 1
+  - id: golden_3
+    type: 4
+    count: 3
+    tag: {fileID: 0}
+    quality: 0.9
+    title: 
+    rewardMoney: 15
+    rewardPoints: 5
+    weight: 1
+    fromDay: 1
+    fromReputation: 1
+  - id: clean_day
+    type: 6
+    count: 3
+    tag: {fileID: 0}
+    quality: 0.9
+    title: 
+    rewardMoney: 25
+    rewardPoints: 10
+    weight: 1
+    fromDay: 1
+    fromReputation: 1
+  - id: no_waits
+    type: 7
+    count: 3
+    tag: {fileID: 0}
+    quality: 0.9
+    title: 
+    rewardMoney: 20
+    rewardPoints: 10
+    weight: 1
+    fromDay: 1
+    fromReputation: 1
+  - id: quality_2
+    type: 3
+    count: 2
+    tag: {fileID: 0}
+    quality: 0.9
+    title: 
+    rewardMoney: 20
+    rewardPoints: 10
+    weight: 1
+    fromDay: 2
+    fromReputation: 1
+  - id: tips_15
+    type: 5
+    count: 15
+    tag: {fileID: 0}
+    quality: 0.9
+    title: 
+    rewardMoney: 15
+    rewardPoints: 5
+    weight: 1
+    fromDay: 2
+    fromReputation: 1
+  - id: crispy_2
+    type: 2
+    count: 2
+    tag: {fileID: 11400000, guid: a071a897736197a49b2eaade744cbd8c, type: 2}
+    quality: 0.9
+    title: 
+    rewardMoney: 15
+    rewardPoints: 5
+    weight: 1
+    fromDay: 1
+    fromReputation: 1
+  - id: fruit_2
+    type: 2
+    count: 2
+    tag: {fileID: 11400000, guid: 773cf78af112ebe41b9ba0000a2f1190, type: 2}
+    quality: 0.9
+    title: 
+    rewardMoney: 15
+    rewardPoints: 5
+    weight: 1
+    fromDay: 1
+    fromReputation: 1
   storyVisits:
   - {fileID: 11400000, guid: 318f95f394cc78e44b348408f97f1769, type: 2}
   - {fileID: 11400000, guid: 74c6c89eedee6d342b6809f13ab9fdb7, type: 2}
   - {fileID: 11400000, guid: f1ab8041cd205b1488cfc4271e86e87a, type: 2}
   - {fileID: 11400000, guid: ce0e7f27ba926314daea209b12137ea5, type: 2}
   - {fileID: 11400000, guid: edadfed6317ef664ebbe0b52d0d7ea67, type: 2}
+  - {fileID: 11400000, guid: 7b069534c9d3cf34fa11766b91b58f45, type: 2}
+  - {fileID: 11400000, guid: 8c5b7bad478ae684fa09e0b7d5c4c816, type: 2}
   happyLines:
   - "\u041C\u043C\u043C, \u0442\u043E \u0447\u0442\u043E \u043D\u0430\u0434\u043E!
     \u0421\u043F\u0430\u0441\u0438\u0431\u043E!"
@@ -59,3 +177,70 @@ MonoBehaviour:
   - "\u041D\u0443... \u0435\u0441\u0442\u044C \u043C\u043E\u0436\u043D\u043E."
   unhappyLines:
   - "\u042D\u0442\u043E \u043D\u0435 \u0442\u043E, \u0447\u0442\u043E \u044F \u043F\u0440\u043E\u0441\u0438\u043B."
+  defectRemarks:
+  - defect: "\u0441\u043A\u043E\u0440\u043B\u0443\u043F\u0430 \u0432 \u0442\u0435\u0441\u0442\u0435"
+    lines:
+    - "\u041E\u0439, \u043D\u0430 \u0437\u0443\u0431\u0430\u0445 \u0447\u0442\u043E-\u0442\u043E
+      \u0445\u0440\u0443\u0441\u0442\u0438\u0442\u2026 \u0421\u043A\u043E\u0440\u043B\u0443\u043F\u0430?"
+    - "\u0421\u043A\u043E\u0440\u043B\u0443\u043F\u043A\u0430 \u043F\u043E\u043F\u0430\u043B\u0430\u0441\u044C.
+      \u041D\u0430 \u0441\u0447\u0430\u0441\u0442\u044C\u0435, \u043D\u0430\u0432\u0435\u0440\u043D\u043E\u0435."
+  - defect: "\u0431\u043B\u0435\u0434\u043D\u0430\u044F"
+    lines:
+    - "\u0411\u043B\u0435\u0434\u043D\u043E\u0432\u0430\u0442\u0430, \u043D\u043E
+      \u0432\u043A\u0443\u0441\u043D\u043E."
+    - "\u0415\u0439 \u0431\u044B \u0435\u0449\u0451 \u043F\u043E\u043B\u043C\u0438\u043D\u0443\u0442\u043A\u0438
+      \u0432 \u0432\u0430\u0444\u0435\u043B\u044C\u043D\u0438\u0446\u0435."
+  - defect: "\u043F\u0435\u0440\u0435\u0436\u0430\u0440\u0435\u043D\u0430"
+    lines:
+    - "\u0427\u0443\u0442\u044C \u043F\u0435\u0440\u0435\u0436\u0430\u0440\u0438\u043B\u0438."
+    - "\u0417\u0430\u0436\u0430\u0440\u0438\u0441\u0442\u0430\u044F\u2026 \u043D\u0430
+      \u043B\u044E\u0431\u0438\u0442\u0435\u043B\u044F."
+  - defect: "\u043A\u043E\u043C\u043A\u0438"
+    lines:
+    - "\u041A\u043E\u043C\u043E\u0447\u043A\u0438 \u043F\u043E\u043F\u0430\u0434\u0430\u044E\u0442\u0441\u044F."
+  - defect: "\u0442\u0435\u0441\u0442\u043E \u043F\u0435\u0440\u0435\u043C\u0435\u0448\u0430\u043D\u043E,
+      \u0432\u0430\u0444\u043B\u044F \u0440\u0435\u0437\u0438\u043D\u043E\u0432\u0430\u044F"
+    lines:
+    - "\u0416\u0443\u0451\u0442\u0441\u044F \u0442\u0443\u0433\u043E\u0432\u0430\u0442\u043E."
+  - defect: "\u043C\u043D\u043E\u0433\u043E \u0441\u0430\u0445\u0430\u0440\u0430"
+    lines:
+    - "\u0421\u043B\u0430\u0434\u043A\u043E\u0432\u0430\u0442\u043E \u0432\u044B\u0448\u043B\u043E."
+  - defect: "\u043C\u0430\u043B\u043E \u0441\u0430\u0445\u0430\u0440\u0430"
+    lines:
+    - "\u0421\u0430\u0445\u0430\u0440\u0430 \u0431\u044B \u043F\u043E\u0431\u043E\u043B\u044C\u0448\u0435."
+  - defect: "\u0433\u0443\u0441\u0442\u043E\u0435 \u0442\u0435\u0441\u0442\u043E"
+    lines:
+    - "\u0422\u044F\u0436\u0435\u043B\u043E\u0432\u0430\u0442\u0430 \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0430\u0441\u044C."
+  - defect: "\u0436\u0438\u0434\u043A\u043E\u0435 \u0442\u0435\u0441\u0442\u043E"
+    lines:
+    - "\u0422\u043E\u043D\u043A\u043E\u0432\u0430\u0442\u0430, \u0440\u0430\u0441\u043F\u043E\u043B\u0437\u0430\u0435\u0442\u0441\u044F."
+  - defect: "\u043C\u043D\u043E\u0433\u043E \u043C\u0443\u043A\u0438"
+    lines:
+    - "\u041C\u0443\u0447\u043D\u043E\u0439 \u043F\u0440\u0438\u0432\u043A\u0443\u0441
+      \u0435\u0441\u0442\u044C."
+  - defect: "\u043C\u0430\u043B\u0435\u043D\u044C\u043A\u0430\u044F \u0432\u0430\u0444\u043B\u044F"
+    lines:
+    - "\u041C\u0430\u043B\u043E\u0432\u0430\u0442\u0430 \u0432\u0430\u0444\u043B\u044F."
+  - defect: "\u0442\u0435\u0441\u0442\u043E \u0432\u044B\u0442\u0435\u043A\u043B\u043E"
+    lines:
+    - "\u041A\u0440\u0430\u044F \u043D\u0435\u0440\u043E\u0432\u043D\u044B\u0435
+      \u2014 \u0442\u0435\u0441\u0442\u0430 \u043F\u0435\u0440\u0435\u043B\u0438\u043B\u0438?"
+  - defect: "\u043F\u043E\u043B\u043E\u0436\u0438\u043B\u0438 \u0442\u043E, \u0447\u0442\u043E
+      \u043D\u0435 \u043F\u0440\u043E\u0441\u0438\u043B\u0438"
+    lines:
+    - "\u0410 \u0432\u043E\u0442 \u044D\u0442\u043E \u0441\u0432\u0435\u0440\u0445\u0443
+      \u2014 \u043B\u0438\u0448\u043D\u0435\u0435."
+  perfectLines:
+  - "\u041F\u0440\u0438\u0434\u0440\u0430\u0442\u044C\u0441\u044F \u043D\u0435 \u043A
+    \u0447\u0435\u043C\u0443!"
+  - "\u0412\u043E\u0442 \u044D\u0442\u043E \u044F \u043F\u043E\u043D\u0438\u043C\u0430\u044E
+    \u2014 \u0432\u0430\u0444\u043B\u044F."
+  waitedLines:
+  - "\u0414\u043E\u043B\u0433\u043E\u0432\u0430\u0442\u043E \u0432\u044B\u0448\u043B\u043E."
+  - "\u041F\u0440\u0438\u0448\u043B\u043E\u0441\u044C \u043F\u043E\u0434\u043E\u0436\u0434\u0430\u0442\u044C."
+  outOfPatienceLines:
+  - "\u041D\u0430\u043A\u043E\u043D\u0435\u0446-\u0442\u043E! \u0415\u0449\u0451
+    \u043C\u0438\u043D\u0443\u0442\u0430 \u2014 \u0438 \u043C\u0435\u043D\u044F \u0431\u044B
+    \u0442\u0443\u0442 \u043D\u0435 \u0431\u044B\u043B\u043E."
+  - "\u041D\u0443 \u0438 \u043E\u0447\u0435\u0440\u0435\u0434\u044C \u0443 \u0432\u0430\u0441
+    \u043D\u0430 \u043A\u0443\u0445\u043D\u0435\u2026"

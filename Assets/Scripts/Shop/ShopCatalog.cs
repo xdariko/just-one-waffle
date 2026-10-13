@@ -15,7 +15,8 @@ public enum ShopItemType
 {
     Upgrade,          // уровни, каждый задаёт значения статов (GameStats)
     IngredientUnlock, // постоянно открывает ингредиент каталога (CraftIngredient)
-    Equipment         // как Upgrade, но про оборудование (второе место для вафли...)
+    Equipment,        // как Upgrade, но про оборудование (второе место для вафли...)
+    CalmToken         // расходуемый жетон спокойного дня: покупается много раз, цена — в единственном уровне
 }
 
 // Параметры кухни, которые меняют улучшения. Мини-игры читают их через GameStats.
@@ -44,6 +45,8 @@ public class ShopLevel
     [Min(0)] public int price = 50;
     [Tooltip("Что даёт этот уровень — для карточки товара (\"Шанс поймать скорлупу 20%\")")]
     [TextArea(1, 2)] public string effect;
+    [Tooltip("С какого уровня репутации продаётся этот уровень товара (1 — сразу)")]
+    [Min(1)] public int minReputation = 1;
     public List<StatModifier> modifiers = new();
 }
 
@@ -63,17 +66,30 @@ public class ShopItem
     [Tooltip("Ингредиент из импортированного каталога. Его ключ (id сайта) попадает в сохранение")]
     public CraftIngredient ingredient;
 
-    [Header("Уровни (у ингредиента — один, его цена)")]
+    [Header("Уровни (у ингредиента и жетона — один, его цена)")]
     public List<ShopLevel> levels = new();
+    [Tooltip("CalmToken: сколько жетонов можно держать в запасе (награда за уровень репутации может превысить)")]
+    [Min(1)] public int maxStock = 3;
 
     [Header("Условия доступности")]
     [Tooltip("С какого дня товар продаётся")]
     [Min(1)] public int minDay = 1;
+    [Tooltip("С какого уровня репутации товар продаётся (1 — сразу). У отдельных уровней товара может быть свой порог выше")]
+    [Min(1)] public int minReputation = 1;
     [Tooltip("Нужен другой товар (id), пусто — без условия")]
     public string requiresItem;
     [Min(1)] public int requiresLevel = 1;
 
     public int MaxLevel => type == ShopItemType.IngredientUnlock ? 1 : levels.Count;
+
+    // Репутация, с которой можно купить уровень level (с 1): порог товара и пороги всех уровней до него включительно
+    public int ReputationFor(int level)
+    {
+        int need = Mathf.Max(1, minReputation);
+        for (int i = 0; i < level && i < levels.Count; i++)
+            if (levels[i] != null) need = Mathf.Max(need, levels[i].minReputation);
+        return need;
+    }
     public ShopLevel Level(int level) => level >= 1 && level <= levels.Count ? levels[level - 1] : null;
 }
 

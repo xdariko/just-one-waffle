@@ -14,8 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StoryVisit
   id: critic_day2
   character: {fileID: 11400000, guid: d439f3e9242895f4bb109eb8a23a2045, type: 2}
+  kind: 0
+  schedule: 0
   day: 2
+  afterFlag: 
+  dayOffset: 2
   once: 1
+  minReputation: 1
   timing: 1
   randomFrom: 0.3
   randomTo: 0.6
@@ -26,8 +31,18 @@ MonoBehaviour:
   introGraph: {fileID: 0}
   order: {fileID: 11400000, guid: 3a794c0c45141754c84350e1316d388f, type: 2}
   orderPool: []
+  fallbackOrder: {fileID: 0}
   requestLines: []
   clarificationLines: []
+  fallbackRequestLines: []
+  paysForOrder: 1
+  awardsPoints: 1
+  pointsMultiplier: 3
+  successMinMood: 1
+  onSuccess: []
+  onFailure: []
+  actions: []
+  farewellLines: []
   happyLines: []
   neutralLines: []
   unhappyLines: []

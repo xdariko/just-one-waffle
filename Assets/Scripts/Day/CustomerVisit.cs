@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 // Один клиент у стойки: кто пришёл, что заказал, какими словами, и чем всё закончилось.
 // Заказ (Order) фиксируется при появлении клиента; уточнение и переходы между сценами его не меняют.
@@ -23,6 +24,13 @@ public class CustomerVisit
     public bool IntroDone { get; set; }
     public bool Clarified { get; set; }
 
+    // Терпение: сколько секунд клиент готов ждать вафлю (0 — не торопит) и сколько уже ждёт, пока игрок на кухне
+    public float PatienceSeconds { get; set; }
+    public float Waited { get; set; }
+    public bool HasPatience => PatienceSeconds > 0f;
+    // 1 — только что заказал, 0 — терпение кончилось
+    public float Patience => HasPatience ? Mathf.Clamp01(1f - Waited / PatienceSeconds) : 1f;
+
     public OrderVerdict Verdict { get; set; }
     public string ReactionLine { get; set; }
 
@@ -32,6 +40,8 @@ public class CustomerVisit
     // Что произошло по сюжету (подарок, "помощь засчитана") — для реакции и итогов
     public List<string> StoryMessages { get; } = new();
     public int StoryMoney { get; set; }
+    // Цели дня, которые решились на этом заказе ("Цель дня выполнена: ...") — для реакции
+    public List<string> GoalMessages { get; } = new();
     public bool ActionsDone { get; set; }
 
     public bool IsStory => Story != null;

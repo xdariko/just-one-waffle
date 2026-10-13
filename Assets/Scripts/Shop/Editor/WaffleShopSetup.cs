@@ -9,7 +9,8 @@ using UnityEngine;
 // Как и остальная настройка, досоздаёт недостающее и перепривязывает ссылки, существующее не перезаписывает:
 // цены и тексты, поправленные в инспекторе, при повторном запуске остаются.
 //  - ассеты: EconomySettings, ShopCatalog, DecorStationLayout, префаб ячейки DecorBin, новые украшения
-//    (мороженое, посыпка, мёд), заказы и реплики с ними, цепочка "Студент" (помощь → благодарность);
+//    (мороженое, посыпка, мёд), заказы и реплики с ними, цепочка "Студент" (помощь → благодарность), цели дня, достижения,
+//    контент под репутацию (посетители, заказ с аллергией, загадочные реплики, возвращения критика);
 //  - DecorTable: ячейки больше не расставлены руками — станция строит их по данным;
 //  - кухня (Kitchen): KitchenTableLayout (упаковка и фон двигаются при росте стола);
 //  - плита: половник выключен (тесто — миской на вафельницу);
@@ -44,16 +45,30 @@ public static class WaffleShopSetup
     // Ключи ингредиентов сайта, открытые с начала игры: база теста + 2 соуса + 2 фрукта
     private static readonly string[] StartingKeys = { "1", "2", "3", "4", "5", "6", "8", "10", "11" };
 
-    private static readonly (string id, string key, int price, int minDay, string description)[] IngredientItems =
+    private static readonly (string id, string key, int price, int minDay, int minReputation, string description)[] IngredientItems =
     {
-        ("ing_jam", "9", 60, 1, "Ягодный джем — соус. Нужен для фруктовых заказов с джемом."),
-        ("ing_blueberry", "12", 60, 1, "Ещё один фрукт для заказов \"с фруктами\"."),
-        ("ing_sprinkles", "15", 50, 1, "Цветная посыпка: ставится щепотками, как добавки."),
-        ("ing_caramel", "7", 70, 1, "Карамельный соус. Открывает заказ \"Карамельная хрустящая\"."),
-        ("ing_choc_chips", "13", 70, 1, "Шоколадная крошка: ставится щепотками."),
-        ("ing_honey", "16", 80, 2, "Мёд — соус. Открывает заказ \"Медовая хрустящая\"."),
-        ("ing_ice_cream", "14", 120, 2, "Шарики мороженого. Открывает заказ \"Вафля с мороженым\"."),
+        ("ing_jam", "9", 60, 1, 1, "Ягодный джем — соус. Нужен для фруктовых заказов с джемом."),
+        ("ing_blueberry", "12", 60, 1, 1, "Ещё один фрукт для заказов \"с фруктами\"."),
+        ("ing_sprinkles", "15", 50, 1, 1, "Цветная посыпка: ставится щепотками, как добавки."),
+        ("ing_caramel", "7", 70, 1, 1, "Карамельный соус. Открывает заказ \"Карамельная хрустящая\"."),
+        ("ing_choc_chips", "13", 70, 1, 1, "Шоколадная крошка: ставится щепотками."),
+        ("ing_honey", "16", 80, 2, 2, "Мёд — соус. Открывает заказ \"Медовая хрустящая\"."),
+        ("ing_ice_cream", "14", 120, 2, 3, "Шарики мороженого. Открывает заказ \"Вафля с мороженым\"."),
     };
+
+    // Стартовые пороги репутации (Docs/EconomyBalance.md): уровень улучшения N — с репутации N, оборудование — с 2
+    public static void ApplyDefaultReputation(ShopItem item)
+    {
+        item.minReputation = item.type switch
+        {
+            ShopItemType.Upgrade => 1,
+            ShopItemType.Equipment => 2,
+            ShopItemType.CalmToken => 1,
+            _ => Mathf.Max(1, IngredientItems.FirstOrDefault(i => i.id == item.id).minReputation)
+        };
+        for (int i = 0; i < item.levels.Count; i++)
+            item.levels[i].minReputation = item.type == ShopItemType.Upgrade ? i + 1 : 1;
+    }
 
     public static void Setup(StringBuilder log)
     {
@@ -63,6 +78,9 @@ public static class WaffleShopSetup
         var layout = SetupLayout(log);
         SetupOrders(log);
         SetupStory(log);
+        SetupGoals(log);
+        SetupReputationContent(log);
+        SetupAchievements(log);
         SetupDaySettings(log, economy, catalog);
         SetupOrientation(log);
         AssetDatabase.SaveAssets();
@@ -163,7 +181,7 @@ public static class WaffleShopSetup
             params (int price, string effect, (StatId stat, float value)[] mods)[] levels)
         {
             if (c.Find(id) != null) return;
-            c.items.Add(new ShopItem
+            var item = new ShopItem
             {
                 id = id, displayName = name, minigame = minigame, description = description, category = category, type = type, minDay = minDay,
                 levels = levels.Select(l => new ShopLevel
@@ -171,7 +189,9 @@ public static class WaffleShopSetup
                     price = l.price, effect = l.effect,
                     modifiers = l.mods.Select(m => new StatModifier { stat = m.stat, value = m.value }).ToList()
                 }).ToList()
-            });
+            };
+            ApplyDefaultReputation(item);
+            c.items.Add(item);
             log.AppendLine($"✓ Магазин: {id}");
         }
 
@@ -209,7 +229,21 @@ public static class WaffleShopSetup
             ShopCategory.Equipment, ShopItemType.Equipment, 2,
             (350, "Два места для вафель", new[] { (StatId.DecorSlots, 1f) }));
 
-        foreach (var (id, key, price, minDay, description) in IngredientItems)
+        // Расходуемый жетон: спокойный день на одну смену (ещё по одному даёт каждый уровень репутации)
+        if (c.Find("calm_day") == null)
+        {
+            c.items.Add(new ShopItem
+            {
+                id = "calm_day", displayName = "Спокойный день", category = ShopCategory.Equipment, type = ShopItemType.CalmToken,
+                description = "Табличка на дверь «Сегодня не торопимся». Одна смена без таймера и без спешки клиентов: " +
+                              "приходит заданное число посетителей, чаевые не тают.",
+                levels = new List<ShopLevel> { new() { price = 60, effect = "Один спокойный день" } },
+                maxStock = 3
+            });
+            log.AppendLine("✓ Магазин: calm_day (жетон спокойного дня)");
+        }
+
+        foreach (var (id, key, price, minDay, minReputation, description) in IngredientItems)
         {
             var item = c.Find(id);
             var ing = Ing(key);
@@ -218,6 +252,7 @@ public static class WaffleShopSetup
                 item = new ShopItem
                 {
                     id = id, category = ShopCategory.Ingredients, type = ShopItemType.IngredientUnlock, minDay = minDay,
+                    minReputation = minReputation,
                     description = description, levels = new List<ShopLevel> { new() { price = price, effect = "Открыт навсегда" } }
                 };
                 c.items.Add(item);
@@ -412,6 +447,272 @@ public static class WaffleShopSetup
         foreach (var v in new[] { help, thanks })
             if (!settings.storyVisits.Contains(v)) settings.storyVisits.Add(v);
         EditorUtility.SetDirty(settings);
+    }
+
+    // ---------- Цели дня: стартовый набор (Docs/EconomyBalance.md), недостающие по id ----------
+
+    public static void SetupGoals(StringBuilder log)
+    {
+        var settings = FindAll<DaySettings>().FirstOrDefault();
+        var db = FindAll<CraftDatabase>().FirstOrDefault();
+        if (settings == null) return;
+
+        void Goal(string id, DayGoalType type, int count, int money, int points, int fromDay = 1, string tagKey = null, float quality = 0.9f)
+        {
+            if (settings.goals.Any(g => g != null && g.id == id)) return;
+            var tag = tagKey != null && db != null ? db.FindTag(tagKey) : null;
+            if (tagKey != null && tag == null)
+            {
+                log.AppendLine($"⚠ Цель дня {id}: тега \"{tagKey}\" нет в каталоге (импортируй экспорт и запусти настройку ещё раз)");
+                return;
+            }
+            settings.goals.Add(new DayGoal
+            {
+                id = id, type = type, count = count, tag = tag, quality = quality, rewardMoney = money, rewardPoints = points, fromDay = fromDay
+            });
+            log.AppendLine($"✓ Цель дня: {id}");
+        }
+
+        Goal("serve_3", DayGoalType.ServeOrders, 3, 15, 5);
+        Goal("happy_3", DayGoalType.HappyCustomers, 3, 20, 10);
+        Goal("golden_3", DayGoalType.GoldenBakes, 3, 15, 5);
+        Goal("clean_day", DayGoalType.NoViolations, 3, 25, 10);
+        Goal("no_waits", DayGoalType.NoLongWaits, 3, 20, 10);
+        Goal("quality_2", DayGoalType.HighQuality, 2, 20, 10, fromDay: 2);
+        Goal("tips_15", DayGoalType.EarnTips, 15, 15, 5, fromDay: 2);
+        Goal("crispy_2", DayGoalType.WithTag, 2, 15, 5, tagKey: "crispy");
+        Goal("fruit_2", DayGoalType.WithTag, 2, 15, 5, tagKey: "fruit");
+        EditorUtility.SetDirty(settings);
+    }
+
+    // ---------- Контент под репутацию: новые посетители, заказ с аллергией, загадочные реплики, критик ----------
+
+    public static void SetupReputationContent(StringBuilder log)
+    {
+        var settings = FindAll<DaySettings>().FirstOrDefault();
+        var db = FindAll<CraftDatabase>().FirstOrDefault();
+        if (settings == null || db == null) return;
+        OrderTemplate Order(string id) => settings.orders.FirstOrDefault(o => o != null && o.id == id);
+
+        // Посетители приходят с ростом репутации; у каждого свой запас терпения и свои реакции
+        void Customer(string file, string id, string name, Color tint, float patience, int fromReputation,
+            string happy, string neutral, string unhappy)
+        {
+            var path = $"Assets/ScriptableObjects/Customers/{file}.asset";
+            var c = AssetDatabase.LoadAssetAtPath<CustomerProfile>(path);
+            if (c == null)
+            {
+                c = ScriptableObject.CreateInstance<CustomerProfile>();
+                c.id = id;
+                c.displayName = name;
+                c.tint = tint;
+                c.patience = patience;
+                c.fromReputation = fromReputation;
+                c.happyLines = new List<string> { happy };
+                c.neutralLines = new List<string> { neutral };
+                c.unhappyLines = new List<string> { unhappy };
+                Create(c, path);
+                log.AppendLine($"✓ Посетитель {name} (с репутации {fromReputation}, терпение ×{patience})");
+            }
+            if (!settings.regularCustomers.Contains(c)) settings.regularCustomers.Add(c);
+        }
+
+        Customer("Customer_Lena", "lena", "Спортсменка Лена", new Color(0.6f, 0.9f, 0.85f), 0.8f, 2,
+            "Отлично! То, что нужно после тренировки.", "Сойдёт. Побежала дальше.", "Нет, это я есть не буду.");
+        Customer("Customer_Professor", "professor", "Профессор Аркадий", new Color(0.8f, 0.75f, 0.65f), 1.5f, 3,
+            "Превосходно. Ставлю «отлично».", "Удовлетворительно, коллега.", "Увы, это пересдача.");
+        Customer("Customer_Kira", "kira", "Блогер Кира", new Color(0.95f, 0.6f, 0.85f), 0.85f, 4,
+            "Это надо снять! Подписчики оценят.", "Ну… для сторис пойдёт.", "Такое я выкладывать не буду.");
+
+        // Аллергия: фрукты нужны, шоколад запрещён (а самый известный фруктовый рецепт — как раз с шоколадом)
+        var fruitTag = db.FindTag("fruit");
+        var chocolateTag = db.FindTag("chocolate");
+        var fruitRecipe = db.FindRecipe("Фруктовая вафля");
+        const string allergyPath = "Assets/ScriptableObjects/Orders/Order_FruitNoChocolate.asset";
+        var allergy = AssetDatabase.LoadAssetAtPath<OrderTemplate>(allergyPath);
+        if (allergy == null && fruitTag != null && chocolateTag != null && fruitRecipe != null)
+        {
+            allergy = ScriptableObject.CreateInstance<OrderTemplate>();
+            allergy.id = "fruit_no_chocolate";
+            allergy.match = OrderMatch.Requirements;
+            allergy.recipes = new List<WaffleRecipe> { fruitRecipe };
+            allergy.requirements = new List<TagRequirement>
+            {
+                new() { tag = fruitTag, rule = TagRule.MustHave },
+                new() { tag = chocolateTag, rule = TagRule.MustNotHave }
+            };
+            allergy.weight = 0.6f;
+            allergy.fromReputation = 2;
+            Create(allergy, allergyPath);
+            log.AppendLine("✓ Создан заказ fruit_no_chocolate (с репутации 2)");
+        }
+        else if (allergy == null) log.AppendLine("⚠ Заказ fruit_no_chocolate: нет тегов fruit/chocolate или рецепта «Фруктовая вафля»");
+        if (allergy != null && !settings.orders.Contains(allergy)) settings.orders.Add(allergy);
+
+        void Phrasing(string file, OrderTemplate order, int fromReputation, string[] requests, string[] clarifications)
+        {
+            if (order == null) return;
+            var path = $"Assets/ScriptableObjects/Orders/{file}.asset";
+            var p = AssetDatabase.LoadAssetAtPath<OrderPhrasing>(path);
+            if (p == null)
+            {
+                p = ScriptableObject.CreateInstance<OrderPhrasing>();
+                p.order = order;
+                p.requests = requests.ToList();
+                p.clarifications = clarifications.ToList();
+                p.fromReputation = fromReputation;
+                Create(p, path);
+                log.AppendLine($"✓ Реплики {file} (с репутации {fromReputation})");
+            }
+            if (!settings.phrasings.Contains(p)) settings.phrasings.Add(p);
+        }
+
+        Phrasing("Phrasing_FruitNoChocolate", allergy, 1,
+            new[] { "С фруктами, пожалуйста. Только без шоколада — у меня аллергия.", "Что-нибудь фруктовое. Шоколад мне нельзя!" },
+            new[] { "Любые фрукты или ягоды. А шоколада — ни капли, ни крошки." });
+
+        // Загадочные формулировки знакомых заказов: постоянные гости говорят намёками, разгадка — в уточнении
+        Phrasing("Phrasing_Fruit_Riddle", Order("fruit"), 3,
+            new[] { "Хочется чего-то летнего… как на даче у бабушки.", "Мне бы витаминов. В виде вафли." },
+            new[] { "Ну, ягоды, фрукты! Что найдётся." });
+        Phrasing("Phrasing_Crispy_Riddle", Order("crispy"), 3,
+            new[] { "Мне такую, чтобы вся улица слышала, как я её ем.", "Люблю, когда вафля отвечает мне звуком." },
+            new[] { "Хрустящую! Подержите её подольше." });
+        Phrasing("Phrasing_NoSugar_Riddle", Order("no_sugar"), 3,
+            new[] { "Я на диете, но вафлю хочу. Вы же понимаете?", "Врач сказал: белую смерть не есть. Он про неё, сыпучую." },
+            new[] { "Без сахара в тесте. Совсем." });
+        Phrasing("Phrasing_StrawberryChocolate_Riddle", Order("strawberry_chocolate"), 4,
+            new[] { "Красное с коричневым. Классика свиданий.", "Мне ту самую, из романтических фильмов." },
+            new[] { "Клубника и шоколад, конечно!" });
+        Phrasing("Phrasing_IceCream_Riddle", Order("ice_cream"), 4,
+            new[] { "Жара невыносимая. Сделайте что-нибудь, чтобы остыть.", "Горячее с холодным — можете?" },
+            new[] { "Вафлю с мороженым. Пару шариков сверху." });
+        Phrasing("Phrasing_Festive_Riddle", Order("festive"), 4,
+            new[] { "У дочки день рождения. Нужно что-то яркое и сладкое!", "Сделайте вафлю, похожую на салют." },
+            new[] { "Шоколад и цветная посыпка сверху." });
+        Phrasing("Phrasing_HoneyCrispy_Riddle", Order("honey_crispy"), 4,
+            new[] { "Как у пасечника: золотое, липкое и хрустит.", "Мне то, что любит Винни-Пух, — только с хрустом." },
+            new[] { "Хрустящую вафлю и полить мёдом." });
+
+        // Критик возвращается, когда о кафе заговорили. Его оценка весит втрое больше обычной
+        var critic = AssetDatabase.LoadAssetAtPath<CustomerProfile>("Assets/ScriptableObjects/Customers/Story_Critic.asset");
+        void CriticVisit(string file, string id, int minReputation, string[] intro, string[] pool, System.Action<StoryVisit> extra = null)
+        {
+            var path = $"Assets/ScriptableObjects/Story/{file}.asset";
+            var v = AssetDatabase.LoadAssetAtPath<StoryVisit>(path);
+            if (v == null && critic != null)
+            {
+                v = ScriptableObject.CreateInstance<StoryVisit>();
+                v.id = id;
+                v.character = critic;
+                v.kind = VisitKind.Order;
+                v.schedule = VisitSchedule.FixedDay;
+                v.day = 1;
+                v.minReputation = minReputation;
+                v.timing = VisitTiming.RandomMoment;
+                v.randomFrom = 0.2f;
+                v.randomTo = 0.6f;
+                v.priority = 8;
+                v.introLines = intro.ToList();
+                v.orderPool = pool.Select(Order).Where(o => o != null).ToList();
+                v.fallbackOrder = Order("plain");
+                v.pointsMultiplier = 3f;
+                extra?.Invoke(v);
+                Create(v, path);
+                log.AppendLine($"✓ Сюжет: {id} (критик, с репутации {minReputation}, очки ×3)");
+            }
+            if (v != null && !settings.storyVisits.Contains(v)) settings.storyVisits.Add(v);
+        }
+
+        CriticVisit("Visit_Critic_Return", "critic_return", 3,
+            new[] { "Снова я. О вашем кафе заговорил весь район.", "Посмотрим, заслуженно ли. Удивите меня." },
+            new[] { "strawberry_chocolate", "fruit", "caramel_crispy", "festive" });
+        CriticVisit("Visit_Critic_Final", "critic_final", 5,
+            new[] { "Говорят, это лучшая вафельная в городе.", "Я готовлю большую статью. Последняя проверка." },
+            new[] { "ice_cream", "honey_crispy", "festive", "strawberry_chocolate" },
+            v =>
+            {
+                v.successMinMood = CustomerMood.Happy;
+                v.onSuccess = new List<StoryAction>
+                {
+                    new() { type = StoryActionType.GiveMoney, amount = 200, message = "После статьи критика к вам выстроилась очередь" },
+                    new() { type = StoryActionType.SetFlag, flag = "critic_article" }
+                };
+                v.happyLines = new List<string> { "Безупречно. Завтра об этом прочтёт весь город." };
+                v.neutralLines = new List<string> { "Неплохо. Но для первой полосы — маловато." };
+                v.unhappyLines = new List<string> { "Жаль. Я рассчитывал на большее." };
+            });
+
+        EditorUtility.SetDirty(settings);
+    }
+
+    // ---------- Достижения: стартовый список (Docs/EconomyBalance.md), недостающие по id ----------
+
+    private const string AchievementsPath = "Assets/ScriptableObjects/Progress/Achievements.asset";
+
+    public static void SetupAchievements(StringBuilder log)
+    {
+        var settings = FindAll<DaySettings>().FirstOrDefault();
+        var db = FindAll<CraftDatabase>().FirstOrDefault();
+        if (settings == null) return;
+
+        var catalog = settings.achievements != null ? settings.achievements
+            : AssetDatabase.LoadAssetAtPath<AchievementCatalog>(AchievementsPath) ?? FindAll<AchievementCatalog>().FirstOrDefault();
+        if (catalog == null)
+        {
+            catalog = ScriptableObject.CreateInstance<AchievementCatalog>();
+            Create(catalog, AchievementsPath);
+            log.AppendLine($"✓ Создан {AchievementsPath}");
+        }
+        if (settings.achievements == null)
+        {
+            settings.achievements = catalog;
+            EditorUtility.SetDirty(settings);
+            log.AppendLine("✓ DaySettings: достижения");
+        }
+
+        int added = 0;
+        void Add(string id, string title, AchievementMetric metric, int target, int reward, string flag = null, string description = null)
+        {
+            if (catalog.Find(id) != null) return;
+            catalog.achievements.Add(new Achievement
+            {
+                id = id, title = title, metric = metric, target = target, rewardMoney = reward, flag = flag, description = description
+            });
+            added++;
+        }
+
+        Add("first_order", "Первая вафля", AchievementMetric.Orders, 1, 10);
+        Add("orders_25", "Набил руку", AchievementMetric.Orders, 25, 25);
+        Add("orders_100", "Сотня вафель", AchievementMetric.Orders, 100, 60);
+        Add("happy_10", "Любимец публики", AchievementMetric.Happy, 10, 20);
+        Add("happy_50", "Очередь у дверей", AchievementMetric.Happy, 50, 50);
+        Add("perfect_1", "Без единой помарки", AchievementMetric.Perfect, 1, 15);
+        Add("perfect_10", "Ювелир", AchievementMetric.Perfect, 10, 50);
+        Add("golden_20", "Золотые руки", AchievementMetric.Golden, 20, 25);
+        Add("streak_5", "Пять подряд", AchievementMetric.HappyStreak, 5, 20);
+        Add("streak_10", "Ни одного хмурого лица", AchievementMetric.HappyStreak, 10, 50);
+        Add("tips_100", "Щедрые гости", AchievementMetric.Tips, 100, 25);
+        Add("goals_10", "Целеустремлённый", AchievementMetric.Goals, 10, 30);
+        Add("clean_5", "Чистая работа", AchievementMetric.CleanShifts, 5, 40);
+        Add("shifts_7", "Первая неделя", AchievementMetric.Shifts, 7, 30);
+        Add("earned_1000", "Первая тысяча", AchievementMetric.MoneyEarned, 1000, 40);
+        Add("rep_3", "О нас говорят", AchievementMetric.ReputationLevel, 3, 30);
+        Add("rep_5", "Легенда города", AchievementMetric.ReputationLevel, 5, 80);
+        Add("shop_5", "Обустроились", AchievementMetric.Purchases, 5, 25);
+        Add("ingredients_all", "Полный прилавок", AchievementMetric.Ingredients, IngredientItems.Length, 50);
+        Add("recipes_1", "Первая страница", AchievementMetric.Recipes, 1, 10);
+        Add("recipes_5", "Полкниги", AchievementMetric.Recipes, 5, 40);
+        int recipeCount = db != null ? db.ActiveRecipes.Count() : 0;
+        if (recipeCount > 5) Add("recipes_all", "Шеф-повар", AchievementMetric.Recipes, recipeCount, 150, description: "Собрать всю книгу рецептов");
+        Add("student_helped", "Доброе дело", AchievementMetric.StoryFlag, 1, 15, "student_helped", "Выручить студента");
+        Add("critic_article", "Первая полоса", AchievementMetric.StoryFlag, 1, 60, "critic_article", "Заслужить восторженную статью критика");
+
+        if (added > 0)
+        {
+            EditorUtility.SetDirty(catalog);
+            log.AppendLine($"✓ Достижения: добавлено {added}");
+        }
     }
 
     private static void SetupDaySettings(StringBuilder log, EconomySettings economy, ShopCatalog catalog)

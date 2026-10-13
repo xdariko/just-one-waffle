@@ -20,5 +20,9 @@ MonoBehaviour:
     rule: 0
   - tag: {fileID: 11400000, guid: 38db595fdf06f844aa46502aff774756, type: 2}
     rule: 1
+  guideRecipe: {fileID: 0}
+  price: 0
+  requiredItems: []
   weight: 1
   fromDay: 1
+  fromReputation: 2

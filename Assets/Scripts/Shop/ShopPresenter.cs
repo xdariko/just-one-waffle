@@ -5,7 +5,7 @@ using System.Linq;
 // Магазин между сменами (стойка, сцена Counter): решает, что показать в ShopView, и проводит покупки.
 // Три раздела: улучшения приготовления, ингредиенты для украшения, оборудование.
 // Карточка: название, уровень, описание, что сейчас → что будет после покупки, цена и кнопка
-// (или причина, почему нельзя: не хватает денег, рано, нужен другой товар, максимум).
+// (или причина, почему нельзя: не хватает денег, рано, мало репутации, нужен другой товар, максимум).
 // Кнопка — только удобство: покупку проверяет ShopService, двойное нажатие второй раз не купит.
 public class ShopPresenter
 {
@@ -73,7 +73,9 @@ public class ShopPresenter
     public void Refresh(bool animate = false)
     {
         var progress = GameProgress.Current;
-        view.SetBalance($"Кошелёк: <b>{EconomySettings.Money(progress.Money)}</b>   ·   день {Day}");
+        var eco = runner != null ? runner.Economy : EconomySettings.Active;
+        var reputation = eco != null ? $"   ·   репутация: ур. {eco.ReputationLevelFor(progress.Reputation)}" : "";
+        view.SetBalance($"Кошелёк: <b>{EconomySettings.Money(progress.Money)}</b>   ·   день {Day}{reputation}");
         view.SetSelectedTab(tab);
 
         var catalog = Catalog;
@@ -99,7 +101,9 @@ public class ShopPresenter
         Subtitle = Subtitle(item, state),
         Description = Description(item),
         Effect = EffectLine(item, state),
-        Status = state.Owned ? Theme.Paint(state.MaxLevel > 1 ? "Максимальный уровень" : "Куплено", UiTone.Positive) : state.Reason,
+        Status = !state.Owned ? state.Reason
+            : item.type == ShopItemType.CalmToken ? Theme.Paint(state.Reason, UiTone.Positive)
+            : Theme.Paint(state.MaxLevel > 1 ? "Максимальный уровень" : "Куплено", UiTone.Positive),
         Owned = state.Owned,
         CanBuy = state.CanBuy,
         BuyLabel = $"Купить · {EconomySettings.Money(state.Price)}"
@@ -113,6 +117,11 @@ public class ShopPresenter
             var decor = item.ingredient != null ? item.ingredient.decor : null;
             parts.Add(decor != null ? $"Украшение: {DecorIngredient.CategoryName(decor.category)}" : "Ингредиент");
             parts.Add("покупается навсегда");
+        }
+        else if (item.type == ShopItemType.CalmToken)
+        {
+            parts.Add("тратится на одну смену");
+            parts.Add($"в запасе {state.Level} из {state.MaxLevel}");
         }
         else
         {
@@ -136,6 +145,8 @@ public class ShopPresenter
             var opens = recipes.Count > 0 ? $" Новые заказы: {string.Join(", ", recipes)}." : "";
             return state.Owned ? $"Стоит на станции украшения.{opens}" : $"<b>После покупки:</b> ячейка на станции украшения.{opens}";
         }
+        if (item.type == ShopItemType.CalmToken)
+            return "Включается на экране «День N» кнопкой «Спокойный день». Жетон тратится, когда смена закрыта.";
         if (state.Owned) return $"<b>Сейчас:</b> {state.CurrentEffect}";
         return $"<b>Сейчас:</b> {state.CurrentEffect}   →   <b>После покупки:</b> {state.NextEffect}";
     }

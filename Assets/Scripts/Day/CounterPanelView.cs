@@ -9,6 +9,13 @@ using UnityEngine.UI;
 public enum PanelButton
 {
     Shop,     // открыть магазин поверх панели (фаза не меняется)
+    Settings, // открыть настройки поверх панели (окно паузы)
+    CalmDay,    // потратить жетон: предстоящая смена — спокойный день
+    CalmDayOff, // передумать: обычная смена, жетон остаётся
+    Menu,         // меню между сменами: карьера, достижения, книга рецептов, настройки
+    Achievements, // страница достижений
+    Recipes,      // страница книги рецептов
+    Back,         // со страницы — в меню, из меню — к экрану дня
     StartDay, // "Открыть вафельную"
     NextDay   // "Следующий день" (из итогов)
 }
@@ -34,6 +41,13 @@ public class CounterPanelView : PanelView
     public static string Label(PanelButton role) => role switch
     {
         PanelButton.Shop => "Магазин",
+        PanelButton.Settings => "Настройки",
+        PanelButton.CalmDay => "Спокойный день",
+        PanelButton.CalmDayOff => "Обычный день",
+        PanelButton.Menu => "Меню",
+        PanelButton.Achievements => "Достижения",
+        PanelButton.Recipes => "Книга рецептов",
+        PanelButton.Back => "Назад",
         PanelButton.StartDay => "Открыть вафельную",
         PanelButton.NextDay => "Следующий день",
         _ => role.ToString()
