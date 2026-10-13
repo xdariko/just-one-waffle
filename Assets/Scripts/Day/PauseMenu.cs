@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 // Пауза и настройки (префаб Prefabs/UI/PausePanel в Systems, живёт между сценами).
-// Открывается кнопкой в полоске HUD, клавишей Escape (на Android — "назад") и кнопкой "Настройки" на стойке.
+// Открывается кнопкой в полоске HUD, клавишей Escape (на Android — "назад") и кнопкой "Настройки" на стойке
+// и в главном меню. Отсюда же — выход в главное меню.
 // Пока окно открыто, игра стоит:
 //  - Time.timeScale = 0 — время дня, терпение клиента, выпечка и остальные мини-игры не идут;
 //  - звуки кухни на паузе (музыка и щелчки интерфейса играют);
@@ -20,6 +22,8 @@ public class PauseMenu : MonoBehaviour
 
     private readonly List<(Camera camera, int mask)> cameraMasks = new();
     private float timeScaleBefore = 1f;
+    // Выход в меню посреди смены срабатывает со второго нажатия
+    private bool confirmExit;
 
     public bool IsOpen => view != null && view.IsShown;
     public PauseView View => view;
@@ -34,6 +38,7 @@ public class PauseMenu : MonoBehaviour
             return;
         }
         view.CloseClicked += Close;
+        view.MenuClicked += ExitToMenu;
         view.VolumeClicked += StepVolume;
     }
 
@@ -55,6 +60,7 @@ public class PauseMenu : MonoBehaviour
     {
         // Посреди жеста (сыплем, мешаем) и во время перехода между сценами паузу не ставим
         if (view == null || IsOpen || GestureLock.IsActive || (SceneLoader.Instance != null && SceneLoader.Instance.IsLoading)) return false;
+        confirmExit = false;
         Freeze();
         view.Show(DayRunning ? "Пауза" : "Настройки", DayRunning ? "Продолжить" : "Готово");
         Refresh();
@@ -66,6 +72,22 @@ public class PauseMenu : MonoBehaviour
         if (!IsOpen) return;
         view.Hide();
         Unfreeze();
+    }
+
+    private static bool InMainMenu => SceneManager.GetActiveScene().name == GameScenes.Name(GameScene.MainMenu);
+
+    // В главное меню. Посреди смены она не засчитается (день начнётся заново) — спрашиваем подтверждение
+    private void ExitToMenu()
+    {
+        if (DayRunning && !confirmExit)
+        {
+            confirmExit = true;
+            Refresh();
+            return;
+        }
+        Close();
+        if (DayRunner.Instance != null) DayRunner.Instance.ReturnToMenu();
+        SceneLoader.Go(GameScene.MainMenu);
     }
 
     private static bool DayRunning =>
@@ -118,6 +140,7 @@ public class PauseMenu : MonoBehaviour
         view.SetBody(BodyText());
         view.SetVolume(true, AudioService.GetVolume(AudioChannel.Music));
         view.SetVolume(false, AudioService.GetVolume(AudioChannel.Sfx));
+        view.SetMenuButton(InMainMenu ? null : confirmExit ? "Смена пропадёт. Выйти?" : "В главное меню");
     }
 
     // Что сейчас происходит: смена, заказ на кухне, цели дня

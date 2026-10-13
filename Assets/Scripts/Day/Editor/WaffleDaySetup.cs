@@ -21,6 +21,7 @@ public static class WaffleDaySetup
 {
     private static readonly string CounterScenePath = GameScenes.Path(GameScene.Counter);
     private static readonly string KitchenScenePath = GameScenes.Path(GameScene.Kitchen);
+    private static readonly string MainMenuScenePath = GameScenes.Path(GameScene.MainMenu);
     private const string OldCounterScenePath = "Assets/Scenes/SampleScene.unity";
     private const string OldKitchenScenePath = "Assets/Scenes/MainScene.unity";
     private const string SystemsPath = "Assets/Resources/" + GameBootstrap.SystemsResource + ".prefab";
@@ -47,6 +48,7 @@ public static class WaffleDaySetup
         WaffleShopSetup.Setup(log);
         WaffleUiSetup.Setup(log);
         SetupCounter(log);
+        SetupMainMenu(log);
         SetupSystems(log, recipePath);
         WaffleSortingSetup.Setup(log);
         WaffleAtlasSetup.Setup(log);
@@ -238,6 +240,41 @@ public static class WaffleDaySetup
         log.AppendLine("✓ Стойка: ссылки CounterController / DialogueManager обновлены");
     }
 
+    // ---------- Главное меню ----------
+
+    // Сцена MainMenu: камера (фон), EventSystem, экземпляр префаба меню и контроллер. Существующую не пересобирает —
+    // только досоздаёт недостающее и перепривязывает ссылку на вид
+    public static void SetupMainMenu(System.Text.StringBuilder log)
+    {
+        bool exists = AssetDatabase.LoadAssetAtPath<SceneAsset>(MainMenuScenePath) != null;
+        var scene = exists
+            ? EditorSceneManager.OpenScene(MainMenuScenePath, OpenSceneMode.Single)
+            : EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+        if (Object.FindAnyObjectByType<Camera>(FindObjectsInactive.Include) == null)
+        {
+            var cam = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener)).GetComponent<Camera>();
+            cam.tag = "MainCamera";
+            cam.orthographic = true;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.98f, 0.94f, 0.86f);
+            cam.transform.position = new Vector3(0f, 0f, -10f);
+        }
+        if (Object.FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>(FindObjectsInactive.Include) == null)
+            new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
+
+        var view = WaffleUiSetup.PlaceInScene<MainMenuView>(WaffleUiSetup.MainMenuPath, log);
+        var controller = Object.FindAnyObjectByType<MainMenuController>(FindObjectsInactive.Include);
+        if (controller == null) controller = new GameObject("MainMenu").AddComponent<MainMenuController>();
+        var so = new SerializedObject(controller);
+        so.FindProperty("view").objectReferenceValue = view;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        bool saved = EditorSceneManager.SaveScene(scene, MainMenuScenePath);
+        if (!exists) log.AppendLine(saved ? $"✓ Создана сцена {MainMenuScenePath} (главное меню)" : $"✗ Не удалось сохранить {MainMenuScenePath}");
+    }
+
     // ---------- Сцены: новые имена ----------
 
     // Переименование через AssetDatabase: GUID сцен сохраняются, ссылки на них не ломаются
@@ -374,13 +411,14 @@ public static class WaffleDaySetup
 
     private static void SetupBuildSettings(System.Text.StringBuilder log)
     {
-        var scenes = EditorBuildSettings.scenes.Where(s => s.path != CounterScenePath && s.path != KitchenScenePath).ToList();
-        scenes.Insert(0, new EditorBuildSettingsScene(CounterScenePath, true));
-        scenes.Insert(1, new EditorBuildSettingsScene(KitchenScenePath, true));
+        var own = new[] { MainMenuScenePath, CounterScenePath, KitchenScenePath };
+        var scenes = EditorBuildSettings.scenes.Where(s => !own.Contains(s.path)).ToList();
+        // Игра стартует с главного меню; сцену заставки потом можно поставить перед ним руками — порядок остальных сохранится
+        for (int i = 0; i < own.Length; i++) scenes.Insert(i, new EditorBuildSettingsScene(own[i], true));
         var changed = !EditorBuildSettings.scenes.Select(s => s.path + s.enabled).SequenceEqual(scenes.Select(s => s.path + s.enabled));
         if (!changed) return;
         EditorBuildSettings.scenes = scenes.ToArray();
-        log.AppendLine("✓ Build Settings: Counter (стойка) первой, Kitchen (кухня) второй");
+        log.AppendLine("✓ Build Settings: MainMenu (главное меню), Counter (стойка), Kitchen (кухня)");
     }
 
     private static T FindAsset<T>() where T : Object

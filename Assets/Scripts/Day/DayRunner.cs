@@ -178,6 +178,18 @@ public class DayRunner : MonoBehaviour
         ClearDayState();
     }
 
+    // Выход в главное меню: незакрытая смена отменяется (как при закрытии игры — день начнётся заново),
+    // состояние дня перечитывается из сохранения
+    public void ReturnToMenu()
+    {
+        if (settings == null) return;
+        if (Phase is DayPhase.Ordering or DayPhase.Cooking or DayPhase.Reaction)
+            Log.Info($"[Day] выход в меню посреди дня {Day}: смена не засчитана");
+        Initialize(settings);
+        if (CookingManager.Instance != null) CookingManager.Instance.ResetForNewDay();
+        Changed?.Invoke();
+    }
+
     private void Update()
     {
         Tick(Time.deltaTime);

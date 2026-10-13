@@ -130,6 +130,8 @@ public class GameProgress
     // Очки репутации: все очки за обслуживание за закрытые смены. Растут только в CommitShift
     public long Reputation => Data.totalPoints;
     public int CalmTokens => Data.calmTokens;
+    // Игрок уже что-то сделал в этом сохранении (для главного меню: "Продолжить" или "Начать игру")
+    public bool HasStarted => Data.lastCommittedDay > 0 || Data.day > 1 || Data.tutorialDone || Data.items.Count > 0;
 
     // ---------- Загрузка ----------
 
