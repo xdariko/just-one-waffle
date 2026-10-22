@@ -29,6 +29,8 @@ public class PlatedWaffle : MonoBehaviour
     // Какая вафля заказа
     public WaffleProduct Product { get; private set; }
     public bool IsDragging => dragging;
+    // Размер без "дыхания" — с ним вафля ложится на доску украшения
+    public Vector3 BaseScale => baseScale;
 
     public void Initialize(DecorStation decorStation, PackingStation packingStation, WaffleProduct product, Vector3 restPosition)
     {

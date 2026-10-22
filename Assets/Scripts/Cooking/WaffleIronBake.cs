@@ -146,7 +146,7 @@ public class WaffleIronBake : KitchenTool
         view.SetLidOpen(true);
 
         // Вафля лежит на открытой вафельнице; drag — сразу в пальце
-        var waffle = view.SpawnWaffle(result, out var rest);
+        var waffle = view.SpawnWaffle(result, decorStation != null ? decorStation.WaffleSize : 0f, out var rest);
         var plated = waffle.gameObject.AddComponent<PlatedWaffle>();
         plated.Initialize(decorStation, packingStation, product, rest);
         if (drag) plated.BeginDrag();

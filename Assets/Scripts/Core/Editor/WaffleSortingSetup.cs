@@ -195,7 +195,7 @@ public static class WaffleSortingSetup
             if (!AssetDatabase.IsValidFolder(dir)) AssetDatabase.CreateFolder("Assets/ScriptableObjects", "Cooking");
             look = ScriptableObject.CreateInstance<WaffleLook>();
             AssetDatabase.CreateAsset(look, LookPath);
-            log.AppendLine($"✓ Создан {LookPath} — сюда класть картинки вафли (сбоку, сверху, по пропечке)");
+            log.AppendLine($"✓ Создан {LookPath} — сюда класть картинки вафли (сверху, по пропечке)");
         }
 
         EditPrefab(StovePath, root => AssignLook(root.GetComponentInChildren<WaffleIronView>(true), look), log, "вафельнице задан WaffleLook");

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // Как выглядит вафля в зависимости от пропечки (ассет: Create → Cooking → Waffle Look).
-// Используют вафельница (вафля сбоку: на вафельнице и в пальце) и станция украшения (вафля сверху).
-// Картинка этапа задана — берётся она, иначе общая картинка, иначе заглушка. Цвет этапа тонирует картинку:
+// Вафля везде одна и та же — вид сверху, одного размера: на вафельнице, в пальце, на доске украшения и в коробке.
+// Картинка этапа задана — берётся она, иначе общая картинка, иначе сетка-заглушка. Цвет этапа тонирует картинку:
 // для своих картинок на каждый этап поставь цвет белым.
 [CreateAssetMenu(menuName = "Cooking/Waffle Look", fileName = "WaffleLook")]
 public class WaffleLook : ScriptableObject
@@ -14,19 +14,13 @@ public class WaffleLook : ScriptableObject
     {
         public BakeResult result;
         public Color tint = Color.white;
-        [Tooltip("Своя картинка сбоку для этого этапа (пусто — общая)")]
-        public Sprite side;
         [Tooltip("Своя картинка сверху для этого этапа (пусто — общая)")]
         public Sprite top;
     }
 
-    [Header("Общие картинки (пусто — заглушки)")]
-    [Tooltip("Вафля сбоку: лежит на вафельнице, её несут на украшение")]
-    public Sprite side;
-    [Tooltip("Вафля сверху: на доске украшения, по ней мажут соус")]
+    [Header("Общая картинка (пусто — сетка-заглушка)")]
+    [Tooltip("Вафля сверху: на вафельнице, на доске украшения (по ней мажут соус), в коробке")]
     public Sprite top;
-    [Tooltip("Размер заглушки сбоку (без картинки), мировые единицы")]
-    public Vector2 placeholderSideSize = new(1.4f, 0.3f);
 
     [Header("По пропечке")]
     public List<Stage> stages = new()
@@ -39,6 +33,7 @@ public class WaffleLook : ScriptableObject
     };
 
     private static WaffleLook fallback;
+    private static Sprite placeholderTop;
 
     // Ассет не задан в инспекторе — вид по умолчанию (заглушки и цвета выше)
     public static WaffleLook OrDefault(WaffleLook look)
@@ -56,6 +51,42 @@ public class WaffleLook : ScriptableObject
         result == null ? null : stages.Find(s => s != null && s.result == result.Value);
 
     public Color Tint(BakeResult? result) => StageOf(result)?.tint ?? Color.white;
-    public Sprite Side(BakeResult? result) => StageOf(result)?.side != null ? StageOf(result).side : side;
-    public Sprite Top(BakeResult? result) => StageOf(result)?.top != null ? StageOf(result).top : top;
+    public Sprite Top(BakeResult? result) => StageOf(result)?.top != null ? StageOf(result).top : top != null ? top : PlaceholderTop;
+
+    // Заглушка: квадратная вафля сверху — светлая решётка и тёмные ячейки, тонируется цветом пропечки
+    public static Sprite PlaceholderTop
+    {
+        get
+        {
+            if (placeholderTop == null) placeholderTop = CreateGridSprite();
+            return placeholderTop;
+        }
+    }
+
+    private static Sprite CreateGridSprite()
+    {
+        const int texSize = 128;
+        const int cells = 6;
+        const int border = 7;
+        const int ridge = 4;
+
+        var tex = new Texture2D(texSize, texSize, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
+        var pixels = new Color32[texSize * texSize];
+        var ridgeColor = new Color32(255, 255, 255, 255);
+        var cellColor = new Color32(205, 205, 205, 255);
+        float cellSize = (texSize - border * 2f) / cells;
+
+        for (int y = 0; y < texSize; y++)
+        for (int x = 0; x < texSize; x++)
+        {
+            bool edge = x < border || y < border || x >= texSize - border || y >= texSize - border;
+            float cx = (x - border) % cellSize, cy = (y - border) % cellSize;
+            bool onRidge = edge || cx < ridge || cy < ridge;
+            pixels[y * texSize + x] = onRidge ? ridgeColor : cellColor;
+        }
+
+        tex.SetPixels32(pixels);
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, texSize, texSize), new Vector2(0.5f, 0.5f), texSize);
+    }
 }
