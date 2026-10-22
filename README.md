@@ -20,7 +20,7 @@ Unity **6000.3.8f1** (URP 2D). Дизайн-заметки — в [`doc.md`](doc
 
 План и правила рабочего дня — [`Docs/WaffleGameImplementationPlan.md`](Docs/WaffleGameImplementationPlan.md).
 Магазин, экономика, улучшения, сюжетные визиты — [`Docs/ShopAndEconomyPlan.md`](Docs/ShopAndEconomyPlan.md), баланс с формулами и расчётом смен — [`Docs/EconomyBalance.md`](Docs/EconomyBalance.md).
-План улучшения архитектуры перед артом, звуком и UI — [`Docs/ArchitecturePlan.md`](Docs/ArchitecturePlan.md). Идеи развития игры (механики, контент, мета) — [`Docs/GameDesignIdeas.md`](Docs/GameDesignIdeas.md).
+План улучшения архитектуры перед артом, звуком и UI — [`Docs/ArchitecturePlan.md`](Docs/ArchitecturePlan.md). Идеи развития игры (механики, контент, мета) — [`Docs/GameDesignIdeas.md`](Docs/GameDesignIdeas.md). Порядок работы над артом (блоки спрайтов, сюжет) — [`Docs/ArtPlan.md`](Docs/ArtPlan.md).
 
 Ориентация — только горизонтальная (вёрстка под 16:9; на более узких экранах стол листается).
 
@@ -221,7 +221,7 @@ Assets/
   - У станций на корне `SortingGroup` (слой `Stations`): новый спрайт внутри станции сам попадает в её слой, порядок деталей — `Order in Layer` внутри станции.
   - Предметы в руке — слой `Held`, фон кухни — `Background`. Несомые миска и вафля сами переходят в `Held` и обратно.
   - Спрайт, оставленный в `Default`, виден над фоном, но под станциями; «Проверить контент» предупредит о нём. Слои и группы расставляет **Настроить сцены дня** (выставленное руками не трогает).
-- **Вид вафли** — `ScriptableObjects/Cooking/WaffleLook`: общая картинка сбоку (на вафельнице, в пальце) и сверху (доска украшения), по каждой пропечке — цвет и при желании свои картинки. Цвет тонирует картинку: для своих картинок по этапам ставь цвет белым.
+- **Вид вафли** — `ScriptableObjects/Cooking/WaffleLook`: картинка сверху, одна и та же везде — на вафельнице, в пальце, на доске украшения и в коробке (размер — `DecorStationLayout.waffleSize`), по каждой пропечке — цвет и при желании свои картинки. Цвет тонирует картинку: для своих картинок по этапам ставь цвет белым.
 - **Готовые поля под арт:**
   - яйцо: `crackSprites`, `cleanBreakPrefab`, `smashPrefab`;
   - пакеты: `pourParticles` (частицы вместо полоски-струи);

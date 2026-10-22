@@ -1,7 +1,8 @@
 using System.Collections;
 using UnityEngine;
 
-// Зона упаковки (последняя на столе). Готовую вафлю с тарелки переносим сюда:
+// Зона упаковки (последняя на столе). Коробка — вид сверху, под вафлю того же размера, что на доске украшения.
+// Готовую вафлю с доски переносим сюда:
 // камера едет к коробке, вафля перелетает в неё, крышка закрывается —
 // и переходим на стойку (SceneLoader). CookingManager живёт между сценами (префаб Systems),
 // так что результат готовки доступен на стойке.
@@ -27,12 +28,11 @@ public class PackingStation : KitchenTool
     [Header("Анимация")]
     [SerializeField] private float carryDuration = 1.2f;
     [SerializeField] private float arcHeight = 2f;
-    [SerializeField] private float lidOpenLift = 0.6f;
-    [SerializeField] private float lidOpenAngle = 60f;
+    [Tooltip("На сколько градусов откинута открытая крышка (петля по дальнему краю, вид сверху)")]
+    [SerializeField] private float lidOpenDegrees = 115f;
     [SerializeField] private float lidCloseTime = 0.3f;
 
-    private Vector3 lidClosedPos;
-    private Quaternion lidClosedRot;
+    private HingedLid hinge;
     private bool packing;
 
     public bool IsBusy => packing;
@@ -50,8 +50,7 @@ public class PackingStation : KitchenTool
 
         if (lid != null)
         {
-            lidClosedPos = lid.localPosition;
-            lidClosedRot = lid.localRotation;
+            hinge = new HingedLid(lid);
             SetLid(1f);
         }
     }
@@ -106,9 +105,5 @@ public class PackingStation : KitchenTool
         SceneLoader.Go(GameScene.Counter);
     }
 
-    private void SetLid(float open01)
-    {
-        lid.localPosition = lidClosedPos + Vector3.up * (lidOpenLift * open01);
-        lid.localRotation = lidClosedRot * Quaternion.Euler(0f, 0f, lidOpenAngle * open01);
-    }
+    private void SetLid(float open01) => hinge.Set(lidOpenDegrees * open01);
 }

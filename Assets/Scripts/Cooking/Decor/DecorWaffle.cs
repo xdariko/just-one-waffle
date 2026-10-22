@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // Большая вафля (вид сверху) в зоне украшения. Создаётся кодом из DecorStation.
-//   Base     — основа: своя картинка (waffleSprite) или сгенерированная сетка ячеек, тонируется цветом пропечки
+//   Base     — основа: картинка из WaffleLook (или сетка-заглушка), тонируется цветом пропечки
 //   Sauce    — слой соусов: текстура, в которую "рисует" кисть; по ней же считается покрытие
 //   Toppings — кусочки добавок
 // Координаты для рецептов — в долях вафли: (0,0) левый нижний угол, (1,1) правый верхний.
@@ -39,7 +39,7 @@ public class DecorWaffle : MonoBehaviour
         // --- основа ---
         baseRenderer = new GameObject("Base").AddComponent<SpriteRenderer>();
         baseRenderer.transform.SetParent(transform, false);
-        baseRenderer.sprite = waffleSprite != null ? waffleSprite : CreateGridSprite();
+        baseRenderer.sprite = waffleSprite != null ? waffleSprite : WaffleLook.PlaceholderTop;
         baseRenderer.color = bakeColor;
         baseRenderer.sortingOrder = baseOrder;
         FitToSize(baseRenderer);
@@ -205,33 +205,5 @@ public class DecorWaffle : MonoBehaviour
         var s = sr.sprite.bounds.size;
         float k = worldSize / Mathf.Max(s.x, s.y, 0.0001f);
         sr.transform.localScale = new Vector3(k, k, 1f);
-    }
-
-    // Заглушка: квадратная вафля сверху — светлая решётка и тёмные ячейки, тонируется цветом пропечки
-    private static Sprite CreateGridSprite()
-    {
-        const int texSize = 128;
-        const int cells = 6;
-        const int border = 7;
-        const int ridge = 4;
-
-        var tex = new Texture2D(texSize, texSize, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
-        var pixels = new Color32[texSize * texSize];
-        var ridgeColor = new Color32(255, 255, 255, 255);
-        var cellColor = new Color32(205, 205, 205, 255);
-        float cellSize = (texSize - border * 2f) / cells;
-
-        for (int y = 0; y < texSize; y++)
-        for (int x = 0; x < texSize; x++)
-        {
-            bool edge = x < border || y < border || x >= texSize - border || y >= texSize - border;
-            float cx = (x - border) % cellSize, cy = (y - border) % cellSize;
-            bool onRidge = edge || cx < ridge || cy < ridge;
-            pixels[y * texSize + x] = onRidge ? ridgeColor : cellColor;
-        }
-
-        tex.SetPixels32(pixels);
-        tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, texSize, texSize), new Vector2(0.5f, 0.5f), texSize);
     }
 }

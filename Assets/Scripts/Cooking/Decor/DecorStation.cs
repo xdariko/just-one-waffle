@@ -5,7 +5,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 
 // Зона украшения. Готовую вафлю перетаскивают с вафельницы и отпускают над станцией (TryDropWaffle):
-// она ложится на ближайшее свободное место и раскрывается в большую вафлю (вид сверху).
+// она ложится на ближайшее свободное место. Вафля везде одна и та же (вид сверху, размер места) — на вафельнице,
+// здесь и в коробке.
 //  - раскладку (ячейки ингредиентов, места для вафель, стол) собирает DecorStationBuilder по данным;
 //  - каждая вафля — свой WaffleProduct со своим украшением; действие идёт с той вафлей, которой коснулся палец,
 //    она же подсвечивается (DecorSlot);
@@ -49,9 +50,6 @@ public class DecorStation : KitchenTool
     [SerializeField] private float arcHeight = 2f;
 
     [Header("Перетаскивание в упаковку")]
-    [Tooltip("Во сколько раз уменьшается вафля, когда её берут (чтобы было видно, куда несёшь, и влезла в коробку)")]
-    [SerializeField] private float carryScale = 0.4f;
-    [SerializeField] private float pickUpTime = 0.15f;
     [SerializeField] private float returnTime = 0.3f;
     [Tooltip("Доля ширины экрана у края, где стол начинает прокручиваться")]
     [SerializeField] private float edgeScrollZone = 0.12f;
@@ -64,7 +62,6 @@ public class DecorStation : KitchenTool
     private DecorBin selected;
     private DecorSlot active;
     private DecorSlot dragSlot;
-    private float carry01; // 0 — лежит на доске, 1 — поднята (уменьшена)
     private Tween returnTween;
     private Camera cam;
     private float slotWaffleSize;
@@ -81,6 +78,8 @@ public class DecorStation : KitchenTool
     public WaffleProduct ProductAt(int slot) => slot >= 0 && slot < slots.Count ? slots[slot].Product : null;
     public Vector3 SlotCenter(int slot) => slots[slot].Center;
     public bool HasFreeSlot => slots.Any(s => s.Free);
+    // Размер вафли (сторона, мировые ед.) — такой же она лежит на вафельнице и в коробке
+    public float WaffleSize => slotWaffleSize;
 
     private void Awake()
     {
@@ -182,7 +181,7 @@ public class DecorStation : KitchenTool
         return true;
     }
 
-    // Маленькая вафля летит на доску по дуге и "раскрывается" в квадрат вида сверху
+    // Вафля летит на доску по дуге (того же вида и размера) и становится вафлей для украшения
     private void FlyToSlot(PlatedWaffle plated, DecorSlot slot, float duration, float arc, bool moveCamera)
     {
         slot.Busy = true;
@@ -199,14 +198,13 @@ public class DecorStation : KitchenTool
         var bakeColor = product?.BakeResult != null ? view.Tint(product.BakeResult) : sr != null ? sr.color : Color.white;
         var fromPos = tr.position;
         var fromScale = tr.localScale;
-        var toScale = new Vector3(slotWaffleSize, slotWaffleSize, 1f);
+        var toScale = plated.BaseScale; // без "дыхания" вафли на вафельнице
 
         DOVirtual.Float(0f, 1f, duration, t =>
             {
                 float k = Mathf.SmoothStep(0f, 1f, t);
                 tr.position = Vector3.Lerp(fromPos, target, k) + Vector3.up * (Mathf.Sin(k * Mathf.PI) * arc);
-                // Сначала летим, раскрываемся ближе к концу
-                tr.localScale = Vector3.Lerp(fromScale, toScale, Mathf.SmoothStep(0f, 1f, (k - 0.5f) * 2f));
+                tr.localScale = Vector3.Lerp(fromScale, toScale, k);
             })
             .SetEase(Ease.Linear).SetLink(plated.gameObject)
             .OnComplete(() => Place(plated, slot, product, view, bakeColor));
@@ -292,14 +290,8 @@ public class DecorStation : KitchenTool
 
     private void UpdateDrag(Vector3 world)
     {
-        var waffle = dragSlot.Waffle;
-
-        // "Поднимаем" вафлю: уменьшаем до carryScale
-        carry01 = Mathf.MoveTowards(carry01, 1f, Time.deltaTime / Mathf.Max(0.01f, pickUpTime));
-        SetCarry(waffle, carry01);
-
         // Вафля под пальцем
-        waffle.transform.position = world;
+        dragSlot.Waffle.transform.position = world;
 
         // У края экрана прокручиваем стол — так можно донести вафлю до упаковки
         CarryHelper.EdgeScroll(tableScroller, edgeScrollZone, edgeScrollSpeed);
@@ -326,29 +318,19 @@ public class DecorStation : KitchenTool
         EndDrag(false);
     }
 
-    private void SetCarry(DecorWaffle waffle, float t)
-    {
-        float k = Mathf.Lerp(1f, carryScale, Mathf.SmoothStep(0f, 1f, t));
-        waffle.transform.localScale = new Vector3(k, k, 1f);
-    }
-
     // Отпустили мимо коробки — вафля плавно возвращается на своё место, камера тоже
     private void ReturnToSlot(DecorSlot slot)
     {
         var waffle = slot.Waffle;
         var from = waffle.transform.position;
         var to = slot.Center;
-        float fromCarry = carry01;
 
         if (tableScroller != null)
             tableScroller.MoveTo(cameraFocus != null ? cameraFocus.position.x : to.x, returnTime * 2f);
 
         returnTween = DOVirtual.Float(0f, 1f, returnTime, t =>
             {
-                float k = Mathf.SmoothStep(0f, 1f, t);
-                waffle.transform.position = Vector3.Lerp(from, to, k);
-                carry01 = Mathf.Lerp(fromCarry, 0f, k);
-                SetCarry(waffle, carry01);
+                waffle.transform.position = Vector3.Lerp(from, to, Mathf.SmoothStep(0f, 1f, t));
             })
             .SetEase(Ease.Linear).SetLink(waffle.gameObject)
             .OnComplete(() =>
@@ -388,7 +370,6 @@ public class DecorStation : KitchenTool
         var packed = slot.Waffle;
         slot.Waffle = null;
         slot.Product = null;
-        carry01 = 0f;
         if (active == slot) active = null;
         RefreshSlots();
         SortLayer.Move(packed, SortLayer.Food); // в коробке — между задней и передней стенкой
